@@ -7,6 +7,7 @@ PATH=$PATH:/home/nginx/.bun/bin
 git clean -fxd
 
 [ -f /tmp/env.agrocomm ] && cp /tmp/env.agrocomm .env.production
+cp .env.production .env
 
 sudo /usr/bin/systemctl stop agrocomm
 
