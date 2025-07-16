@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio'
+import { Element } from 'domhandler'
 import { db } from '@/db'
 import { prices } from '@/db/schema'
 import { extractCityAndState } from './utils'
@@ -69,7 +70,7 @@ export async function scrapeBoi() {
     .replace(/(\s+)/g, ' ')
   const createdAt = convertStringToDate(tableDate)
 
-  tr.each((idx: number, el: cheerio.Element) => {
+  tr.each((idx: number, el: Element) => {
     if (idx > 2) {
       const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ')
       const { state, city } = extractCityAndState(location)
@@ -78,7 +79,7 @@ export async function scrapeBoi() {
 
       if (typeof price === 'number' && !isNaN(price) && state) {
         data.push({
-          createdAt,
+          createdAt: createdAt.toISOString(),
           price,
           city: city ? city : '-',
           state,
@@ -102,7 +103,7 @@ export async function scrapeVaca() {
     .replace(/(\s+)/g, ' ')
   const createdAt = convertStringToDate(tableDate)
 
-  tr.each((idx: number, el: cheerio.Element) => {
+  tr.each((idx: number, el: Element) => {
     if (idx > 2) {
       const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ')
       const { state, city } = extractCityAndState(location)
@@ -111,7 +112,7 @@ export async function scrapeVaca() {
 
       if (typeof price === 'number' && !isNaN(price) && state) {
         data.push({
-          createdAt,
+          createdAt: createdAt.toISOString(),
           price,
           city: city ?? '-',
           state,
@@ -135,7 +136,7 @@ export async function scrapeSoja() {
     .replace(/(\s+)/g, ' ')
   const createdAt = convertStringToDate(tableDate)
 
-  tr.each((idx: number, el: cheerio.Element) => {
+  tr.each((idx: number, el: Element) => {
     if (idx > 2) {
       const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ')
       const { state, city } = extractCityAndState(location)
@@ -144,7 +145,7 @@ export async function scrapeSoja() {
 
       if (typeof price === 'number' && !isNaN(price) && state) {
         data.push({
-          createdAt,
+          createdAt: createdAt.toISOString(),
           price,
           city: city ?? '-',
           state,
@@ -172,7 +173,7 @@ export async function scrapeMilho() {
     .replace(/(\s+)/g, ' ')
   const createdAt = convertStringToDate(tableDate)
 
-  tr.each((idx: number, el: cheerio.Element) => {
+  tr.each((idx: number, el: Element) => {
     if (idx > 2) {
       const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ')
       const { state, city } = extractCityAndState(location)
@@ -181,7 +182,7 @@ export async function scrapeMilho() {
 
       if (typeof price === 'number' && !isNaN(price) && state) {
         data.push({
-          createdAt,
+          createdAt: createdAt.toISOString(),
           price,
           city: city ?? '-',
           state,
