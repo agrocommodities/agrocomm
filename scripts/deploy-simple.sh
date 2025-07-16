@@ -9,6 +9,10 @@ git clean -fxd
 [ -f /tmp/env.agrocomm ] && cp /tmp/env.agrocomm .env.production
 
 sudo /usr/bin/systemctl stop agrocomm
+
 bun install
+bun run db:push
+bun run db:seed
 bun run build
+
 sudo /usr/bin/systemctl start agrocomm
