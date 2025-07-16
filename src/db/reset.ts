@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm'
 import { db } from '@/db'
 
-if (!('DATABASE_URL' in process.env))
-  throw new Error('DATABASE_URL not found on .env.development')
+if (!('DB_FILE_NAME' in process.env))
+  throw new Error('DB_FILE_NAME not found on .env.development')
 
 async function reset() {
   console.log('⏳ Resetting database...')
@@ -32,7 +32,8 @@ async function reset() {
 		END $$;		
 		`
 
-  await db.execute(query)
+  // await db.execute(query)
+	await db.run(query);
 
   const end = Date.now()
   console.log(`✅ Reset end & took ${end - start}ms`)

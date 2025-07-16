@@ -1,0 +1,18 @@
+[Unit]
+Description=Next.js Service (AgroComm)
+After=network.target
+
+[Service]
+Type=simple
+User=nginx
+MemoryAccounting=true
+MemoryHigh=512M
+MemoryMax=1024M
+WorkingDirectory=/var/www/agrocomm
+Environment="NODE_ENV=production"
+ExecStart=/home/nginx/.bun/bin/bun run start
+# no|on-success|on-failure|on-abnormal|on-watchdog|on-abort|always
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+[Unit]
+Description=AgroComm Scrape Timer
+
+[Timer]
+# Define o agendamento de acordo com o cron: minuto, hora, dia do mês, mês, dia da semana
+OnCalendar=*-*-* 6,12,18,0:00:00
+
+# Especifica os dias da semana em que o timer deve ser ativado (segunda a sexta-feira)
+# 1=Segunda, 2=Terça, ..., 6=Sexta
+# Mais informações: https://www.freedesktop.org/software/systemd/man/systemd.time.html#DayOfWeek=
+OnCalendar=Mon..Fri
+
+# Tempo de espera após a inicialização do sistema antes que o timer seja ativado
+# Isso é útil se o sistema demorar um pouco para se conectar à rede, por exemplo
+StartupDelaySec=1min
+
+[Install]
+WantedBy=timers.target

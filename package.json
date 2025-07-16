@@ -11,7 +11,9 @@
     "db:gen": "bunx drizzle-kit generate",
     "db:mig": "bunx drizzle-kit migrate",
     "db:seed": "bun ./src/db/seed.ts",
-    "db:scr": "bun ./src/scrapper/"
+    "db:scr": "bun ./src/scrapper/index.ts",
+    "db:reset": "bun ./src/db/reset.ts",
+    "db:st": "bunx drizzle-kit studio"
   },
   "dependencies": {
     "@libsql/client": "^0.15.9",
@@ -22,6 +24,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bun": "^1.2.18",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

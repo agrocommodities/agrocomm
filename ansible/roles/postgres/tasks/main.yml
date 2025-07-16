@@ -1,0 +1,72 @@
+---
+- name: Instalar dependências necessárias
+  apt:
+    name:
+      - curl
+      - ca-certificates
+      - gnupg
+    state: present
+    update_cache: yes
+
+# - name: Adicionar repositório do PostgreSQL
+#   apt_key:
+#     url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
+#     state: present
+
+# - name: Configurar repositório do PostgreSQL 16
+#   apt_repository:
+#     repo: "deb [arch=amd64] http://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
+#     state: present
+#     filename: postgresql
+
+# - name: Instalar PostgreSQL 16
+#   apt:
+#     name:
+#       - postgresql-16
+#       - postgresql-client-16
+#       - python3-psycopg2  # Biblioteca para módulos do Ansible
+#     state: present
+#     update_cache: yes
+#   notify: reiniciar_postgresql
+
+- name: Garantir que o PostgreSQL está em execução
+  service:
+    name: postgresql
+    state: started
+    enabled: yes
+
+- name: Criar usuário 'agrocomm' no PostgreSQL
+  community.postgresql.postgresql_user:
+    name: agrocomm
+    password: "{{ agrocomm_db_password }}"
+    role_attr_flags: CREATEDB,LOGIN
+    state: present
+    login_user: postgres
+    login_host: localhost
+  become: yes
+  become_user: postgres
+
+- name: Criar banco de dados 'agrocomm' com dono
+  community.postgresql.postgresql_db:
+    name: agrocomm
+    owner: agrocomm
+    state: present
+    login_user: postgres
+    login_host: localhost
+  become: yes
+  become_user: postgres
+
+# - name: Criar banco de dados 'agrocomm'
+#   community.postgresql.postgresql_db:
+#     name: agrocomm
+#     state: present
+#     login_user: postgres
+#     login_host: localhost
+#   become: yes
+#   become_user: postgres
+
+- name: reiniciar_postgresql
+  service:
+    name: postgresql
+    state: restarted
+    enabled: yes
