@@ -2,7 +2,10 @@ export default function Input({ className = "", ...props }) {
   return (
     <input
       className={`
-        block min-w-0 grow py-1.5 pr-3 pl-1 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm/6
+        block w-full min-w-0 grow p-2.5 text-base dark:text-white
+        placeholder:text-gray-400 focus:outline-none
+        rounded-lg border-2 border-black/80 focus:border-black/80 
+        bg-black/50 dark:bg-black/70 dark:placeholder-gray-400 
         ${className}
       `.trim()}
       {...props}

@@ -8,7 +8,7 @@ export default async function SignIn({
   const { oauthError } = await searchParams;
 
   return (
-    <div>
+    <div className="flex justify-center">
       {oauthError && <div>{oauthError}</div>}
       <SignInForm />
     </div>

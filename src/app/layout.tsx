@@ -13,7 +13,8 @@ export const metadata: Metadata = {
   description: process.env.NEXT_PUBLIC_APP_DESC || "Commodities Agropecuárias",
   openGraph: {
     title: process.env.NEXT_PUBLIC_APP_NAME || "Agrocomm",
-    description: process.env.NEXT_PUBLIC_APP_DESC || "Commodities Agropecuárias",
+    description:
+      process.env.NEXT_PUBLIC_APP_DESC || "Commodities Agropecuárias",
     url: process.env.NEXT_PUBLIC_APP_URL || "https://agrocomm.com.br",
     siteName: process.env.NEXT_PUBLIC_APP_NAME || "AgroComm",
     images: [
@@ -37,13 +38,20 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/images/favicon.svg" sizes="any" type="image/svg+xml" />
+        <link
+          rel="icon"
+          href="/images/favicon.svg"
+          sizes="any"
+          type="image/svg+xml"
+        />
       </head>
       <body className={`${nunito.className} antialiased`}>
         <HeaderWrapper />
         <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-          <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-            {children}
+          <main className="w-full flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
+            <div className="container mx-auto">
+              {children}
+            </div>
           </main>
         </div>
         <Footer />

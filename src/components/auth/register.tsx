@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { signUp } from "@/actions";
 import { z } from "zod";
@@ -7,7 +8,8 @@ import { signUpSchema } from "@/schemas/auth";
 import Input from "@/components/ui/input";
 import PasswordStrength from "@/components/ui/password-str";
 import Password from "@/components/ui/password";
-import Link from "next/link";
+import Loader from "@/components/ui/loader";
+import Button from "@/components/ui/button";
 
 type FormData = z.infer<typeof signUpSchema>;
 
@@ -18,26 +20,28 @@ export function SignUpForm() {
     password: "",
   });
 
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
+    {}
+  );
   const [submitError, setSubmitError] = useState<string>();
   const [loading, setLoading] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
 
   function validateEmail(email: string): string | undefined {
     if (!email) return "Email é obrigatório";
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return "Email inválido. Exemplo: usuario@dominio.com";
     }
-    
+
     return undefined;
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-    
+
     // Validação em tempo real para email
     if (name === "email" && emailTouched) {
       const emailError = validateEmail(value);
@@ -45,7 +49,7 @@ export function SignUpForm() {
     } else {
       setErrors({ ...errors, [name]: undefined });
     }
-    
+
     setSubmitError(undefined);
   }
 
@@ -57,7 +61,7 @@ export function SignUpForm() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    
+
     // Validar email antes de enviar
     const emailError = validateEmail(formData.email);
     if (emailError) {
@@ -87,83 +91,98 @@ export function SignUpForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-8" autoComplete="nope">
-      {submitError && (
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-md text-sm">
-          {submitError}
-        </div>
-      )}
-      <div className="space-y-2">
-        <label htmlFor="name" className="block font-medium">
-          Nome
-        </label>
-        <Input
-          id="name"
-          name="name"
-          type="text"
-          value={formData.name}
-          onChange={handleChange}
-          autoComplete="new-password"
-          className={errors.name ? "border-red-500" : ""}
-        />
-        {errors.name && (
-          <p className="text-sm text-red-600">{errors.name}</p>
-        )}
+    <div
+      className="
+        w-full border-2 border-solid border-black/[.18] dark:border-white/[.145]
+        bg-black/50 rounded-lg shadow dark:border md:mt-0 max-w-2xl dark:border-gray-700
+      "
+    >
+      <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
+        <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
+          Entrar
+        </h1>
+        <form onSubmit={onSubmit} className="space-y-8" autoComplete="nope">
+          {submitError && (
+            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-md text-sm">
+              {submitError}
+            </div>
+          )}
+          <div className="space-y-2">
+            <label htmlFor="name" className="block font-medium">
+              Nome
+            </label>
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              value={formData.name}
+              onChange={handleChange}
+              autoComplete="new-password"
+              className={errors.name ? "border-red-500" : ""}
+            />
+            {errors.name && (
+              <p className="text-sm text-red-600">{errors.name}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="email" className="block font-medium">
+              Email
+            </label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              onBlur={handleEmailBlur}
+              autoComplete="off"
+              className={errors.email ? "border-red-500" : ""}
+              aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? "email-error" : undefined}
+            />
+            {errors.email && (
+              <p id="email-error" className="text-sm text-red-600">
+                {errors.email}
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="password" className="block font-medium">
+              Senha
+            </label>
+            <Password
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              autoComplete="new-password"
+              className={errors.password ? "border-red-500" : ""}
+              placeholder="Digite sua senha..."
+              // showStrength={`true`}
+            />
+            <PasswordStrength password={formData.password} />
+            {errors.password && (
+              <p className="text-sm text-red-600">{errors.password}</p>
+            )}
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Use pelo menos 8 caracteres, incluindo letras maiúsculas,
+              minúsculas, números e símbolos.
+            </p>
+          </div>
+          <div className="flex justify-between">
+            <Link href="/entrar" className="underline">
+              Já tenho conta
+            </Link>
+            <Button
+              type="submit"
+              disabled={loading || !!errors.email || !!errors.password}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? <Loader className="w-5 h-5 text-white">Cadastrando...</Loader> : "Cadastrar"}
+            </Button>
+          </div>
+        </form>
       </div>
-
-      <div className="space-y-2">
-        <label htmlFor="email" className="block font-medium">
-          Email
-        </label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          value={formData.email}
-          onChange={handleChange}
-          onBlur={handleEmailBlur}
-          autoComplete="off"
-          className={errors.email ? "border-red-500" : ""}
-          aria-invalid={!!errors.email}
-          aria-describedby={errors.email ? "email-error" : undefined}
-        />
-        {errors.email && (
-          <p id="email-error" className="text-sm text-red-600">
-            {errors.email}
-          </p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="password" className="block font-medium">
-          Senha
-        </label>
-        <Password
-          id="password"
-          name="password"
-          value={formData.password}
-          onChange={handleChange}
-          autoComplete="new-password"
-          className={errors.password ? "border-red-500" : ""}
-          placeholder="Digite sua senha..."
-          // showStrength={`true`}
-        />
-        <PasswordStrength password={formData.password} />
-        {errors.password && (
-          <p className="text-sm text-red-600">{errors.password}</p>
-        )}
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          Use pelo menos 8 caracteres, incluindo letras maiúsculas, minúsculas, números e símbolos.
-        </p>
-      </div>
-      <div className="flex justify-between">
-        <Link href="/entrar" className="underline">
-          Já tenho conta
-        </Link>
-        <button type="submit" disabled={loading || !!errors.email || !!errors.password} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-          {loading ? "Cadastrando..." : "Cadastrar"}
-        </button>
-      </div>
-    </form>
+    </div>
   );
 }
