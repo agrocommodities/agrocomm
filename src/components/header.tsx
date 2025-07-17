@@ -2,24 +2,28 @@
 
 import Link from "next/link";
 import Image from "next/image";
-// import LogOut from "@/components/auth/logout-btn";
-import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import AccountWrapper from "@/components/auth/account-wrapper";
+import { useState, useEffect } from "react";
+import { logOut } from "@/actions";
+// import LogOut from "@/components/auth/logout-btn";
 
-// Como o componente agora é client-side, precisamos passar o usuário como prop
-interface NavbarProps {
+export interface User {
   user: {
-    id: string;
+    id: number;
     email: string;
     role: string;
-    name?: string;
+    name?: string | null;
+    username?: string | null;
   } | null;
 }
 
-export default function Header() {
+export default function Header({ user }: User) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
+
+  const handleLogout = async () => {
+    await logOut();
+  };
 
   // Fechar menu ao mudar de rota
   useEffect(() => {
@@ -57,7 +61,42 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-4">
-            <AccountWrapper />
+            {user ? (
+              <>
+                <span className="text-sm text-foreground/60">
+                  Olá, {user.name || user.email}
+                </span>
+                {user.role === "admin" && (
+                  <Link
+                    href="/admin"
+                    className="text-sm hover:text-foreground/80 transition-colors"
+                  >
+                    Admin
+                  </Link>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="text-sm text-red-600 hover:text-red-700 transition-colors cursor-pointer"
+                >
+                  Sair
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/entrar"
+                  className="text-sm hover:text-foreground/80 transition-colors"
+                >
+                  Entrar
+                </Link>
+                <Link
+                  href="/cadastro"
+                  className="rounded-full bg-foreground text-background px-4 py-2 text-sm font-medium transition-colors hover:bg-foreground/90"
+                >
+                  Cadastrar
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -105,7 +144,43 @@ export default function Header() {
         {/* Mobile Menu */}
         <div className={`md:hidden ${isMenuOpen ? "block" : "hidden"}`}>
           <div className="px-2 pt-2 pb-3 space-y-1 bg-background border-t border-foreground/10 mt-2">
-            <AccountWrapper />
+            {user ? (
+              <>
+                <div className="px-3 py-2 text-sm text-foreground/60 border-b border-foreground/10 mb-2">
+                  Olá, {user.name || user.email}
+                </div>
+                {user.role === "admin" && (
+                  <Link
+                    href="/admin"
+                    className="block px-3 py-2 rounded-md text-base font-medium hover:bg-foreground/10 transition-colors"
+                  >
+                    Admin
+                  </Link>
+                )}
+                {/* <LogOutLink className="block px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors" /> */}
+                <button
+                  onClick={handleLogout}
+                  className="block px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+                >
+                  Sair
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/entrar"
+                  className="block px-3 py-2 rounded-md text-base font-medium hover:bg-foreground/10 transition-colors"
+                >
+                  Entrar
+                </Link>
+                <Link
+                  href="/cadastro"
+                  className="block px-3 py-2 rounded-md text-base font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors"
+                >
+                  Cadastrar
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
