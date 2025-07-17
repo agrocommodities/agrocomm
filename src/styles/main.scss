@@ -1,24 +1,35 @@
 @use "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --background: #394634;
   --foreground: #171717;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  // --font-sans: var(--font-geist-sans);
-  // --font-mono: var(--font-geist-mono);
 
-  --color-midnight: #121063;  
-  --color-tahiti: #3ab7bf;  
-  --color-bermuda: #78dcca;
+  --color-primary: #2563eb;
+  --color-secondary: #4f46e5;
+  --color-accent: #f59e0b;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
+  --color-info: #2563eb;
+  --color-black: #1F1E1C;
+  --color-bg_dim: #242120;
+  --color-bg_bg0: #312C2B;
+  --color-bg_bg1: #393230;
+  --color-bg_bg2: #413937;
+  --color-bg_bg3: #49403C;
+  --color-bg_bg4: #4E433F;
+  --color-bg_dim3: #34302e;
+  --color-diff_green: #394634;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #394634;
     --foreground: #ededed;
   }
 }
@@ -27,4 +38,5 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: "Nunito", Arial, Helvetica, sans-serif;
+  font-size: 1.1rem;
 }

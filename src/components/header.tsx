@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-// import { logOut } from "@/app/actions";
+import { logOut } from "@/actions";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 
@@ -20,9 +20,9 @@ export default function Header({ user }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
 
-  // const handleLogout = async () => {
-  //   await logOut();
-  // };
+  const handleLogout = async () => {
+    await logOut();
+  };
 
   // Fechar menu ao mudar de rota
   useEffect(() => {
@@ -43,18 +43,19 @@ export default function Header({ user }: NavbarProps) {
   }, [isMenuOpen]);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b border-foreground/10">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b-2 border-black/40">
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2 text-foreground font-bold text-2xl">
             <Image
-              className="dark:invert"
-              src="/next.svg"
-              alt="Logo"
-              width={100}
-              height={21}
+              className="m-0"
+              src="/images/navbar.svg"
+              alt={process.env.NEXT_PUBLIC_APP_NAME!}
+              width={38}
+              height={38}
               priority
             />
+            {process.env.NEXT_PUBLIC_APP_NAME}
           </Link>
 
           {/* Desktop Navigation */}
@@ -73,7 +74,7 @@ export default function Header({ user }: NavbarProps) {
                   </Link>
                 )}
                 <button
-                  // onClick={handleLogout}
+                  onClick={handleLogout}
                   className="text-sm text-red-600 hover:text-red-700 transition-colors cursor-pointer"
                 >
                   Sair
@@ -157,7 +158,7 @@ export default function Header({ user }: NavbarProps) {
                 )}
                 {/* <LogOutLink className="block px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors" /> */}
                 <button
-                  // onClick={handleLogout}
+                  onClick={handleLogout}
                   className="block px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
                 >
                   Sair
