@@ -90,7 +90,7 @@ bun install
 #bash ./scripts/db/create.sh
 
 echo "Atualizando banco de dados..."
-#bun run db:reset
+bun run db:reset
 bun run db:push
 #bun run db:gen
 #bun run db:mig

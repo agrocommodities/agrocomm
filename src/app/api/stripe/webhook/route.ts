@@ -51,12 +51,15 @@ export async function POST(request: NextRequest) {
         const plan = session.metadata?.plan;
 
         if (userId && plan && session.subscription) {
-          // Buscar detalhes da assinatura
-          const subscription = await stripe.subscriptions.retrieve(
+          const subscriptionResponse = await stripe.subscriptions.retrieve(
             session.subscription as string
           );
+          const subscription = subscriptionResponse as Stripe.Subscription;
 
-          // Atualizar ou criar registro de assinatura
+          // Acesso seguro às propriedades de período
+          const currentPeriodStart = subscription.currentPeriodStart;
+          const currentPeriodEnd = subscription.currentPeriodEnd;
+
           await db
             .insert(subscriptions)
             .values({
@@ -65,8 +68,8 @@ export async function POST(request: NextRequest) {
               status: subscription.status as any,
               stripeCustomerId: session.customer as string,
               stripeSubscriptionId: subscription.id,
-              currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-              currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+              currentPeriodStart: new Date(currentPeriodStart * 1000).toISOString(),
+              currentPeriodEnd: new Date(currentPeriodEnd * 1000).toISOString(),
             })
             .onConflictDoUpdate({
               target: subscriptions.userId,
@@ -75,8 +78,8 @@ export async function POST(request: NextRequest) {
                 status: subscription.status as any,
                 stripeCustomerId: session.customer as string,
                 stripeSubscriptionId: subscription.id,
-                currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-                currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+                currentPeriodStart: new Date(currentPeriodStart * 1000).toISOString(),
+                currentPeriodEnd: new Date(currentPeriodEnd * 1000).toISOString(),
                 updatedAt: new Date().toISOString(),
               },
             });
@@ -85,16 +88,19 @@ export async function POST(request: NextRequest) {
       }
 
       case "customer.subscription.updated": {
-        const subscription = event.data.object as Stripe.Subscription;
+        // Correção: Cast explícito para acessar propriedades específicas
+        const subscription = event.data.object as Stripe.Subscription & {
+          current_period_start: number;
+          current_period_end: number;
+        };
+        
         const customerId = subscription.customer as string;
 
-        // Buscar usuário pelo customer ID
         const userSubscription = await db.query.subscriptions.findFirst({
           where: eq(subscriptions.stripeCustomerId, customerId),
         });
 
         if (userSubscription) {
-          // Determinar o plano baseado no price ID
           let plan = "free";
           const priceId = subscription.items.data[0]?.price.id;
           
@@ -105,17 +111,18 @@ export async function POST(request: NextRequest) {
           await db
             .update(subscriptions)
             .set({
-          await db
-            .update(subscriptions)
-            .set({
               plan: plan as any,
               status: subscription.status as any,
+              // Acesso direto às propriedades após cast
               currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
               currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
               cancelAtPeriodEnd: subscription.cancel_at_period_end,
               updatedAt: new Date().toISOString(),
             })
             .where(eq(subscriptions.stripeCustomerId, customerId));
+        }
+        break;
+      }
 
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
