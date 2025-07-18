@@ -19,7 +19,7 @@ function _getCurrentUser(options: {
 function _getCurrentUser(options: {
   withFullUser: true;
   redirectIfNotFound?: false;
-}): Promise<FullUser | null>;
+}): Promise<FullUser>;
 
 function _getCurrentUser(options: {
   withFullUser?: false;
@@ -39,7 +39,7 @@ async function _getCurrentUser({
   const user = await getUserFromSession(await cookies());
 
   if (!user) {
-    if (redirectIfNotFound) return redirect("/sign-in");
+    if (redirectIfNotFound) return redirect("/entrar");
     return null;
   }
 
@@ -52,7 +52,7 @@ async function _getCurrentUser({
   return user;
 }
 
-export const getCurrentUser = cache(_getCurrentUser);
+export const getCurrentUser = cache(_getCurrentUser) || null;
 
 async function getUserFromDb(id: number) {
   return await db.query.users.findFirst({

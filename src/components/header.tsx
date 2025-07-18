@@ -6,10 +6,10 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { logOut } from "@/actions";
 import { UserMenu } from "@/components/auth/user-menu";
-import type { User } from "@/types";
 import EstadoDropdown from '@/components/ui/states';
+import type { User } from "@/types";
 
-export default function Header({ user }: { user: User }) {
+export default function Header({ user }: { user: User | null }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -55,7 +55,7 @@ export default function Header({ user }: { user: User }) {
           <div className="hidden md:flex items-center gap-4">
             <EstadoDropdown />
             {user ? (
-              <UserMenu user={{...user, createdAt: null, updatedAt: null}} onLogout={handleLogout} />
+              <UserMenu user={user} />
             ) : (
               <>
                 <Link

@@ -3,16 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import type { User } from "@/types";
 import { logOut } from "@/actions";
+import type { User } from "@/types";
 
-export function UserMenu({
-  user,
-  onLogout,
-}: {
-  user: User;
-  onLogout: () => void;
-}) {
+export function UserMenu({ user }: { user: User }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -31,7 +25,7 @@ export function UserMenu({
       >
         <Image
           className="h-8 w-8 rounded-full"
-          src={user.image || "/images/avatar.svg"}
+          src={user?.image || "/images/avatar.svg"}
           alt="User avatar"
           width={32}
           height={32}
@@ -54,7 +48,7 @@ export function UserMenu({
           Perfil
         </Link>
         <Link
-          href="#"
+          href="/ajustes"
           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
           role="menuitem"
         >

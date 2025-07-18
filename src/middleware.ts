@@ -1,11 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getUserFromSession, updateUserSessionExpiration } from "@/lib/session";
 
-// Rotas que requerem autenticação
-const authRoutes = ["/admin", "/usuarios", "/perfil"];
-
-// Rotas públicas que redirecionam se já autenticado
-const publicOnlyRoutes = ["/entrar", "/cadastro"];
+const authRoutes = ["/admin", "/usuarios", "/perfil", "/ajustes", "/produtos", "/pedidos", "/relatorios"];
+const publicOnlyRoutes = ["/entrar", "/cadastro", "/senha"];
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
