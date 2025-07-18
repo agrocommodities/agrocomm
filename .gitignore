@@ -45,3 +45,9 @@ next-env.d.ts
 drizzle/**
 !drizzle/.gitkeep
 *.db
+
+# custom 
+*.old*
+
+# uploads
+/public/uploads/

@@ -12,11 +12,14 @@
     "db:mig": "bunx drizzle-kit migrate",
     "db:seed": "bun ./src/db/seed.ts",
     "db:scr": "bun ./src/scraper/index.ts",
-    "db:reset": "bun ./src/db/reset.ts",
-    "db:st": "bunx drizzle-kit studio"
+    "db:rst": "bun ./src/db/reset.ts",
+    "db:reset": "rm -rf ./drizzle/local.db ./drizzle/meta/ ./drizzle/*.sql",
+    "db:st": "bunx drizzle-kit studio",
+    "stripe": "stripe listen --forward-to localhost:3000/api/stripe/webhook"
   },
   "dependencies": {
     "@libsql/client": "^0.15.9",
+    "@stripe/stripe-js": "^7.5.0",
     "cheerio": "^1.1.0",
     "dotenv": "^17.2.0",
     "drizzle-orm": "^0.44.3",

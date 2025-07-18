@@ -1,22 +1,18 @@
-import { roles } from "@/db/schema";
 import { z } from "zod";
 import { SignJWT, jwtVerify } from "jose";
+import type { SessionUser } from "@/types";
 
-const SESSION_EXPIRATION_SECONDS = 60 * 60 * 24 * 7; // Sete dias em segundos
+const SESSION_EXPIRATION_SECONDS = 60 * 60 * 24 * 7;
 const COOKIE_SESSION_KEY = "session-token";
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "default_secret_key_change_in_production");
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || "default_secret_key_change_in_production"
+);
 
-const sessionSchema = z.object({ id: z.number(), role: z.enum(roles) });
-type UserSession = z.infer<typeof sessionSchema>;
-
-function setCookie(token: string, cookies: Pick<Cookies, "set">) {
-  cookies.set(COOKIE_SESSION_KEY, token, {
-    secure: true,
-    httpOnly: true,
-    sameSite: "lax",
-    expires: Date.now() + SESSION_EXPIRATION_SECONDS * 1000,
-  })
-}
+const sessionSchema = z.object({
+  id: z.number(),
+  email: z.string().email(),
+  role: z.enum(["admin", "user"]),
+});
 
 export type Cookies = {
   set: (
@@ -33,7 +29,9 @@ export type Cookies = {
   delete: (key: string) => void;
 };
 
-export async function getUserFromSession(cookies: Pick<Cookies, "get">) {
+export async function getUserFromSession(
+  cookies: Pick<Cookies, "get">
+): Promise<SessionUser | null> {
   const sessionToken = cookies.get(COOKIE_SESSION_KEY)?.value;
   if (!sessionToken) return null;
 
@@ -50,21 +48,12 @@ export async function getUserFromSession(cookies: Pick<Cookies, "get">) {
   }
 }
 
-export async function updateUserSessionData(
-  user: UserSession,
-  cookies: Pick<Cookies, "get" | "set">
-) {
-  // Substituir a sessão atual com uma nova contendo os dados atualizados
-  await createSession(user, cookies);
-}
-
 export async function createSession(
-  user: UserSession,
+  user: SessionUser,
   cookies: Pick<Cookies, "set">
 ) {
   const validatedUser = sessionSchema.parse(user);
 
-  // Criar um JWT com os dados do usuário
   const token = await new SignJWT(validatedUser)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -74,6 +63,15 @@ export async function createSession(
     .sign(JWT_SECRET);
 
   setCookie(token, cookies);
+}
+
+function setCookie(token: string, cookies: Pick<Cookies, "set">) {
+  cookies.set(COOKIE_SESSION_KEY, token, {
+    secure: true,
+    httpOnly: true,
+    sameSite: "lax",
+    expires: Date.now() + SESSION_EXPIRATION_SECONDS * 1000,
+  });
 }
 
 export async function updateUserSessionExpiration(

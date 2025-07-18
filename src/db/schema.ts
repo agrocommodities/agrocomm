@@ -2,27 +2,92 @@ import { int, text, sqliteTable } from "drizzle-orm/sqlite-core";
 import { relations, sql } from "drizzle-orm";
 
 export const roles = ["admin", "user"] as const;
+export const subscriptionPlans = ["free", "basic", "pro", "enterprise"] as const;
+export const subscriptionStatus = ["active", "cancelled", "past_due", "trialing"] as const;
+
+// Adicione a tabela de subscrições
+export const subscriptions = sqliteTable("subscriptions", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int().notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  plan: text({ enum: subscriptionPlans }).default("free").notNull(),
+  status: text({ enum: subscriptionStatus }).default("active").notNull(),
+  currentPeriodStart: text(),
+  currentPeriodEnd: text(),
+  cancelAtPeriodEnd: int({ mode: "boolean" }).default(false),
+  stripeCustomerId: text(),
+  stripeSubscriptionId: text(),
+  createdAt: text().default(sql`(CURRENT_TIMESTAMP)`),
+  updatedAt: text(),
+});
+
+// Adicione as relações
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [subscriptions.userId],
+    references: [users.id],
+  }),
+}));
 
 export const users = sqliteTable("users", {
   id: int().primaryKey({ autoIncrement: true }),
-  name: text().notNull(),
-  username: text().unique(),
   email: text().notNull().unique(),
   password: text().notNull(),
-  image: text().notNull().default("/images/avatar.svg"),
-  role: text({ enum: ["admin", "user"] }).default("user").notNull(),
+  role: text({ enum: ["admin", "user"] })
+    .default("user")
+    .notNull(),
   salt: text(),
   createdAt: text().default(sql`(CURRENT_TIMESTAMP)`),
   updatedAt: text(),
 });
 
-export const usersRelations = relations(users, ({ many }) => ({
+// Atualize usersRelations para incluir subscription
+export const usersRelations = relations(users, ({ one, many }) => ({
+  profile: one(profiles, {
+    fields: [users.id],
+    references: [profiles.userId],
+  }),
+  subscription: one(subscriptions, {
+    fields: [users.id],
+    references: [subscriptions.userId],
+  }),
   sessions: many(sessions),
+}));
+
+// // Relations
+// export const usersRelations = relations(users, ({ one, many }) => ({
+//   profile: one(profiles, {
+//     fields: [users.id],
+//     references: [profiles.userId],
+//   }),
+//   sessions: many(sessions),
+// }));
+
+export const profiles = sqliteTable("profiles", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int()
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text().notNull(),
+  username: text().unique(),
+  bio: text(),
+  avatar: text().default("/images/avatar.svg"),
+  phone: text(),
+  location: text(),
+  website: text(),
+  createdAt: text().default(sql`(CURRENT_TIMESTAMP)`),
+  updatedAt: text(),
+});
+
+export const profilesRelations = relations(profiles, ({ one }) => ({
+  user: one(users, {
+    fields: [profiles.userId],
+    references: [users.id],
+  }),
 }));
 
 export const sessions = sqliteTable("sessions", {
   id: int().primaryKey({ autoIncrement: true }),
-  userId: int().references(() => users.id), // Changed from integer() to uuid()
+  userId: int().references(() => users.id, { onDelete: "cascade" }),
   createdAt: text().default(sql`(CURRENT_TIMESTAMP)`),
 });
 
