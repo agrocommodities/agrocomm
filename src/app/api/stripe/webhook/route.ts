@@ -105,17 +105,17 @@ export async function POST(request: NextRequest) {
           await db
             .update(subscriptions)
             .set({
+          await db
+            .update(subscriptions)
+            .set({
               plan: plan as any,
               status: subscription.status as any,
               currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
               currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
-              cancelAtPeriodEnd: subscription.cancel_at_period_end ? 1 : 0,
+              cancelAtPeriodEnd: subscription.cancel_at_period_end,
               updatedAt: new Date().toISOString(),
             })
             .where(eq(subscriptions.stripeCustomerId, customerId));
-        }
-        break;
-      }
 
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;

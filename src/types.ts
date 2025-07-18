@@ -2,9 +2,11 @@ import { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { users, profiles, sessions, subscriptions } from "@/db/schema";
 
 // Tipos base do banco
-export type User = InferSelectModel<typeof users>;
+export type UserType = InferSelectModel<typeof users>;
 export type Profile = InferSelectModel<typeof profiles>;
 export type Session = InferSelectModel<typeof sessions>;
+export type Subscription = InferSelectModel<typeof subscriptions>;
+export type NewSubscription = InferInsertModel<typeof subscriptions>;
 
 // Tipos para inserção
 export type NewUser = InferInsertModel<typeof users>;
@@ -16,9 +18,12 @@ export type UserWithProfile = User & {
 };
 
 // Tipo seguro para uso no frontend (sem senha/salt)
-export type SafeUser = Omit<User, "password" | "salt">;
-export type SafeUserWithProfile = SafeUser & {
+export type SafeUser = Omit<UserType, "password" | "salt">;
+
+// Tipo combinado com subscrição
+export type User = SafeUser & {
   profile: Profile | null;
+  subscription: Subscription | null;
 };
 
 // Tipo para sessão
@@ -26,16 +31,6 @@ export type SessionUser = {
   id: number;
   email: string;
   role: "admin" | "user";
-};
-
-// Tipos para subscrição
-export type Subscription = InferSelectModel<typeof subscriptions>;
-export type NewSubscription = InferInsertModel<typeof subscriptions>;
-
-// Tipo combinado com subscrição
-export type SafeUserWithProfileAndSubscription = SafeUser & {
-  profile: Profile | null;
-  subscription: Subscription | null;
 };
 
 // Informações do plano

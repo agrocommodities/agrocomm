@@ -25,7 +25,7 @@ export function UserMenu({ user }: { user: User }) {
       >
         <Image
           className="h-8 w-8 rounded-full"
-          src={user?.image || "/images/avatar.svg"}
+          src={user.profile?.avatar || "/images/avatar.svg"}
           alt="User avatar"
           width={32}
           height={32}

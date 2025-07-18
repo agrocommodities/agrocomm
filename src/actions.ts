@@ -90,7 +90,7 @@ export async function signUp(unsafeData: z.infer<typeof signUpSchema>) {
 }
 
 export async function updateUser(_prevState: any, formData: FormData) {
-  const currentUser = await getCurrentUser({ withProfile: false });
+  const currentUser = await getCurrentUser();
   if (!currentUser) return { error: "Não autorizado" };
 
   const userId = formData.get("userId") as string;
@@ -164,7 +164,7 @@ export async function updateUser(_prevState: any, formData: FormData) {
 }
 
 export async function updateProfile(_prevState: any, formData: FormData) {
-  const currentUser = await getCurrentUser({ withProfile: true });
+  const currentUser = await getCurrentUser();
   if (!currentUser) return { error: "Não autorizado" };
 
   const userId = parseInt(formData.get("userId") as string, 10);
@@ -358,7 +358,7 @@ export async function getUserById(id: string) {
 }
 
 export async function deleteUser(userId: string) {
-  const currentUser = await getCurrentUser({ withProfile: true });
+  const currentUser = await getCurrentUser();
   if (!currentUser || currentUser.role !== "admin") {
     return { error: "Não autorizado" };
   }

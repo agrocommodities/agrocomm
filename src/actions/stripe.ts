@@ -1,9 +1,14 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/user";
 import { stripe, getPriceIdForPlan } from "@/lib/stripe";
 import { subscriptions } from "@/db/schema";
+import { db } from "@/db";
+import { eq } from "drizzle-orm";
 
 export async function createCheckoutSession(plan: string) {
-  const user = await getCurrentUser({ withProfile: true });
+  const user = await getCurrentUser();
   if (!user) return { error: "Não autorizado" };
 
   const priceId = getPriceIdForPlan(plan);
@@ -69,7 +74,7 @@ export async function createCheckoutSession(plan: string) {
 }
 
 export async function managePlan(action: "upgrade" | "downgrade", newPlan: string) {
-  const user = await getCurrentUser({ withProfile: true });
+  const user = await getCurrentUser();
   if (!user) return { error: "Não autorizado" };
 
   try {
@@ -118,7 +123,7 @@ export async function managePlan(action: "upgrade" | "downgrade", newPlan: strin
 }
 
 export async function cancelSubscription() {
-  const user = await getCurrentUser({ withProfile: true });
+  const user = await getCurrentUser();
   if (!user) return { error: "Não autorizado" };
 
   try {
@@ -134,7 +139,7 @@ export async function cancelSubscription() {
     // Atualizar no banco
     await db.update(subscriptions)
       .set({
-        cancelAtPeriodEnd: 1,
+        cancelAtPeriodEnd: true,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(subscriptions.userId, user.id));
@@ -148,7 +153,7 @@ export async function cancelSubscription() {
 }
 
 export async function reactivateSubscription() {
-  const user = await getCurrentUser({ withProfile: true });
+  const user = await getCurrentUser();
   if (!user) return { error: "Não autorizado" };
 
   try {
@@ -164,7 +169,7 @@ export async function reactivateSubscription() {
     // Atualizar no banco
     await db.update(subscriptions)
       .set({
-        cancelAtPeriodEnd: 0,
+        cancelAtPeriodEnd: false,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(subscriptions.userId, user.id));

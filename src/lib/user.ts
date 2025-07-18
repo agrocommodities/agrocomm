@@ -5,31 +5,15 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
 import { users } from "@/db/schema";
-import type { SafeUserWithProfile, SafeUserWithProfileAndSubscription, SessionUser } from "@/types";
+import type { UserWithProfile, SessionUser } from "@/types";
 
-// Função para buscar usuário completo do banco
-// async function getUserFromDb(id: number): Promise<SafeUserWithProfile | null> {
-//   const result = await db.query.users.findFirst({
-//     where: eq(users.id, id),
-//     with: {
-//       profile: true,
-//     },
-//     columns: {
-//       password: false,
-//       salt: false,
-//     },
-//   });
-
-//   return result || null;
-// }
-
-// Atualize a função getUserFromDb
-async function getUserFromDb(id: number, withSubscription = false) {
+// Função simplificada que sempre busca todos os dados
+async function getUserFromDb(id: number): Promise<UserWithProfile | null> {
   const result = await db.query.users.findFirst({
     where: eq(users.id, id),
     with: {
       profile: true,
-      ...(withSubscription && { subscription: true }),
+      subscription: true,
     },
     columns: {
       password: false,
@@ -40,37 +24,25 @@ async function getUserFromDb(id: number, withSubscription = false) {
   return result || null;
 }
 
-// Sobrecargas para tipos precisos
+// Sobrecargas simplificadas
 function _getCurrentUser(options: {
-  withProfile: true;
+  sessionOnly?: false;
   redirectIfNotFound: true;
-}): Promise<SafeUserWithProfile>;
-
-function _getCurrentUser(options: {
-  withProfile: true;
-  redirectIfNotFound?: false;
-}): Promise<SafeUserWithProfile | null>;
-
-function _getCurrentUser(options: {
-  withProfile?: false;
-  redirectIfNotFound: true;
-}): Promise<SessionUser>;
+}): Promise<UserWithProfile>;
 
 function _getCurrentUser(options?: {
-  withProfile?: false;
+  sessionOnly?: false;
   redirectIfNotFound?: false;
-}): Promise<SessionUser | null>;
+}): Promise<UserWithProfile | null>;
 
-// Adicione uma nova sobrecarga
 function _getCurrentUser(options: {
-  withProfile: true;
-  withSubscription: true;
+  sessionOnly: true;
   redirectIfNotFound?: boolean;
-}): Promise<SafeUserWithProfileAndSubscription>;
+}): Promise<SessionUser | null>;
 
 // Implementação
 async function _getCurrentUser({
-  withProfile = false,
+  sessionOnly = false,
   redirectIfNotFound = false,
 } = {}) {
   const sessionUser = await getUserFromSession(await cookies());
@@ -80,16 +52,19 @@ async function _getCurrentUser({
     return null;
   }
 
-  if (withProfile) {
-    const fullUser = await getUserFromDb(sessionUser.id);
-    if (!fullUser) {
-      if (redirectIfNotFound) return redirect("/entrar");
-      return null;
-    }
-    return fullUser;
+  // Se só precisa dados da sessão, retorna direto
+  if (sessionOnly) {
+    return sessionUser;
   }
 
-  return sessionUser;
+  // Sempre busca todos os dados do usuário
+  const fullUser = await getUserFromDb(sessionUser.id);
+  if (!fullUser) {
+    if (redirectIfNotFound) return redirect("/entrar");
+    return null;
+  }
+
+  return fullUser;
 }
 
 export const getCurrentUser = cache(_getCurrentUser);

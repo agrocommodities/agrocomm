@@ -9,13 +9,9 @@ import AvatarUpload from "@/components/ui/avatar";
 import SubscriptionCard from "@/components/subscription/subscription-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { managePlan, cancelSubscription } from "@/actions/stripe";
-import type { SafeUserWithProfileAndSubscription } from "@/types";
+import type { User } from "@/types";
 
-interface ProfileEditFormProps {
-  user: SafeUserWithProfileAndSubscription;
-}
-
-export default function ProfileEditForm({ user }: ProfileEditFormProps) {
+export default function ProfileEditForm({ user }: { user: User }) {
   const [state, formAction, isPending] = useActionState(updateProfile, null);
   const [showPasswordFields, setShowPasswordFields] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -23,7 +19,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
   // Dentro do componente, antes do return:
   const handleUpgrade = async (plan: string) => {
     const result = await managePlan("upgrade", plan);
-    if (result.error) {
+    if ("error" in result && result.error) {
       alert(result.error);
     } else if ("checkoutUrl" in result && result.checkoutUrl) {
       window.location.href = result.checkoutUrl;
@@ -37,7 +33,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
       )
     ) {
       const result = await managePlan("downgrade", plan);
-      if (result.error) {
+      if ("error" in result && result.error) {
         alert(result.error);
       }
     }
@@ -46,7 +42,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
   const handleCancel = async () => {
     if (confirm("Tem certeza que deseja cancelar sua assinatura?")) {
       const result = await cancelSubscription();
-      if (result.error) {
+      if ("error" in result && result.error) {
         alert(result.error);
       }
     }
