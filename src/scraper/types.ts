@@ -1,3 +1,13 @@
+export interface User {
+  id: string | number
+  name: string
+  email: string
+  role: 'admin' | 'user'
+  avatar?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface EmailMessage {
   fullname?: string
   username: string

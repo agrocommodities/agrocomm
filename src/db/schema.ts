@@ -5,11 +5,11 @@ export const roles = ["admin", "user"] as const;
 
 export const users = sqliteTable("users", {
   id: int().primaryKey({ autoIncrement: true }),
-  name: text(),
+  name: text().notNull(),
   username: text().unique(),
   email: text().notNull().unique(),
   password: text().notNull(),
-  image: text().default("/images/avatar.svg"),
+  image: text().notNull().default("/images/avatar.svg"),
   role: text({ enum: ["admin", "user"] }).default("user").notNull(),
   salt: text(),
   createdAt: text().default(sql`(CURRENT_TIMESTAMP)`),

@@ -30,36 +30,6 @@ export const metadata: Metadata = {
   },
 };
 
-// export default function RootLayout({
-//   children,
-// }: Readonly<{
-//   children: React.ReactNode;
-// }>) {
-//   return (
-//     <html lang="en">
-//       <head>
-//         <link
-//           rel="icon"
-//           href="/images/favicon.svg"
-//           sizes="any"
-//           type="image/svg+xml"
-//         />
-//       </head>
-//       <body className={`${nunito.className} antialiased`}>
-//         <HeaderWrapper />
-//         <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-//           <main className="w-full flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-//             <div className="container mx-auto">
-//               {children}
-//             </div>
-//           </main>
-//         </div>
-//         <Footer />
-//       </body>
-//     </html>
-//   );
-// }
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -75,21 +45,17 @@ export default function RootLayout({
           type="image/svg+xml"
         />
       </head>
-      <body className={`h-full flex flex-col antialiased ${nunito.className}`}>
-        <HeaderWrapper />
-          <main className="flex-1 pt-16 pb-12 min-h-screen">
-            <div className="container mx-auto">
-              {children}        
-            </div>
-          </main>
-        <Footer />
+      <body className={`h-full antialiased ${nunito.className}`}>
+        <div className="min-h-full flex flex-col">
+          <HeaderWrapper />
+            <main className="container mx-auto">
+              <div className="flex-1">
+                {children}
+              </div>
+            </main>
+          <Footer />
+        </div>
       </body>
     </html>
   );
 }
-
-
-
-        
-        
-        

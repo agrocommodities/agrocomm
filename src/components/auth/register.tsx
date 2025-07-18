@@ -115,6 +115,7 @@ export function SignUpForm() {
               id="name"
               name="name"
               type="text"
+              placeholder="Seu nome completo"
               value={formData.name}
               onChange={handleChange}
               autoComplete="new-password"
@@ -126,12 +127,13 @@ export function SignUpForm() {
           </div>
           <div className="space-y-2">
             <label htmlFor="email" className="block font-medium">
-              Email
+              E-mail
             </label>
             <Input
               id="email"
               name="email"
               type="email"
+              placeholder="nome@empresa.com"
               value={formData.email}
               onChange={handleChange}
               onBlur={handleEmailBlur}
@@ -154,10 +156,10 @@ export function SignUpForm() {
               id="password"
               name="password"
               value={formData.password}
+              placeholder="Digite sua senha..."
               onChange={handleChange}
               autoComplete="new-password"
               className={errors.password ? "border-red-500" : ""}
-              placeholder="Digite sua senha..."
               // showStrength={`true`}
             />
             <PasswordStrength password={formData.password} />
@@ -169,16 +171,25 @@ export function SignUpForm() {
               minúsculas, números e símbolos.
             </p>
           </div>
-          <div className="flex justify-between">
-            <Link href="/entrar" className="underline">
-              Já tenho conta
-            </Link>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-light text-gray-500 dark:text-gray-400">
+              Já tenho conta?{" "}
+              <Link
+                href="/entrar"
+                className="font-medium text-primary-600 hover:underline dark:text-primary-500"
+              >
+                Entre
+              </Link>
+            </p>
             <Button
               type="submit"
               disabled={loading || !!errors.email || !!errors.password}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? <Loader className="w-5 h-5 text-white">Cadastrando...</Loader> : "Cadastrar"}
+              {loading ? (
+                <Loader className="w-5 h-5 text-white">Cadastrando...</Loader>
+              ) : (
+                "Cadastrar"
+              )}
             </Button>
           </div>
         </form>

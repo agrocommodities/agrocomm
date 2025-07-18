@@ -4,7 +4,7 @@ import { db } from '@/db'
 import { prices } from '@/db/schema'
 import { extractCityAndState } from './utils'
 import { convertStringToDate } from './utils'
-import { loadUrl, stringToNumber } from './utils'
+import { loadScotUrl, stringToNumber } from './utils'
 
 interface Commodity {
   id: number
@@ -15,34 +15,40 @@ interface Commodity {
 }
 
 type Quote = typeof prices.$inferInsert
-const url = 'https://www.scotconsultoria.com.br/cotacoes'
+// const url = 'https://www.scotconsultoria.com.br/cotacoes'
+const urls = {
+  graos: 'https://www.scotconsultoria.com.br/cotacoes/graos/?ref=smnb',
+  boi: 'https://www.scotconsultoria.com.br/cotacoes/boi-gordo/?ref=smnb',
+  vaca: 'https://www.scotconsultoria.com.br/cotacoes/vaca-gorda/?ref=smnb',
+  milho: 'https://www.scotconsultoria.com.br/cotacoes/milho/?ref=smnb'
+}
 
 const commodities: Commodity[] = [
   { 
     id: 1, 
     name: 'boi', 
-    url: `${url}/boi-gordo/?ref=smnb`, 
+    url: urls.boi, 
     tr: 'div.conteudo_centro:nth-child(4) > table:nth-child(5) tbody tr', 
     tableDate: '' 
   },
   { 
     id: 2, 
     name: 'vaca', 
-    url: `${url}/vaca-gorda/?ref=smnb`, 
+    url: urls.vaca, 
     tr: '', 
     tableDate: '' 
   },
   { 
     id: 3, 
     name: 'soja', 
-    url: `${url}/graos/?ref=smnb`, 
+    url: urls.graos, 
     tr: '', 
     tableDate: '' 
   },
   { 
     id: 4, 
     name: 'milho',
-    url: `${url}/graos/?ref=smnb`, 
+    url: urls.milho, 
     tr: '', 
     tableDate: '' 
   }
@@ -61,7 +67,7 @@ export async function scrapeBoi() {
   const commodity = comm('boi')
   if (!commodity) return
 
-  const body = await loadUrl(commodity.url)
+  const body = await loadScotUrl(commodity.url)
   const $ = cheerio.load(body)
 
   const tr = $('div.conteudo_centro:nth-child(4) > table:nth-child(5) tbody tr')
@@ -94,7 +100,7 @@ export async function scrapeBoi() {
 
 export async function scrapeVaca() {
   const data: Quote[] = []
-  const body = await loadUrl(`${url}/vaca-gorda/?ref=smnb`)
+  const body = await loadScotUrl(urls.vaca)
   const $ = cheerio.load(body)
 
   const tr = $('div.conteudo_centro:nth-child(4) > table:nth-child(3) tbody tr')
@@ -127,7 +133,7 @@ export async function scrapeVaca() {
 
 export async function scrapeSoja() {
   const data: Quote[] = []
-  const body = await loadUrl(`${url}/graos/?ref=smnb`)
+  const body = await loadScotUrl(urls.graos)
   const $ = cheerio.load(body)
 
   const tr = $('div.conteudo_centro:nth-child(4) > table:nth-child(5) tbody tr')
@@ -159,10 +165,9 @@ export async function scrapeSoja() {
 }
 
 export async function scrapeMilho() {
-  const url = 'https://www.scotconsultoria.com.br/cotacoes/graos/?ref=smnb'
   const data: Quote[] = []
 
-  const body = await loadUrl(`${url}/graos/?ref=smnb`)
+  const body = await loadScotUrl(urls.milho)
   const $ = cheerio.load(body)
 
   const tr = $('div.conteudo_centro:nth-child(4) > table:nth-child(2) tbody tr')

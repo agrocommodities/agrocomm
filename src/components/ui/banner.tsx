@@ -44,8 +44,8 @@ export default function VideoBanner() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4">
-      <div className="relative w-full h-32 sm:h-40 md:h-48 lg:h-52 xl:h-[200px] overflow-hidden rounded-xl bg-[#394634] border-4 border-black/50">
+    <div className="w-full mx-auto mb-5">
+      <div className="relative w-full h-32 sm:h-40 md:h-48 lg:h-52 xl:h-[200px] overflow-hidden rounded-xl bg-[#394634] border-2 border-black/50">
         {/* Estado de Loading */}
         {isLoading && (
           <div className="absolute inset-0 z-20">

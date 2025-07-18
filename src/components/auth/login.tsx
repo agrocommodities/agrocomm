@@ -118,7 +118,7 @@ export function SignInForm() {
               onChange={handleChange}
               onBlur={handleEmailBlur}
               className={`${
-                errors.email ? "border-red-500" : "border-gray-300"
+                errors.email ? "border-red-500" : "border-black/80"
               }`}
               placeholder="nome@empresa.com"
               aria-invalid={!!errors.email}
@@ -133,7 +133,7 @@ export function SignInForm() {
           <div className="m-0">
             <label
               htmlFor="password"
-              className="block text-gray-900 dark:text-white"
+              className="block mb-2 text-gray-900 dark:text-white"
             >
               Senha
             </label>
@@ -143,7 +143,7 @@ export function SignInForm() {
               value={formData.password}
               onChange={handleChange}
               className={`${
-                errors.password ? "border-red-500" : "border-gray-300"
+                errors.password ? "border-red-500" : "border-black/80"
               }`}
               placeholder="••••••••"
             />
@@ -171,7 +171,9 @@ export function SignInForm() {
             <div className="ml-3 text-sm">
               <label
                 htmlFor="remember"
-                className="text-gray-500 dark:text-gray-300"
+                className="
+ appearance-none w-4 h-4 rounded-sm
+                "
               >
                 Lembrar de mim
               </label>
