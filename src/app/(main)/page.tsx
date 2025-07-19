@@ -1,10 +1,10 @@
 import ImageCard from "@/components/ui/image-card";
-import VideoBanner from "@/components/ui/banner";
+// import VideoBanner from "@/components/ui/banner";
 
 export default function Home() {
   return (
   <div>
-    <VideoBanner />
+    {/* <VideoBanner /> */}
     <div className="space-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <ImageCard

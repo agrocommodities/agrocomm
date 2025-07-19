@@ -90,7 +90,7 @@ export default function VideoBanner() {
               outline: 'none',
             }}
           >
-            <source src={VIDEOMPEG} type="video/mp4" />
+            {/* <source src={VIDEOMPEG} type="video/mp4" /> */}
             <source src={VIDEOWEBM} type="video/webm" />
           </video>
         )}
