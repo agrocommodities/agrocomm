@@ -12,6 +12,8 @@ import { managePlan, cancelSubscription } from "@/actions/stripe";
 import type { User } from "@/types";
 
 export default function ProfileEditForm({ user }: { user: User }) {
+  if (!user) return <p>Usuário não encontrado.</p>;
+
   const [state, formAction, isPending] = useActionState(updateProfile, null);
   const [showPasswordFields, setShowPasswordFields] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -75,7 +77,7 @@ export default function ProfileEditForm({ user }: { user: User }) {
         </CardHeader>
         <CardContent>
           <AvatarUpload
-            currentAvatar={user.profile?.avatar}
+            currentAvatar={user.profile?.avatar || "/images/avatar.svg"}
             onAvatarChange={setAvatarFile}
           />
           {avatarFile && (
@@ -99,7 +101,7 @@ export default function ProfileEditForm({ user }: { user: User }) {
                 id="name"
                 name="name"
                 type="text"
-                defaultValue={user.profile?.name || ""}
+                defaultValue={user.profile?.name}
                 placeholder="João Silva"
                 required
               />
@@ -116,7 +118,7 @@ export default function ProfileEditForm({ user }: { user: User }) {
                 id="username"
                 name="username"
                 type="text"
-                defaultValue={user.profile?.username || ""}
+                defaultValue={user.profile?.username}
                 placeholder="@joaosilva"
               />
               <p className="mt-1 text-xs text-foreground/60">

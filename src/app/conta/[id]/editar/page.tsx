@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 import { getUserById } from '@/actions'
-// import { requireAuth } from '@/lib/auth'
-import { UserForm } from '@/components/auth/edit'
+import ProfileEditForm from '@/components/auth/profile'
 
 export default async function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -17,7 +16,7 @@ export default async function EditUserPage({ params }: { params: Promise<{ id: s
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <UserForm user={user} />
+        <ProfileEditForm user={user} />
       </div>
     </div>
   )

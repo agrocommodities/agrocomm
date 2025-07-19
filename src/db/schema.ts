@@ -70,7 +70,7 @@ export const profiles = sqliteTable("profiles", {
   name: text().notNull(),
   username: text().unique(),
   bio: text(),
-  avatar: text().default("/images/avatar.svg"),
+  avatar: text().notNull().default("/images/avatar.svg"),
   phone: text(),
   location: text(),
   website: text(),

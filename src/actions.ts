@@ -13,6 +13,41 @@ import { cookies } from "next/headers";
 import { createSession, removeSession } from "@/lib/session";
 import type { SessionUser } from "@/types";
 
+export async function getUserById(id: string) {
+  const userId = parseInt(id, 10);
+  
+  if (!userId) return null;
+
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    with: {
+      profile: true,
+    },
+    columns: {
+      id: true,
+      email: true,
+      role: true,
+      createdAt: true,
+      updatedAt: true,
+      password: false,
+      salt: false,
+    },
+  });
+
+  if (!user) return null;
+
+  // Retornar no formato esperado pelos componentes existentes
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    name: user.profile?.name || null,
+    username: user.profile?.username || null,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
+
 export async function signIn(unsafeData: z.infer<typeof signInSchema>) {
   const { success, data } = signInSchema.safeParse(unsafeData);
   if (!success) return "Não foi possível fazer login";
@@ -318,43 +353,6 @@ export async function updateProfile(_prevState: any, formData: FormData) {
 export async function logOut() {
   await removeSession(await cookies());
   redirect("/");
-}
-
-export async function getUserById(id: string) {
-  const userId = parseInt(id, 10);
-  
-  if (isNaN(userId)) {
-    return null;
-  }
-
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-    with: {
-      profile: true,
-    },
-    columns: {
-      id: true,
-      email: true,
-      role: true,
-      createdAt: true,
-      updatedAt: true,
-      password: false,
-      salt: false,
-    },
-  });
-
-  if (!user) return null;
-
-  // Retornar no formato esperado pelos componentes existentes
-  return {
-    id: user.id,
-    email: user.email,
-    role: user.role,
-    name: user.profile?.name || null,
-    username: user.profile?.username || null,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-  };
 }
 
 export async function deleteUser(userId: string) {

@@ -1,9 +1,8 @@
 import { getCurrentUser } from "@/lib/user";
-import { redirect } from "next/navigation";
 import ProfileEditForm from "@/components/auth/profile";
 
 export default async function ProfilePage() {
-  const user = await getCurrentUser({ withProfile: true, redirectIfNotFound: true });
+  const user = await getCurrentUser();
 
   return (
     <div className="min-h-screen pt-20 pb-12">

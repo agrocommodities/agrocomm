@@ -14,7 +14,7 @@ export type NewProfile = InferInsertModel<typeof profiles>;
 
 // Tipo combinado User + Profile (mais comum no app)
 export type UserWithProfile = User & {
-  profile: Profile | null;
+  profile: Profile;
 };
 
 // Tipo seguro para uso no frontend (sem senha/salt)
@@ -22,9 +22,9 @@ export type SafeUser = Omit<UserType, "password" | "salt">;
 
 // Tipo combinado com subscrição
 export type User = SafeUser & {
-  profile: Profile | null;
-  subscription: Subscription | null;
-};
+  profile?: Profile;
+  subscription?: Subscription;
+} | null;
 
 // Tipo para sessão
 export type SessionUser = {

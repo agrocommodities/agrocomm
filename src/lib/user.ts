@@ -5,10 +5,10 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
 import { users } from "@/db/schema";
-import type { UserWithProfile, SessionUser } from "@/types";
+import type { User, SessionUser } from "@/types";
 
 // Função simplificada que sempre busca todos os dados
-async function getUserFromDb(id: number): Promise<UserWithProfile | null> {
+async function getUserFromDb(id: number): Promise<User | null> {
   const result = await db.query.users.findFirst({
     where: eq(users.id, id),
     with: {
@@ -28,12 +28,12 @@ async function getUserFromDb(id: number): Promise<UserWithProfile | null> {
 function _getCurrentUser(options: {
   sessionOnly?: false;
   redirectIfNotFound: true;
-}): Promise<UserWithProfile>;
+}): Promise<User>;
 
 function _getCurrentUser(options?: {
   sessionOnly?: false;
   redirectIfNotFound?: false;
-}): Promise<UserWithProfile | null>;
+}): Promise<User | null>;
 
 function _getCurrentUser(options: {
   sessionOnly: true;
