@@ -5,9 +5,7 @@ export default function AuthLayout({
 }) {
   return (
     <div className="min-h-screen pt-16 pb-12 flex items-center justify-center">
-
-        {children}
-
+      {children}
     </div>
   );
 }

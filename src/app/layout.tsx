@@ -48,7 +48,7 @@ export default function RootLayout({
       <body className={`h-full antialiased ${nunito.className}`}>
         <div className="min-h-full flex flex-col">
           <HeaderWrapper />
-            <main className="container mx-auto">
+            <main className="container mx-auto py-20">
               <div className="flex-1">
                 {children}
               </div>

@@ -4,13 +4,11 @@ import type { SessionUser } from "@/types";
 
 const SESSION_EXPIRATION_SECONDS = 60 * 60 * 24 * 7;
 const COOKIE_SESSION_KEY = "session-token";
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "default_secret_key_change_in_production"
-);
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "default_secret_key_change_in_production");
 
 const sessionSchema = z.object({
   id: z.number(),
-  email: z.string().email(),
+  email: z.email(),
   role: z.enum(["admin", "user"]),
 });
 

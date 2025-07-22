@@ -4,8 +4,13 @@ import { useState, useEffect } from "react";
 import { redirect } from "next/navigation";
 import { type Estado, estados } from "@/config";
 
-export default function EstadoDropdown() {
-  const [isOpen, setIsOpen] = useState(false);
+interface EstadoDropdownProps {
+  isOpen?: boolean;
+  onToggle?: () => void;
+}
+
+export default function EstadoDropdown({ isOpen = false, onToggle }: EstadoDropdownProps) {
+  // const [isOpen, setIsOpen] = useState(false);
   const [selectedEstado, setSelectedEstado] = useState<Estado | null>(null);
 
   // Carrega o estado salvo ao montar o componente
@@ -16,25 +21,46 @@ export default function EstadoDropdown() {
     }
   }, []);
 
-  //Salva o estado sempre que mudar
+  // Salva o estado sempre que mudar
   useEffect(() => {
     if (selectedEstado) {
       localStorage.setItem("selectedEstado", JSON.stringify(selectedEstado));
     }
   }, [selectedEstado]);
 
-  const toggleDropdown = () => setIsOpen(!isOpen);
-
   const handleSelect = (estado: Estado) => {
     setSelectedEstado(estado);
-    setIsOpen(false);
+    onToggle?.(); // Fecha o menu após seleção
     redirect(`/estado/${estado.sigla.toLowerCase()}`);
   };
+
+  // // Carrega o estado salvo ao montar o componente
+  // useEffect(() => {
+  //   const savedEstado = localStorage.getItem("selectedEstado");
+  //   if (savedEstado) {
+  //     setSelectedEstado(JSON.parse(savedEstado));
+  //   }
+  // }, []);
+
+  // //Salva o estado sempre que mudar
+  // useEffect(() => {
+  //   if (selectedEstado) {
+  //     localStorage.setItem("selectedEstado", JSON.stringify(selectedEstado));
+  //   }
+  // }, [selectedEstado]);
+
+  // const toggleDropdown = () => setIsOpen(!isOpen);
+
+  // const handleSelect = (estado: Estado) => {
+  //   setSelectedEstado(estado);
+  //   setIsOpen(false);
+  //   redirect(`/estado/${estado.sigla.toLowerCase()}`);
+  // };
 
   return (
     <div className="relative w-full max-w-md">
       <button
-        onClick={toggleDropdown}
+        onClick={onToggle}
         className="flex items-center justify-between w-full px-3 py-1 text-left bg-black rounded-md shadow-sm focus:outline-none"
       >
         {selectedEstado ? (
@@ -52,9 +78,8 @@ export default function EstadoDropdown() {
           <span>Selecione um estado</span>
         )}
         <svg
-          className={`w-5 h-5 ml-2 transition-transform duration-200 ${
-            isOpen ? "transform rotate-180" : ""
-          }`}
+          className={`w-5 h-5 ml-2 transition-transform duration-200 ${isOpen ? "transform rotate-180" : ""
+            }`}
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 20 20"
           fill="currentColor"
@@ -74,7 +99,7 @@ export default function EstadoDropdown() {
               <li
                 key={estado.sigla}
                 onClick={() => handleSelect(estado)}
-                className="flex items-center px-4 py-2 cursor-pointer hover:bg-yellow-100/50"
+                className="flex items-center px-3 py-1 cursor-pointer hover:bg-white/20"
               >
                 <img
                   src={estado.bandeira}

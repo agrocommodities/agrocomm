@@ -3,36 +3,68 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { UserMenu } from "@/components/auth/user-menu";
 import EstadoDropdown from '@/components/ui/states';
+import NavigationMenu from '@/components/ui/navmenu';
 import type { UserWithProfile } from "@/types";
 
 export default function Header({ user }: { user: UserWithProfile | null }) {
+  // const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // const pathname = usePathname();
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isStateMenuOpen, setIsStateMenuOpen] = useState(false);
   const pathname = usePathname();
+  const headerRef = useRef<HTMLElement>(null);
 
   // Fechar menu ao mudar de rota
   useEffect(() => {
     setIsMenuOpen(false);
+    setIsUserMenuOpen(false);
+    setIsStateMenuOpen(false);
   }, [pathname]);
 
-  // Fechar menu ao clicar fora
+  // Fechar menus ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (isMenuOpen && !target.closest("nav")) {
+      if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false);
+        setIsUserMenuOpen(false);
+        setIsStateMenuOpen(false);
       }
     };
 
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [isMenuOpen]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Função para fechar outros menus quando um é aberto
+  const closeOtherMenus = (currentMenu: 'mobile' | 'user' | 'state') => {
+    if (currentMenu !== 'mobile') setIsMenuOpen(false);
+    if (currentMenu !== 'user') setIsUserMenuOpen(false);
+    if (currentMenu !== 'state') setIsStateMenuOpen(false);
+  };
+
+  const handleMobileMenuToggle = () => {
+    closeOtherMenus('mobile');
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleUserMenuToggle = () => {
+    closeOtherMenus('user');
+    setIsUserMenuOpen(!isUserMenuOpen);
+  };
+
+  const handleStateMenuToggle = () => {
+    closeOtherMenus('state');
+    setIsStateMenuOpen(!isStateMenuOpen);
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b-2 border-black/40">
-      <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <nav className="container mx-auto px-3 md:px-0">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2 text-foreground font-bold text-2xl">
             <Image
@@ -46,27 +78,42 @@ export default function Header({ user }: { user: UserWithProfile | null }) {
             {process.env.NEXT_PUBLIC_APP_NAME}
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-4">
-            <EstadoDropdown />
-            {user ? (
-              <UserMenu user={user} />
-            ) : (
-              <div className="hidden md:flex items-center gap-4">
-                <Link
-                  href="/entrar"
-                  className="text-sm hover:text-foreground/80 transition-colors"
-                >
-                  Entrar
-                </Link>
-                <Link
-                  href="/cadastro"
-                  className="rounded-md text-white border border-black/80 bg-black/60 text-background py-1 px-2 text-sm font-medium transition-colors hover:bg-black/40"
-                >
-                  Cadastrar
-                </Link>
-              </div>
-            )}
+          {/* Menu de Navegação Central - Desktop */}
+          <div className="flex-1 flex justify-center">
+            <NavigationMenu />
+          </div>
+
+          {/* Controles do usuário - Lado direito */}
+          <div className="flex items-center gap-4">
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-4">
+              <EstadoDropdown
+                isOpen={isStateMenuOpen}
+                onToggle={handleStateMenuToggle}
+              />
+              {user ? (
+                <UserMenu
+                  user={user}
+                  isOpen={isUserMenuOpen}
+                  onToggle={handleUserMenuToggle}
+                />
+              ) : (
+                <div className="hidden md:flex items-center gap-4">
+                  <Link
+                    href="/entrar"
+                    className="text-sm hover:text-foreground/80 transition-colors"
+                  >
+                    Entrar
+                  </Link>
+                  <Link
+                    href="/cadastro"
+                    className="rounded-md text-white border border-black/80 bg-black/60 text-background py-1 px-2 text-sm font-medium transition-colors hover:bg-black/40"
+                  >
+                    Cadastrar
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Mobile Menu Button */}
@@ -112,27 +159,71 @@ export default function Header({ user }: { user: UserWithProfile | null }) {
         </div>
 
         {/* Mobile Menu */}
-        <div className={`md:hidden ${isMenuOpen ? "block" : "hidden"}`}>
-          <div className="px-2 pt-2 pb-3 space-y-1 bg-background border-t border-foreground/10 mt-2">
-            <EstadoDropdown />
-            {user ? (
-              <UserMenu user={user} />
-            ) : (
-              <>
-                <Link
-                  href="/entrar"
-                  className="block px-3 py-2 rounded-md text-base font-medium hover:bg-foreground/10 transition-colors"
-                >
-                  Entrar
-                </Link>
-                <Link
-                  href="/cadastro"
-                  className="block px-3 py-2 rounded-md text-base font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors"
-                >
-                  Cadastrar
-                </Link>
-              </>
-            )}
+        <div className={`md:hidden transition-all duration-300 ease-in-out ${isMenuOpen
+            ? "max-h-96 opacity-100"
+            : "max-h-0 opacity-0 overflow-hidden"
+          }`}>
+          <div className="px-2 pt-2 pb-3 space-y-3 bg-background border-t border-foreground/10 mt-2 rounded-b-lg">
+            {/* Navegação Mobile */}
+            <div className="border-b border-foreground/10 pb-3">
+              <h3 className="px-3 text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2">
+                Navegação
+              </h3>
+              <NavigationMenu
+                isMobile={true}
+                onToggle={handleMobileMenuToggle}
+              />
+            </div>
+
+            {/* Controles Mobile */}
+            <div className="space-y-3">
+              <div>
+                <h3 className="px-3 text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2">
+                  Localização
+                </h3>
+                <div className="px-3">
+                  <EstadoDropdown
+                    isOpen={isStateMenuOpen}
+                    onToggle={handleStateMenuToggle}
+                  />
+                </div>
+              </div>
+
+              {user ? (
+                <div>
+                  <h3 className="px-3 text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2">
+                    Conta
+                  </h3>
+                  <UserMenu
+                    user={user}
+                    isOpen={isUserMenuOpen}
+                    onToggle={handleUserMenuToggle}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <h3 className="px-3 text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2">
+                    Acesso
+                  </h3>
+                  <div className="space-y-2">
+                    <Link
+                      href="/entrar"
+                      className="block px-3 py-2 rounded-md text-base font-medium hover:bg-foreground/10 transition-colors"
+                      onClick={handleMobileMenuToggle}
+                    >
+                      Entrar
+                    </Link>
+                    <Link
+                      href="/cadastro"
+                      className="block px-3 py-2 rounded-md text-base font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors"
+                      onClick={handleMobileMenuToggle}
+                    >
+                      Cadastrar
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>

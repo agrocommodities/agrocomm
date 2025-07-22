@@ -7,7 +7,7 @@ import { writeFile } from "fs/promises";
 import path from "path";
 
 export async function POST(request: NextRequest) {
-  const user = await getCurrentUser({ withProfile: false });
+  const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
