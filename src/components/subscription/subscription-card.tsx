@@ -13,12 +13,7 @@ interface SubscriptionCardProps {
   onCancel: () => void;
 }
 
-export default function SubscriptionCard({
-  subscription,
-  onUpgrade,
-  onDowngrade,
-  onCancel,
-}: SubscriptionCardProps) {
+export default function SubscriptionCard({ subscription, onUpgrade, onDowngrade, onCancel }: SubscriptionCardProps) {
   const [showPlans, setShowPlans] = useState(false);
   
   const currentPlan = subscription?.plan || "free";
@@ -176,7 +171,7 @@ export default function SubscriptionCard({
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {/* Planos de Upgrade */}
                 {upgradePlans.length > 0 && (
                   <div className="space-y-4">

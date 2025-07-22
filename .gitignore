@@ -50,4 +50,5 @@ drizzle/**
 *.old*
 
 # uploads
-/public/uploads/
+public/uploads/avatars/**
+!public/uploads/avatars/.gitkeep

@@ -1,32 +1,70 @@
+// src/components/ui/avatar.tsx
 "use client";
 
 import { useState, useRef } from "react";
 import Image from "next/image";
-import { Camera } from "lucide-react";
+import { Camera, Loader2 } from "lucide-react";
+import { uploadAvatar } from "@/actions";
 
 interface AvatarUploadProps {
   currentAvatar?: string | null;
-  onAvatarChange: (file: File) => void;
+  onAvatarChange?: (avatarUrl: string) => void;
 }
 
-export default function AvatarUpload({ currentAvatar, onAvatarChange }: AvatarUploadProps) {
+export default function AvatarUpload({
+  currentAvatar,
+  onAvatarChange
+}: AvatarUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert("A imagem deve ter no máximo 5MB");
-        return;
-      }
+    if (!file) return;
 
+    // Validação no frontend
+    if (file.size > 5 * 1024 * 1024) {
+      setError("A imagem deve ter no máximo 5MB");
+      return;
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setError("Tipo de arquivo não permitido. Use JPG, PNG ou WebP.");
+      return;
+    }
+
+    setError(null);
+    setUploading(true);
+
+    try {
+      // Mostrar preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-      onAvatarChange(file);
+
+      // Upload do arquivo
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const result = await uploadAvatar(formData);
+
+      if (result.error) {
+        setError(result.error);
+        setPreview(null);
+      } else if (result.success && result.avatar) {
+        onAvatarChange?.(result.avatar);
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      setError("Erro ao fazer upload da imagem");
+      setPreview(null);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -49,21 +87,40 @@ export default function AvatarUpload({ currentAvatar, onAvatarChange }: AvatarUp
         <button
           type="button"
           onClick={handleClick}
-          className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full shadow-lg hover:bg-primary-700 transition-colors"
+          disabled={uploading}
+          className="absolute bottom-0 right-0 bg-black/90 text-white p-2 rounded-full shadow-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Camera className="w-5 h-5" />
+          {uploading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <Camera className="w-5 h-5" />
+          )}
         </button>
       </div>
+
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
         onChange={handleFileChange}
         className="hidden"
+        disabled={uploading}
       />
-      <p className="text-sm text-gray-500">
-        Clique no ícone para alterar a foto
-      </p>
+
+      <div className="text-center">
+        <p className="text-sm text-gray-500">
+          {uploading ? "Enviando..." : "Clique no ícone para alterar a foto"}
+        </p>
+        <p className="text-xs text-gray-400 mt-1">
+          JPG, PNG ou WebP - máximo 5MB
+        </p>
+      </div>
+
+      {error && (
+        <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 p-2 rounded-md">
+          {error}
+        </div>
+      )}
     </div>
   );
 }

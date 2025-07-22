@@ -4,7 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { logOut } from "@/actions";
 import { UserMenu } from "@/components/auth/user-menu";
 import EstadoDropdown from '@/components/ui/states';
 import type { UserWithProfile } from "@/types";
@@ -12,10 +11,6 @@ import type { UserWithProfile } from "@/types";
 export default function Header({ user }: { user: UserWithProfile | null }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
-
-  const handleLogout = async () => {
-    await logOut();
-  };
 
   // Fechar menu ao mudar de rota
   useEffect(() => {

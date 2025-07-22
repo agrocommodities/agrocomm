@@ -17,6 +17,11 @@ export default function ProfileEditForm({ user }: { user: User }) {
   const [state, formAction, isPending] = useActionState(updateProfile, null);
   const [showPasswordFields, setShowPasswordFields] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [currentAvatar, setCurrentAvatar] = useState(user.profile?.avatar || "/images/avatar.svg");
+
+  const handleAvatarChange = (newAvatarUrl: string) => {
+    setCurrentAvatar(newAvatarUrl);
+  };
 
   // Dentro do componente, antes do return:
   const handleUpgrade = async (plan: string) => {
@@ -77,8 +82,8 @@ export default function ProfileEditForm({ user }: { user: User }) {
         </CardHeader>
         <CardContent>
           <AvatarUpload
-            currentAvatar={user.profile?.avatar || "/images/avatar.svg"}
-            onAvatarChange={setAvatarFile}
+            currentAvatar={currentAvatar}
+            onAvatarChange={handleAvatarChange}
           />
           {avatarFile && (
             <input type="hidden" name="avatarFile" value={avatarFile.name} />
@@ -254,7 +259,6 @@ export default function ProfileEditForm({ user }: { user: User }) {
                   placeholder="••••••••"
                 />
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label
@@ -269,7 +273,6 @@ export default function ProfileEditForm({ user }: { user: User }) {
                     placeholder="••••••••"
                   />
                 </div>
-
                 <div>
                   <label
                     htmlFor="confirmPassword"
@@ -304,7 +307,10 @@ export default function ProfileEditForm({ user }: { user: User }) {
             <label className="block text-sm font-medium mb-2">
               Tipo de Conta
             </label>
-            <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-md">
+            <div className="
+              p-3 bg-gray-100 rounded-lg border-2 border-black/80 focus:border-black/80 
+              bg-black/50 dark:bg-black/70 dark:placeholder-gray-400
+            ">
               <span className="text-sm font-medium capitalize">
                 {user.role}
               </span>
@@ -315,12 +321,14 @@ export default function ProfileEditForm({ user }: { user: User }) {
               )}
             </div>
           </div>
-
           <div>
             <label className="block text-sm font-medium mb-2">
               Membro desde
             </label>
-            <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-md">
+            <div className="
+              p-3 bg-gray-100 rounded-lg border-2 border-black/80 focus:border-black/80 
+              bg-black/50 dark:bg-black/70 dark:placeholder-gray-400
+            ">
               <span className="text-sm">
                 {user.createdAt
                   ? new Date(user.createdAt).toLocaleDateString("pt-BR")

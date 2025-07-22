@@ -13,7 +13,6 @@ export default async function ProfilePage() {
             Gerencie suas informações pessoais e configurações da conta
           </p>
         </div>
-
         <ProfileEditForm user={user} />
       </div>
     </div>

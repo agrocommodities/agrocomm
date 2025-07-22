@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import path from "path";
 import { getCurrentUser } from "@/lib/user";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -11,7 +12,70 @@ import { eq } from "drizzle-orm";
 import { comparePasswords, generateSalt, hashPassword } from "@/lib/password";
 import { cookies } from "next/headers";
 import { createSession, removeSession } from "@/lib/session";
+import { writeFile, mkdir } from "fs/promises";
 import type { SessionUser } from "@/types";
+
+export async function uploadAvatar(formData: FormData) {
+  const user = await getCurrentUser({ sessionOnly: true });
+  if (!user) return { error: "Não autorizado" };
+
+  try {
+    const file = formData.get("avatar") as File;
+    if (!file || !file.size) return { error: "Nenhum arquivo selecionado" };
+
+    // Validar tipo de arquivo
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) return { error: "Tipo de arquivo não permitido. Use JPG, PNG ou WebP." };
+
+    // Validar tamanho do arquivo (5MB)
+    if (file.size > 5 * 1024 * 1024) return { error: "O arquivo deve ter no máximo 5MB" };
+
+    // Criar diretório se não existir
+    const uploadDir = path.join(process.cwd(), "public/uploads/avatars", user.id.toString());
+    try {
+      await mkdir(uploadDir, { recursive: true });
+    } catch (error) {
+      // Diretório já existe, continuar
+    }
+
+    // Gerar nome único para o arquivo
+    const extension = path.extname(file.name);
+    const filename = `avatar-${user.id}-${Date.now()}${extension}`;
+    const filepath = path.join(uploadDir, filename);
+    
+    // Converter file para buffer e salvar
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    await writeFile(filepath, buffer);
+    
+    const avatarUrl = `/uploads/avatars/${filename}`;
+    
+    // Atualizar o avatar no banco
+    const existingProfile = await db.query.profiles.findFirst({ where: eq(profiles.userId, user.id) });
+
+    if (existingProfile) {
+      await db
+        .update(profiles)
+        .set({
+          avatar: avatarUrl,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(profiles.userId, user.id));
+    } else {
+      await db.insert(profiles).values({
+        userId: user.id,
+        name: user.email, // Nome padrão
+        avatar: avatarUrl,
+      });
+    }
+
+    revalidatePath("/ajustes");
+    return { success: true, avatar: avatarUrl };
+  } catch (error) {
+    console.error("Error uploading avatar:", error);
+    return { error: "Erro ao fazer upload do avatar" };
+  }
+}
 
 export async function getUserById(id: string) {
   const userId = parseInt(id, 10);
@@ -203,10 +267,7 @@ export async function updateProfile(_prevState: any, formData: FormData) {
   if (!currentUser) return { error: "Não autorizado" };
 
   const userId = parseInt(formData.get("userId") as string, 10);
-  
-  if (currentUser.id !== userId) {
-    return { error: "Você só pode editar seu próprio perfil" };
-  }
+  if (currentUser.id !== userId) return { error: "Você só pode editar seu próprio perfil" };
 
   const currentPassword = formData.get("currentPassword") as string;
   const newPassword = formData.get("newPassword") as string;
@@ -214,6 +275,7 @@ export async function updateProfile(_prevState: any, formData: FormData) {
 
   // Dados do profile
   const profileData = {
+    //avatar: formData.get("avatarFile") as string,
     name: formData.get("name") as string,
     username: formData.get("username") as string || null,
     bio: formData.get("bio") as string || null,
@@ -342,7 +404,7 @@ export async function updateProfile(_prevState: any, formData: FormData) {
       });
     }
 
-    revalidatePath("/perfil");
+    revalidatePath("/ajustes");
     return { success: true };
   } catch (error) {
     console.error("Error updating profile:", error);

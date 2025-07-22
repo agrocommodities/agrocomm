@@ -14,7 +14,7 @@ export function UserMenu({ user }: { user: User }) {
   };
 
   return (
-    <div className="relative">
+    <div className="relative w-8 h-8">
       <button
         id="user-menu-button"
         aria-expanded="false"
@@ -25,7 +25,7 @@ export function UserMenu({ user }: { user: User }) {
       >
         <Image
           className="h-8 w-8 rounded-full"
-          src={user.profile?.avatar || "/images/avatar.svg"}
+          src={user?.profile?.avatar || "/images/avatar.svg"}
           alt="User avatar"
           width={32}
           height={32}
