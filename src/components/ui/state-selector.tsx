@@ -4,7 +4,8 @@
 import { useState, useEffect, useRef } from "react";
 import { ChevronDown, MapPin } from "lucide-react";
 import { redirect } from "next/navigation";
-import { type Estado, estados } from "@/config";
+import { estados } from "@/config";
+import { type Estado } from "@/types";
 
 interface StateSelectorProps {
   isMobile?: boolean;

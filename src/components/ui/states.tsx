@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { redirect } from "next/navigation";
-import { type Estado, estados } from "@/config";
+import { estados } from "@/config";
+import { type Estado } from "@/types";
 
 interface EstadoDropdownProps {
   isOpen?: boolean;

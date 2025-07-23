@@ -14,7 +14,6 @@ export default async function EditUserPage({ params }: { params: Promise<{ id: s
         <h1 className="text-3xl font-bold text-gray-900">Edit User</h1>
         <p className="mt-2 text-gray-600">Update user information</p>
       </div>
-
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <ProfileEditForm user={user} />
       </div>
