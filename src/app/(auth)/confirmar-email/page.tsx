@@ -27,7 +27,7 @@ function ConfirmarEmailContent() {
         
         <h1 className="text-2xl font-bold mb-2">Verifique seu email!</h1>
         
-        <p className="text-gray-400 mb-6">
+        <p className="text-gray-40>verir0 mb-6">
           Enviamos um link de confirmação para:
           <br />
           <span className="font-medium text-white">{email || "seu email"}</span>

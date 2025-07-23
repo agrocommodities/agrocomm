@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { CheckCircle, XCircle } from "lucide-react";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export default function VerificarEmail() {
+function VerificarEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token");
@@ -81,5 +81,20 @@ export default function VerificarEmail() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function VerificarEmail() {
+  return (
+    <Suspense fallback={
+      <div className="w-full max-w-md mx-auto">
+        <div className="bg-black/50 border-2 border-black/40 rounded-lg shadow-lg p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-gray-400">Carregando...</p>
+        </div>
+      </div>
+    }>
+      <VerificarEmailContent />
+    </Suspense>
   );
 }

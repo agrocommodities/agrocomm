@@ -12,6 +12,7 @@
     "db:mig": "bunx drizzle-kit migrate",
     "db:seed": "bun ./src/db/seed.ts",
     "db:scrape": "bun ./src/scraper/index.ts",
+    "db:news": "bun ./src/scraper/news.ts",
     "db:reset": "rm -rf ./drizzle/local.db ./drizzle/meta/ ./drizzle/*.sql",
     "db:studio": "bunx drizzle-kit studio",
     "stripe": "stripe listen --forward-to localhost:3000/api/stripe/webhook",

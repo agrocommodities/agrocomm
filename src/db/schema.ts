@@ -113,3 +113,13 @@ export const prices = sqliteTable("prices", {
   createdAt: text().default(sql`(CURRENT_TIMESTAMP)`),
   source: text().default("scot").notNull(),
 });
+
+export const news = sqliteTable("news", {
+  id: int().primaryKey({ autoIncrement: true }),
+  title: text().notNull(),
+  url: text().notNull(),
+  source: text().notNull(),
+  summary: text(),
+  imageUrl: text(),
+  publishedAt: int({ mode: "timestamp" }),
+});
