@@ -14,7 +14,8 @@ export async function POST(request: Request) {
         }
       ],
       mode: "subscription",
-      payment_method_types: ["boleto", "pix", "card"],
+      // payment_method_types: ["boleto", "pix", "card"], // somente em produção
+      payment_method_types: ["card"],
       return_url: `${request.headers.get('origin')}/pagamento?session_id={CHECKOUT_SESSION_ID}`
     })
 

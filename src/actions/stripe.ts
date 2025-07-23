@@ -181,3 +181,22 @@ export async function reactivateSubscription() {
     return { error: "Erro ao reativar assinatura" };
   }
 }
+
+export async function fetchClientSecret(request: Request) {
+  const origin = request.headers.get("origin")
+
+  // Create Checkout Sessions from body params.
+  const session = await stripe.checkout.sessions.create({
+    ui_mode: 'embedded',
+    line_items: [
+      {
+        price: '{{PRICE_ID}}',
+        quantity: 1
+      }
+    ],
+    mode: "subscription",
+    return_url: `${origin}/return?session_id={CHECKOUT_SESSION_ID}`,
+  })
+
+  return session.client_secret
+}

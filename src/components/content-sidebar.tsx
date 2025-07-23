@@ -4,21 +4,15 @@ import { news, prices } from "@/db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatarReais, formatCommodityName } from "@/lib/prices";
 import { PriceVariationAnimated } from '@/components/ui/price-variation-animated';
-// ou import { PriceVariationAnimated } from '@/components/ui/price-variation-animated';
-
 
 async function PricesShorts() {
-  // const prices = await db.select().from(news).orderBy(desc(news.publishedAt)).limit(5);
-
-  // 1. Primeiro pega as datas mais recentes
   const recentDates = await db
     .select({ date: sql<string>`DATE(${prices.createdAt})` })
     .from(prices)
     .groupBy(sql`DATE(${prices.createdAt})`)
     .orderBy(desc(sql`DATE(${prices.createdAt})`))
-    .limit(1); // Pega os últimos 3 dias
+    .limit(1); 
 
-  // 2. Para cada data, pega 5 notícias aleatórias
   const randomNewsByRecentDate = await Promise.all(
     recentDates.map(async (date) => {
       return db
@@ -38,17 +32,16 @@ async function PricesShorts() {
       {flattenedPrices.map(item => (
         <div key={item.id} className="flex justify-between items-center">
           <div>
-            <span className="text-sm mr-2">{formatCommodityName(item.commodity)}</span>
-            <span className="text-sm">{item.state.toUpperCase()}</span>
-          </div>
-          <span className="font-semibold text-green-600"><PriceVariationAnimated variation={item.variation || 0} /></span>
-          <span className="font-semibold text-green-600">R$ {formatarReais(item.price)}</span>
+            <span className="text-sm mr-2">{item.state.toUpperCase()}</span>
+            <span className="text-xs">{formatCommodityName(item.commodity)}</span>
+          </div>          
+          <span className="text-green-600"><PriceVariationAnimated variation={item.variation || 0} /></span>
+          <span className={`${!item.variation || item.variation < 1 ? 'text-green-600' : 'text-red-600'}`}>R$ {formatarReais(item.price)}</span>
         </div>
       ))}
     </div>
   )
 }
-
 
 async function NewsShorts() {
   const shorts = await db.select().from(news).orderBy(desc(news.publishedAt)).limit(5);

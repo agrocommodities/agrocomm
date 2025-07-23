@@ -33,7 +33,7 @@ export function PriceVariationAnimated({ variation, className = "" }: PriceVaria
   const isPositive = variation > 0;
   
   return (
-    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-300 ${
+    <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-lg transition-all duration-300 ${
       isPositive 
         ? 'bg-green-100 text-green-700 hover:bg-green-200' 
         : 'bg-red-100 text-red-700 hover:bg-red-200'
@@ -51,7 +51,7 @@ export function PriceVariationAnimated({ variation, className = "" }: PriceVaria
           </svg>
         )}
       </div>
-      <span className="text-sm font-semibold">
+      <span className="text-xs font-semibold">
         {isPositive ? '+' : '-'}{percentage}%
       </span>
     </div>

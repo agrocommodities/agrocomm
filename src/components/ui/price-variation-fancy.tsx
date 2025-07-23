@@ -8,7 +8,7 @@ interface PriceVariationFancyProps {
 export function PriceVariationFancy({ 
   variation, 
   className = "",
-  size = 'md'
+  size = 'sm'
 }: PriceVariationFancyProps) {
   const sizeClasses = {
     sm: 'px-2 py-1 text-xs',
@@ -29,7 +29,7 @@ export function PriceVariationFancy({
         <svg className={iconSize[size]} viewBox="0 0 16 16" fill="currentColor">
           <rect x="2" y="7" width="12" height="2" rx="1" />
         </svg>
-        <span className="font-medium">Estável</span>
+        <span className="text-xs">Estável</span>
       </div>
     );
   }
@@ -45,7 +45,7 @@ export function PriceVariationFancy({
           <path d="M8 1l3 6-1.5 1.5L8 7 6.5 8.5 5 7l3-6z" />
           <path d="M6 10l1 1v3l1-1 1 1v-3l1-1-2-2-2 2z" opacity="0.7" />
         </svg>
-        <span className="font-semibold">+{percentage}%</span>
+        <span className="text-xs">+{percentage}%</span>
       </div>
     );
   } else {
@@ -56,7 +56,7 @@ export function PriceVariationFancy({
           <path d="M8 15l-3-6 1.5-1.5L8 9l1.5-1.5L11 9l-3 6z" />
           <path d="M10 6l-1-1V2L8 3 7 2v3L6 6l2 2 2-2z" opacity="0.7" />
         </svg>
-        <span className="font-semibold">-{percentage}%</span>
+        <span className="text-xs">-{percentage}%</span>
       </div>
     );
   }

@@ -18,12 +18,12 @@ mkdir -p $BACKUP_DIR
 
 # Backup da versão atual funcionando
 echo "Fazendo backup da versão atual..."
-# sudo /usr/bin/systemctl is-active $SERVICE > /dev/null && {
+sudo /usr/bin/systemctl is-active $SERVICE > /dev/null && {
     cd $CURRENT_DIR
     mkdir -p $BACKUP_DIR/$DEPLOY_TIMESTAMP
     cp -a .next node_modules package.json bun.lockb .env.production $BACKUP_DIR/$DEPLOY_TIMESTAMP/ 2> /dev/null
     echo $DEPLOY_TIMESTAMP > $BACKUP_DIR/last_working_version
-# }
+}
 
 perform_rollback() {
     echo "Falha no deploy. Iniciando rollback..."
@@ -79,11 +79,7 @@ cp -f .env.production .env
 echo "Instalando dependências..."
 bun install
 
-#echo "Criando banco de dados se não existir..."
-#bash ./scripts/db/create.sh
-
 echo "Atualizando banco de dados..."
-#bun run db:reset
 bun run db:push
 bun run db:seed
 bun run db:scrape
@@ -95,7 +91,6 @@ bun run build
 echo "Iniciando serviço..."
 sudo /usr/bin/systemctl start $SERVICE
 
-# Verificar saúde do serviço após o deploy
 echo "Verificando saúde do serviço..."
 for i in $(seq 1 $MAX_HEALTH_CHECKS); do
     sleep $HEALTH_CHECK_INTERVAL
