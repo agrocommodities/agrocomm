@@ -18,12 +18,12 @@ mkdir -p $BACKUP_DIR
 
 # Backup da versão atual funcionando
 echo "Fazendo backup da versão atual..."
-sudo /usr/bin/systemctl is-active $SERVICE > /dev/null && {
+# sudo /usr/bin/systemctl is-active $SERVICE > /dev/null && {
     cd $CURRENT_DIR
     mkdir -p $BACKUP_DIR/$DEPLOY_TIMESTAMP
-    cp -a .next node_modules package.json bun.lockb .env.production $BACKUP_DIR/$DEPLOY_TIMESTAMP/ 2>  /dev/null
+    cp -a .next node_modules package.json bun.lockb .env.production $BACKUP_DIR/$DEPLOY_TIMESTAMP/ 2> /dev/null
     echo $DEPLOY_TIMESTAMP > $BACKUP_DIR/last_working_version
-}
+# }
 
 perform_rollback() {
     echo "Falha no deploy. Iniciando rollback..."
