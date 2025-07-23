@@ -16,9 +16,6 @@ HEALTH_CHECK_INTERVAL=3
 # Criar diretório de backup se não existir
 mkdir -p $BACKUP_DIR
 
-# Backup da configuração atual
-[ -f .env.production ] && cp .env.production /tmp/env.$NAME
-
 # Backup da versão atual funcionando
 echo "Fazendo backup da versão atual..."
 sudo /usr/bin/systemctl is-active $SERVICE > /dev/null && {
@@ -75,11 +72,7 @@ trap perform_rollback ERR
 sudo /usr/bin/systemctl stop $SERVICE
 
 # Limpeza e preparação para o novo build
-git clean -fxd
-
-# Restaurar variáveis de ambiente
-[ -e /tmp/env.$NAME ] && cp /tmp/env.$NAME .env.production
-# [ ! -f .env ] && [ -f .env.production ] && cp .env.production .env
+git clean -fxd -e '.env.production'
 cp -f .env.production .env
 
 # Instalar dependências e construir
@@ -90,10 +83,11 @@ bun install
 #bash ./scripts/db/create.sh
 
 echo "Atualizando banco de dados..."
-bun run db:reset
+#bun run db:reset
 bun run db:push
 bun run db:seed
 bun run db:scrape
+bun run db:news
 
 echo "Construindo aplicação..."
 bun run build
