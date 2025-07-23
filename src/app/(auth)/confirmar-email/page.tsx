@@ -4,10 +4,11 @@ import { useSearchParams } from "next/navigation";
 import { reSendVerificationEmail } from "@/actions";
 import { Mail } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
-export default function ConfirmarEmail() {
+function ConfirmarEmailContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
 
@@ -59,5 +60,20 @@ export default function ConfirmarEmail() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ConfirmarEmail() {
+  return (
+    <Suspense fallback={
+      <div className="w-full max-w-md mx-auto">
+        <div className="bg-black/50 border-2 border-black/40 rounded-lg shadow-lg p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-gray-400">Carregando...</p>
+        </div>
+      </div>
+    }>
+      <ConfirmarEmailContent />
+    </Suspense>
   );
 }

@@ -115,6 +115,84 @@ export async function signUp(unsafeData: z.infer<typeof signUpSchema> & { sendVe
   const existingUser = await db.query.users.findFirst({ where: eq(users.email, data.email) });
   if (existingUser) return "Já existe uma conta com este e-mail";
 
+  const result = await createUserAccount(data, unsafeData.sendVerificationEmail);
+  if (typeof result === 'string') return result;
+
+  if (unsafeData.redirectTo) redirect(unsafeData.redirectTo);
+  else redirect("/");
+}
+
+// Função auxiliar para criar a conta (separada do redirect)
+async function createUserAccount(data: z.infer<typeof signUpSchema>, sendEmail: boolean = false) {
+  try {
+    const salt = generateSalt();
+    const hashedPassword = await hashPassword(data.password, salt);
+    const verificationToken = generateVerificationToken();
+    const verificationExpires = getTokenExpiry();
+
+    const newUserData: typeof users.$inferInsert = {
+      email: data.email,
+      password: hashedPassword,
+      salt,
+      emailVerified: false,
+      emailVerificationToken: verificationToken,
+      emailVerificationExpires: verificationExpires.toISOString(),
+    };
+
+    const newUser = await db.transaction(async (tx) => {
+      const [newUser] = await tx
+        .insert(users)
+        .values(newUserData)
+        .onConflictDoNothing()
+        .returning({ id: users.id, email: users.email, role: users.role });
+
+      if (!newUser) {
+        tx.rollback();
+        return null;
+      }
+
+      const newProfileData: typeof profiles.$inferInsert = {
+        userId: newUser.id,
+        name: data.name,
+        avatar: null,
+      };
+
+      const [newProfile] = await tx
+        .insert(profiles)
+        .values(newProfileData)
+        .onConflictDoNothing()
+        .returning({ id: profiles.id, userId: profiles.userId, name: profiles.name, avatar: profiles.avatar });
+
+      if (!newProfile) {
+        tx.rollback();
+        return null;
+      }
+
+      if (sendEmail) {
+        const emailSent = await sendVerificationEmail(data.email, verificationToken);
+        if (!emailSent) {
+          tx.rollback();
+          return null;
+        }
+      }
+      
+      return newUser;
+    });
+
+    return newUser;
+  } catch (error) {
+    console.error("Error creating user:", error);
+    return "Não foi possível criar a conta";
+  }
+}
+
+export async function signUpTwo(unsafeData: z.infer<typeof signUpSchema> & { sendVerificationEmail?: boolean; redirectTo?: string; }) {
+  const { success, data } = signUpSchema.safeParse(unsafeData);
+  if (!success) return "Dados inválidos";
+
+  const existingUser = await db.query.users.findFirst({ where: eq(users.email, data.email) });
+  if (existingUser) return "Já existe uma conta com este e-mail";
+
   try {
     const salt = generateSalt();
     const hashedPassword = await hashPassword(data.password, salt);
