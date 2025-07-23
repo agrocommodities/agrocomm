@@ -108,17 +108,11 @@ export async function signIn(unsafeData: z.infer<typeof signInSchema>) {
   redirect("/");
 }
 
-export async function signUp(unsafeData: z.infer<typeof signUpSchema> & {
-  sendVerificationEmail?: boolean;
-  redirectTo?: string;
-}) {
+export async function signUp(unsafeData: z.infer<typeof signUpSchema> & { sendVerificationEmail?: boolean; redirectTo?: string; }) {
   const { success, data } = signUpSchema.safeParse(unsafeData);
   if (!success) return "Dados inválidos";
 
-  const existingUser = await db.query.users.findFirst({
-    where: eq(users.email, data.email),
-  });
-
+  const existingUser = await db.query.users.findFirst({ where: eq(users.email, data.email) });
   if (existingUser) return "Já existe uma conta com este e-mail";
 
   try {
@@ -127,36 +121,87 @@ export async function signUp(unsafeData: z.infer<typeof signUpSchema> & {
     const verificationToken = generateVerificationToken();
     const verificationExpires = getTokenExpiry();
 
-    // Criar usuário
-    const [newUser] = await db
-      .insert(users)
-      .values({
-        email: data.email,
-        password: hashedPassword,
-        salt,
-        emailVerified: false,
-        emailVerificationToken: verificationToken,
-        emailVerificationExpires: verificationExpires.toISOString(),
-      })
-      .returning({ id: users.id, email: users.email, role: users.role });
+    const newUserData: typeof users.$inferInsert = {
+      email: data.email,
+      password: hashedPassword,
+      salt,
+      emailVerified: false,
+      emailVerificationToken: verificationToken,
+      emailVerificationExpires: verificationExpires.toISOString(),
+    };
+
+
+    const newUser = await db.transaction(async (tx) => {
+      // const [user] = await tx.select({ balance: accounts.balance }).from(accounts).where(eq(users.name, 'Dan'));
+
+      const [newUser] = await tx
+        .insert(users)
+        .values(newUserData)
+        .onConflictDoNothing()
+        .returning({ id: users.id, email: users.email, role: users.role });
+
+      if (!newUser) {
+        tx.rollback()
+        return null
+      }
+
+      const newProfileData: typeof profiles.$inferInsert = {
+        userId: newUser.id,
+        name: data.name,
+        avatar: null,
+      };
+
+      const [newProfile] = await tx
+        .insert(profiles)
+        .values(newProfileData)
+        .onConflictDoNothing()
+        .returning({ id: profiles.id, userId: profiles.userId, name: profiles.name, avatar: profiles.avatar });
+
+      if (!newProfile) {
+        tx.rollback()
+        return null
+      }
+
+      console.log("unsafeData", unsafeData);
+
+      if (unsafeData.sendVerificationEmail) {
+        const sendedEmail = await sendVerificationEmail(data.email, verificationToken);
+
+        if (!sendedEmail) {
+          tx.rollback();
+          return null;
+        }
+      }
+      
+      return newUser;
+
+      // await tx.update(accounts).set({ balance: sql`${accounts.balance} - 100.00` }).where(eq(users.name, 'Dan'));
+      // await tx.update(accounts).set({ balance: sql`${accounts.balance} + 100.00` }).where(eq(users.name, 'Andrew'));
+    });
+
+    if (unsafeData.redirectTo) {
+      redirect(unsafeData.redirectTo);
+    } else {
+      redirect("/");
+    }
+
+
 
     // Criar profile
-    await db.insert(profiles).values({
-      userId: newUser.id,
-      name: data.name,
-    });
+    // await db.insert(profiles).values({
+    //   userId: newUser.id,
+    //   name: data.name,
+    // });
 
     // const sessionUser: SessionUser = {
     //   id: newUser.id,
     //   email: newUser.email,
     //   role: newUser.role,
     // };
-    
+
     // Enviar email de verificação
-    if (unsafeData.sendVerificationEmail) {
-      await sendVerificationEmail(data.email, verificationToken);
-    }
-    
+
+
     // Não criar sessão automaticamente - usuário precisa verificar email
     // redirect para página de confirmação será feito no componente
     // await createSession(sessionUser, await cookies());

@@ -1,17 +1,26 @@
-// src/lib/email.ts
 import nodemailer from 'nodemailer';
-import { generateVerificationToken } from './tokens';
+// import { generateVerificationToken } from './tokens';
 
 // Configurar transporter (exemplo com Gmail - ajuste conforme seu provedor)
-const transporter = nodemailer.createTransport({
+const transporterIcloud = nodemailer.createTransport({
   service: "iCloud", 
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
 });
 
-export async function sendVerificationEmail(email: string, token: string) {
+const transporterGmail = nodemailer.createTransport({
+  service: "Gmail", 
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+export async function sendVerificationEmail(email: string, token: string, provider: string = "iCloud") {
   const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verificar-email?token=${token}`;
 
   const mailOptions = {
@@ -34,5 +43,11 @@ export async function sendVerificationEmail(email: string, token: string) {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  // if (provider === "iCloud") {
+    const sendEmail = await transporterIcloud.sendMail(mailOptions);
+  // } else {
+    // const sendEmail = await transporterGmail.sendMail(mailOptions);
+  // }
+
+  return sendEmail || null;
 }

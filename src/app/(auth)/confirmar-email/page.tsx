@@ -5,6 +5,8 @@ import { reSendVerificationEmail } from "@/actions";
 import { Mail } from "lucide-react";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default function ConfirmarEmail() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");

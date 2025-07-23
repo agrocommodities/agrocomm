@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getCurrentUser } from "@/lib/user";
-import { Check, Crown, Rocket, Building } from "lucide-react";
+import { Check, Crown, Rocket, Building, X } from "lucide-react";
 import Button from "@/components/ui/button";
 import { createCheckoutSession } from "@/actions/stripe";
 
@@ -62,13 +62,13 @@ export default function AssinaturasPage() {
     try {
       const response = await fetch("/api/plans");
       const data = await response.json();
-      
+
       // Adicionar features hardcoded (você pode buscar do Stripe metadata)
       const plansWithFeatures = data.map((plan: Plan) => ({
         ...plan,
         features: getPlanFeatures(plan.name),
       }));
-      
+
       setPlans(plansWithFeatures);
     } catch (error) {
       console.error("Erro ao buscar planos:", error);
@@ -109,11 +109,11 @@ export default function AssinaturasPage() {
 
   const handleSelectPlan = async (priceId: string, planName: string) => {
     setSelectedPlan(priceId);
-    
+
     try {
-      const result = await createCheckoutSession(planName.toLowerCase().includes("básico") ? "basic" : 
-                                                 planName.toLowerCase().includes("profissional") ? "pro" : "enterprise");
-      
+      const result = await createCheckoutSession(planName.toLowerCase().includes("básico") ? "basic" :
+        planName.toLowerCase().includes("profissional") ? "pro" : "enterprise");
+
       if (result.checkoutUrl) {
         window.location.href = result.checkoutUrl;
       } else if (result.error) {
@@ -154,19 +154,18 @@ export default function AssinaturasPage() {
             const iconKey = plan.name.split(" - ")[0] as keyof typeof iconMap;
             const Icon = iconMap[iconKey] || Crown;
             const isPopular = plan.name.includes("Profissional");
-            
+
             return (
               <div
-                key={plan.id}
-                className={`relative bg-black/50 border-2 rounded-2xl p-8 transition-all duration-300 hover:scale-105 ${
-                  isPopular
+                key={index}
+                className={`relative bg-black/50 border-2 rounded-2xl p-8 transition-all duration-300 hover:scale-105 ${isPopular
                     ? "border-primary-500 shadow-2xl shadow-primary-500/20"
                     : "border-black/40"
-                }`}
+                  }`}
               >
                 {isPopular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-primary-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                    <span className="bg-red-500 text-white px-4 py-1 rounded-full text-sm font-semibold whitespace-nowrap">
                       Mais Popular
                     </span>
                   </div>
@@ -174,9 +173,8 @@ export default function AssinaturasPage() {
 
                 {/* Plan Icon */}
                 <div className="flex justify-center mb-6">
-                  <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
-                    isPopular ? "bg-primary-500" : "bg-gray-700"
-                  }`}>
+                  <div className={`w-20 h-20 rounded-full flex items-center justify-center ${isPopular ? "bg-yellow-600" : "bg-gray-700"
+                    }`}>
                     <Icon className="w-10 h-10 text-white" />
                   </div>
                 </div>
@@ -208,11 +206,10 @@ export default function AssinaturasPage() {
                 <Button
                   onClick={() => handleSelectPlan(plan.price_id, plan.name)}
                   disabled={selectedPlan === plan.price_id}
-                  className={`w-full py-3 font-semibold transition-all ${
-                    isPopular
-                      ? "bg-primary-500 hover:bg-primary-600 text-white"
+                  className={`w-full py-3 font-semibold transition-all ${isPopular
+                      ? "bg-transparent border-2 border-gray-600 hover:border-white"
                       : "bg-transparent border-2 border-gray-600 hover:border-white"
-                  }`}
+                    }`}
                 >
                   {selectedPlan === plan.price_id ? "Processando..." : "Assinar Agora"}
                 </Button>

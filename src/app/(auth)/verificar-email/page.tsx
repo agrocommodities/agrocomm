@@ -1,10 +1,11 @@
-// src/app/(auth)/verificar-email/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { CheckCircle, XCircle } from "lucide-react";
 import Link from "next/link";
+
+export const dynamic = "force-dynamic";
 
 export default function VerificarEmail() {
   const searchParams = useSearchParams();
