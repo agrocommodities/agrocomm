@@ -13,6 +13,8 @@ import { comparePasswords, generateSalt, hashPassword } from "@/lib/password";
 import { cookies } from "next/headers";
 import { createSession, removeSession } from "@/lib/session";
 import { writeFile, mkdir } from "fs/promises";
+import { sendVerificationEmail } from "@/lib/email";
+import { generateVerificationToken, getTokenExpiry } from "@/lib/tokens";
 import type { SessionUser } from "@/types";
 
 export async function uploadAvatar(formData: FormData) {
@@ -77,41 +79,6 @@ export async function uploadAvatar(formData: FormData) {
   }
 }
 
-export async function getUserById(id: string) {
-  const userId = parseInt(id, 10);
-
-  if (!userId) return null;
-
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-    with: {
-      profile: true,
-    },
-    columns: {
-      id: true,
-      email: true,
-      role: true,
-      createdAt: true,
-      updatedAt: true,
-      password: false,
-      salt: false,
-    },
-  });
-
-  if (!user) return null;
-
-  // Retornar no formato esperado pelos componentes existentes
-  return {
-    id: user.id,
-    email: user.email,
-    role: user.role,
-    name: user.profile?.name || null,
-    username: user.profile?.username || null,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-  };
-}
-
 export async function signIn(unsafeData: z.infer<typeof signInSchema>) {
   const { success, data } = signInSchema.safeParse(unsafeData);
   if (!success) return "Não foi possível fazer login";
@@ -140,10 +107,6 @@ export async function signIn(unsafeData: z.infer<typeof signInSchema>) {
   await createSession(sessionUser, await cookies());
   redirect("/");
 }
-
-// src/actions.ts (atualizar função signUp)
-import { sendVerificationEmail } from "@/lib/email";
-import { generateVerificationToken, getTokenExpiry } from "@/lib/tokens";
 
 export async function signUp(unsafeData: z.infer<typeof signUpSchema> & {
   sendVerificationEmail?: boolean;
@@ -183,12 +146,11 @@ export async function signUp(unsafeData: z.infer<typeof signUpSchema> & {
       name: data.name,
     });
 
-    const sessionUser: SessionUser = {
-      id: newUser.id,
-      email: newUser.email,
-      role: newUser.role,
-    };
-
+    // const sessionUser: SessionUser = {
+    //   id: newUser.id,
+    //   email: newUser.email,
+    //   role: newUser.role,
+    // };
     
     // Enviar email de verificação
     if (unsafeData.sendVerificationEmail) {
@@ -250,6 +212,20 @@ export async function signUp(unsafeData: z.infer<typeof signUpSchema> & {
 
 //   redirect("/");
 // }
+
+export async function reSendVerificationEmail(email: string) {
+  const [user] = await db.select().from(users).where(eq(users.email, email))
+  if (user) {
+    if (user.emailVerificationToken) {
+      await sendVerificationEmail(user.email, user.emailVerificationToken);
+    } else {
+      const emailVerificationToken = generateVerificationToken();
+      const emailVerificationExpires = getTokenExpiry();
+      await db.update(users).set({ emailVerificationToken, emailVerificationExpires: emailVerificationExpires.toString() }).where(eq(users.email, email))
+      await sendVerificationEmail(user.email, emailVerificationToken);
+    }
+  }
+}
 
 export async function updateUser(_prevState: any, formData: FormData) {
   const currentUser = await getCurrentUser();

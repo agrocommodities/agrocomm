@@ -7,9 +7,39 @@ import { eq } from "drizzle-orm";
 import { users } from "@/db/schema";
 import type { User, SessionUser } from "@/types";
 
+export async function getUserById(id: string) {
+  const userId = parseInt(id, 10);
+  if (!userId) return null;
+
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    with: {
+      profile: true,
+      subscription: true,
+    },
+    columns: {
+      password: false,
+      salt: false,
+    },
+  });
+
+  // Retornar no formato esperado pelos componentes existentes
+  // return {
+  //   id: user.id,
+  //   email: user.email,
+  //   role: user.role,
+  //   name: user.profile?.name || null,
+  //   username: user.profile?.username || null,
+  //   createdAt: user.createdAt,
+  //   updatedAt: user.updatedAt,
+  // };
+
+  return user || null;
+}
+
 // Função simplificada que sempre busca todos os dados
 async function getUserFromDb(id: number): Promise<User | null> {
-  const result = await db.query.users.findFirst({
+  const user = await db.query.users.findFirst({
     where: eq(users.id, id),
     with: {
       profile: true,
@@ -21,7 +51,7 @@ async function getUserFromDb(id: number): Promise<User | null> {
     },
   });
 
-  return result || null;
+  return user || null;
 }
 
 // Sobrecargas simplificadas

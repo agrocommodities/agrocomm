@@ -1,14 +1,19 @@
-// src/app/(auth)/confirmar-email/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { reSendVerificationEmail } from "@/actions";
 import { Mail } from "lucide-react";
 import Link from "next/link";
 
 export default function ConfirmarEmail() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
+
+  async function handleReSend() {
+    if (email) {
+      await reSendVerificationEmail(email);
+    }
+  }
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -32,9 +37,12 @@ export default function ConfirmarEmail() {
           </p>
         </div>
 
-        <p className="text-sm text-gray-400">
+        <p className="text-gray-400">
           Não recebeu o email?{" "}
-          <button className="text-primary-500 hover:underline">
+          <button 
+            onClick={async () => await handleReSend()}
+            className="text-primary-500 underline hover:no-underline cursor-pointer"
+          >
             Reenviar
           </button>
         </p>

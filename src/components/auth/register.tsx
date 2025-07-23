@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { signUp } from "@/actions";
 import { z } from "zod";
 import { signUpSchema } from "@/schemas/auth";
@@ -20,25 +20,16 @@ export function SignUpForm() {
   const router = useRouter();
   const emailFromQuery = searchParams.get("email") || "";
   const redirectTo = searchParams.get("redirect") || "/";
-
+  
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [submitError, setSubmitError] = useState<string>();
+  const [loading, setLoading] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: emailFromQuery,
     password: "",
   });
-
-  // const [formData, setFormData] = useState<FormData>({
-  //   name: "",
-  //   email: "",
-  //   password: "",
-  // });
-
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
-    {}
-  );
-  const [submitError, setSubmitError] = useState<string>();
-  const [loading, setLoading] = useState(false);
-  const [emailTouched, setEmailTouched] = useState(false);
 
   function validateEmail(email: string): string | undefined {
     if (!email) return "Email é obrigatório";
@@ -106,14 +97,8 @@ export function SignUpForm() {
     });
     setLoading(false);
 
-    // if (serverError) {
-    //   setSubmitError(serverError);
-    // }
-
-    if (!serverError) {
-      // Redirecionar para página de confirmação
-      router.push("/confirmar-email");
-    }
+    if (serverError) setSubmitError(serverError);
+    if (!serverError) router.push(`/confirmar-email?email=${formData.email}`);
   }
 
   return (

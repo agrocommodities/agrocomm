@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getUserById } from '@/actions'
+import { getUserById } from '@/lib/user'
 import ProfileEditForm from '@/components/auth/profile'
 
 export default async function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
