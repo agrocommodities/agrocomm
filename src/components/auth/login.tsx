@@ -13,13 +13,8 @@ import Link from "next/link";
 type FormData = z.infer<typeof signInSchema>;
 
 export function SignInForm() {
-  const [formData, setFormData] = useState<FormData>({
-    email: "",
-    password: "",
-  });
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
-    {}
-  );
+  const [formData, setFormData] = useState<FormData>({ email: "", password: "" });
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [submitError, setSubmitError] = useState<string>();
   const [loading, setLoading] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
@@ -117,9 +112,7 @@ export function SignInForm() {
               value={formData.email}
               onChange={handleChange}
               onBlur={handleEmailBlur}
-              className={`${
-                errors.email ? "border-red-500" : "border-black/80"
-              }`}
+              className={`${errors.email ? "border-red-500" : "border-black/80"}`}
               placeholder="nome@empresa.com"
               aria-invalid={!!errors.email}
               aria-describedby={errors.email ? "email-error" : undefined}
@@ -171,9 +164,7 @@ export function SignInForm() {
             <div className="ml-3 text-sm">
               <label
                 htmlFor="remember"
-                className="
- appearance-none w-4 h-4 rounded-sm
-                "
+                className="appearance-none w-4 h-4 rounded-sm"
               >
                 Lembrar de mim
               </label>

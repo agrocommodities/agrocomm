@@ -5,7 +5,6 @@ import { generateVerificationToken } from './tokens';
 // Configurar transporter (exemplo com Gmail - ajuste conforme seu provedor)
 const transporter = nodemailer.createTransport({
   service: "iCloud", 
-  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,

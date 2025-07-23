@@ -5,13 +5,13 @@ import { prices } from "@/db/schema"
 import Table from '@/components/ui/table';
 import { formatarReais } from "@/lib/utils";
 
-export default async function Soja() {
-  const soja = await db.select().from(prices).where(eq(prices.commodity, "soja"))
+export default async function BoiPricesPage() {
+  const boi = await db.select().from(prices).where(eq(prices.commodity, "boi"))
 
-  if (!soja || soja.length === 0) {
+  if (!boi || boi.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-gray-500">Nenhum dado encontrado para soja.</p>
+        <p className="text-gray-500">Nenhum dado encontrado para preços de boi gordo.</p>
       </div>
     );
   }
@@ -33,7 +33,7 @@ export default async function Soja() {
           </tr>
         </thead>
         <tbody>
-          {soja.map((item, index) => (
+          {boi.map((item, index) => (
             <tr className="bg-white dark:bg-black/50 hover:bg-gray-50 dark:hover:bg-black/30" key={index}>
               <th
                 scope="row"

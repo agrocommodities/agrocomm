@@ -35,13 +35,11 @@ export const users = sqliteTable("users", {
 
 export const profiles = sqliteTable("profiles", {
   id: int().primaryKey({ autoIncrement: true }),
-  userId: int()
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  name: text().notNull(),
+  userId: int().notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text(),
   username: text().unique(),
   bio: text(),
-  avatar: text().notNull().default("/images/avatar.svg"),
+  avatar: text().default("/images/avatar.svg"),
   phone: text(),
   location: text(),
   website: text(),

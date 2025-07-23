@@ -6,7 +6,7 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="pt-20 pb-12">
+    <div className="pt-20 pb-18">
       {/* <div className="mx-auto px-4 sm:px-6 lg:px-8"> */}
         <div className="flex gap-8">
           <div className="flex-1">

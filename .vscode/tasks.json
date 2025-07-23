@@ -13,6 +13,19 @@
       "presentation": {
         "reveal": "never"
       }
+    },
+    {
+      "label": "bun: studio",
+      "detail": "bunx drizzle-kit studio",
+      "type": "bun",
+      "script": "db:studio",
+      "problemMatcher": [],
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "reveal": "never"
+      }
     }
   ]
 }
