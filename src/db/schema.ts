@@ -1,30 +1,16 @@
-import { int, text, sqliteTable } from "drizzle-orm/sqlite-core";
+import { int, text, unique, sqliteTable } from "drizzle-orm/sqlite-core";
 import { relations, sql } from "drizzle-orm";
+import type { Roles, SubscriptionPlans, SubscriptionStatus } from "@/types";
 
-export const roles = ["admin", "user"] as const;
-export const subscriptionPlans = ["free", "basic", "pro", "enterprise"] as const;
-export const subscriptionStatus = ["active", "cancelled", "past_due", "trialing"] as const;
+// export const subscriptionPlans = ["free", "basic", "pro", "enterprise"] as const;
+// export const subscriptionStatus = ["active", "cancelled", "past_due", "trialing"] as const;
 
-// export const users = sqliteTable("users", {
-//   id: int().primaryKey({ autoIncrement: true }),
-//   email: text().notNull().unique(),
-//   password: text().notNull(),
-//   role: text({ enum: ["admin", "user"] })
-//     .default("user")
-//     .notNull(),
-//   salt: text(),
-//   createdAt: text().default(sql`(CURRENT_TIMESTAMP)`),
-//   updatedAt: text(),
-// });
-
-// src/db/schema.ts (adicionar campos de verificação)
 export const users = sqliteTable("users", {
   id: int().primaryKey({ autoIncrement: true }),
   email: text().notNull().unique(),
   password: text().notNull(),
-  role: text({ enum: ["admin", "user"] })
-    .default("user")
-    .notNull(),
+  // role: text({ enum: roles }).default("user").notNull(),
+  role: text().$type<Roles>().default("guest"),
   salt: text(),
   emailVerified: int({ mode: "boolean" }).default(false),
   emailVerificationToken: text(),
@@ -51,8 +37,10 @@ export const profiles = sqliteTable("profiles", {
 export const subscriptions = sqliteTable("subscriptions", {
   id: int().primaryKey({ autoIncrement: true }),
   userId: int().notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
-  plan: text({ enum: subscriptionPlans }).default("free").notNull(),
-  status: text({ enum: subscriptionStatus }).default("active").notNull(),
+  // plan: text({ enum: subscriptionPlans }).default("free").notNull(),
+  plan: text().$type<SubscriptionPlans>().default("free"),
+  // status: text({ enum: subscriptionStatus }).default("active").notNull(),
+  status: text().$type<SubscriptionStatus>().default("active"),
   currentPeriodStart: text(),
   currentPeriodEnd: text(),
   cancelAtPeriodEnd: int({ mode: "boolean" }).default(false),
@@ -110,9 +98,13 @@ export const prices = sqliteTable("prices", {
   city: text().default("N/A").notNull(),
   price: int().notNull(),
   variation: int(),
+  date: text(),
   createdAt: text().default(sql`(CURRENT_TIMESTAMP)`),
+  updatedAt: text(),
   source: text().default("scot").notNull(),
-});
+}, (t) => [
+  unique().on(t.commodity, t.createdAt, t.state, t.city),
+]);
 
 export const news = sqliteTable("news", {
   id: int().primaryKey({ autoIncrement: true }),

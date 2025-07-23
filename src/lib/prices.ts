@@ -1,5 +1,5 @@
-import { estados } from "@/config";
-import type { Estado } from "@/types";
+import { states } from "@/config";
+import type { State } from "@/types";
 
 export function calculateVariation(currentPrice: number, previousPrice: number | null): number {
   if (!previousPrice || previousPrice === 0) {
@@ -40,8 +40,8 @@ interface NumberDictionary {
 // };
 
 export function formatStateName(state: string, long = true) {
-  if (long) return estados.filter(item => item.sigla === state.toUpperCase())[0].nome;
-  return estados.filter(item => item.sigla === state.toUpperCase())[0];
+  if (long) return states.filter(item => item.abbr === state.toUpperCase())[0].name;
+  return states.filter(item => item.abbr === state.toUpperCase())[0];
 }
 
 export function formatarReais(valor: number): string {

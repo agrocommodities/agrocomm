@@ -1,36 +1,19 @@
 import iconv from "iconv-lite";
-import type { State } from "./types";
+import { states } from "@/config";
 
-// REGION
-export const states: State[] = [
-  { abbr: "AC", name: "Acre" },
-  { abbr: "AL", name: "Alagoas" },
-  { abbr: "AP", name: "Amapá" },
-  { abbr: "AM", name: "Amazonas" },
-  { abbr: "BA", name: "Bahia" },
-  { abbr: "CE", name: "Ceará" },
-  { abbr: "DF", name: "Distrito Federal" },
-  { abbr: "ES", name: "Espírito Santo" },
-  { abbr: "GO", name: "Goiás" },
-  { abbr: "MA", name: "Maranhão" },
-  { abbr: "MT", name: "Mato Grosso" },
-  { abbr: "MS", name: "Mato Grosso do Sul" },
-  { abbr: "MG", name: "Minas Gerais" },
-  { abbr: "PA", name: "Pará" },
-  { abbr: "PB", name: "Paraíba" },
-  { abbr: "PR", name: "Paraná" },
-  { abbr: "PE", name: "Pernambuco" },
-  { abbr: "PI", name: "Piauí" },
-  { abbr: "RJ", name: "Rio de Janeiro" },
-  { abbr: "RN", name: "Rio Grande do Norte" },
-  { abbr: "RS", name: "Rio Grande do Sul" },
-  { abbr: "RO", name: "Rondônia" },
-  { abbr: "RR", name: "Roraima" },
-  { abbr: "SC", name: "Santa Catarina" },
-  { abbr: "SP", name: "São Paulo" },
-  { abbr: "SE", name: "Sergipe" },
-  { abbr: "TO", name: "Tocantins" },
-];
+export function getCurrentDateWithoutHours() {
+  const now = new Date();
+
+  // Get UTC components
+  const utcYear = now.getUTCFullYear();
+  const utcMonth = now.getUTCMonth(); // Month is 0-indexed (0 for January, 11 for December)
+  const utcDay = now.getUTCDate();
+
+  // Create a new Date object representing the UTC date at midnight
+  const utcDateWithoutHours = new Date(Date.UTC(utcYear, utcMonth, utcDay));
+
+  console.log(utcDateWithoutHours.toISOString().slice(0, 10)); // Output: YYYY-MM-DD
+}
 
 export function stringToNumber(price: string): number {
   return parseInt(price.replace(",", ""), 10);
@@ -69,9 +52,7 @@ export async function loadScotUrl(url: string): Promise<string> {
 export function extractCityAndState(location: string) {
   if (!location) return { state: null, city: null };
 
-  let stateFound = states.find(
-    (state) => location === state.abbr || location.includes(state.name)
-  );
+  let stateFound = states.find((state) => location === state.abbr || location.includes(state.name));
   if (stateFound) return { state: stateFound.abbr, city: "-" };
 
   const stateAbbr = location.substring(0, 2);
@@ -146,25 +127,17 @@ export function convertStringToFormattedDate(dateString: string): Date {
 
 export function convertStringToDate(dateString: string): Date {
   const dateMatch = dateString.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-  if (!dateMatch)
-    throw new Error(
-      "Formato de data não encontrado. Esperado padrão: DD/MM/YYYY"
-    );
+  if (!dateMatch) throw new Error("Formato de data não encontrado. Esperado padrão: DD/MM/YYYY");
   const [_, day, month, year] = dateMatch;
-
   const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
   date.setUTCHours(date.getUTCHours()); // date.setUTCHours(date.getUTCHours() + 3)
-
   // return new Date(Number(year), Number(month) - 1, Number(day));
   return date;
 }
 
 export function getExpiryInSeconds(expiry: string): number {
   const match = expiry.match(/^(\d+)([dhms])$/);
-  if (!match)
-    throw new Error(
-      "Formato de expiração inválido. Use '1d', '2h', '60m' ou '30s'."
-    );
+  if (!match) throw new Error("Formato de expiração inválido. Use '1d', '2h', '60m' ou '30s'.");
 
   const value = Number(match[1]);
   const unit = match[2];

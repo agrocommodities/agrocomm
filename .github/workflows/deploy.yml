@@ -38,5 +38,5 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd ${{ secrets.PROJECT_PATH }}
-            bash scripts/deploy.sh
-            # bash scripts/deploy-simple.sh
+            # bash scripts/deploy.sh
+            bash scripts/deploy-simple.sh

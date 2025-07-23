@@ -35,6 +35,10 @@ export type SessionUser = {
   role: "admin" | "user";
 };
 
+export type Roles = "admin" | "user" | "guest";
+export type SubscriptionPlans = "free" | "basic" | "pro" | "enterprise";
+export type SubscriptionStatus = "active" | "cancelled" | "past_due" | "trialing";
+
 // Informações do plano
 export interface PlanInfo {
   name: string;
@@ -45,10 +49,10 @@ export interface PlanInfo {
   popular?: boolean;
 }
 
-export interface Estado {
-  sigla: string;
-  nome: string;
-  bandeira: string;
+export interface State {
+  abbr: string;
+  name: string;
+  flag?: string;
 }
 
 export interface News {

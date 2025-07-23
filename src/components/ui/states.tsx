@@ -2,42 +2,42 @@
 
 import { useState, useEffect } from "react";
 import { redirect } from "next/navigation";
-import { estados } from "@/config";
-import { type Estado } from "@/types";
+import { states } from "@/config";
+import { type State } from "@/types";
 
-interface EstadoDropdownProps {
+interface StateDropdownProps {
   isOpen?: boolean;
   onToggle?: () => void;
 }
 
-export default function EstadoDropdown({ isOpen = false, onToggle }: EstadoDropdownProps) {
+export default function StateDropdown({ isOpen = false, onToggle }: StateDropdownProps) {
   // const [isOpen, setIsOpen] = useState(false);
-  const [selectedEstado, setSelectedEstado] = useState<Estado | null>(null);
+  const [selectedState, setSelectedState] = useState<State | null>(null);
 
   // Carrega o estado salvo ao montar o componente
   useEffect(() => {
-    const savedEstado = localStorage.getItem("selectedEstado");
-    if (savedEstado) {
-      setSelectedEstado(JSON.parse(savedEstado));
+    const savedState = localStorage.getItem("selectedState");
+    if (savedState) {
+      setSelectedState(JSON.parse(savedState));
     }
   }, []);
 
   // Salva o estado sempre que mudar
   useEffect(() => {
-    if (selectedEstado) {
-      localStorage.setItem("selectedEstado", JSON.stringify(selectedEstado));
+    if (selectedState) {
+      localStorage.setItem("selectedState", JSON.stringify(selectedState));
     }
-  }, [selectedEstado]);
+  }, [selectedState]);
 
-  const handleSelect = (estado: Estado) => {
-    setSelectedEstado(estado);
+  const handleSelect = (state: State) => {
+    setSelectedState(state);
     onToggle?.(); // Fecha o menu após seleção
-    redirect(`/estado/${estado.sigla.toLowerCase()}`);
+    redirect(`/estado/${state.abbr.toLowerCase()}`);
   };
 
   // // Carrega o estado salvo ao montar o componente
   // useEffect(() => {
-  //   const savedEstado = localStorage.getItem("selectedEstado");
+  //   const savedState = localStorage.getItem("selectedState");
   //   if (savedEstado) {
   //     setSelectedEstado(JSON.parse(savedEstado));
   //   }
@@ -64,15 +64,15 @@ export default function EstadoDropdown({ isOpen = false, onToggle }: EstadoDropd
         onClick={onToggle}
         className="flex items-center justify-between w-full px-3 py-1 text-left bg-black rounded-md shadow-sm focus:outline-none"
       >
-        {selectedEstado ? (
+        {selectedState ? (
           <div className="flex items-center">
             <img
-              src={selectedEstado.bandeira}
-              alt={`Bandeira de ${selectedEstado.nome}`}
+              src={`/images/bandeiras/square-rounded/${selectedState.abbr.toLowerCase()}.svg`}
+              alt={`Bandeira de ${selectedState.name}`}
               className="w-6 h-4 mr-2 object-cover"
             />
             <span>
-              {selectedEstado.nome} ({selectedEstado.sigla})
+              {selectedState.name} ({selectedState.abbr})
             </span>
           </div>
         ) : (
@@ -96,18 +96,18 @@ export default function EstadoDropdown({ isOpen = false, onToggle }: EstadoDropd
       {isOpen && (
         <div className="absolute z-10 w-full mt-1 bg-black rounded-md shadow-lg max-h-96 overflow-y-auto">
           <ul className="py-1">
-            {estados.map((estado) => (
+            {states.map((state) => (
               <li
-                key={estado.sigla}
-                onClick={() => handleSelect(estado)}
+                key={state.abbr}
+                onClick={() => handleSelect(state)}
                 className="flex items-center px-3 py-1 cursor-pointer hover:bg-white/20"
               >
                 <img
-                  src={estado.bandeira}
-                  alt={`Bandeira de ${estado.nome}`}
+                  src={`/images/bandeiras/square-rounded/${state.abbr.toLowerCase()}.svg`}
+                  alt={`Bandeira de ${state.name}`}
                   className="w-6 h-4 mr-2 object-cover"
                 />
-                <span className="text-sm/8">{estado.nome}</span>
+                <span className="text-sm/8">{state.name}</span>
               </li>
             ))}
           </ul>

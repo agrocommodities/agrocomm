@@ -37,7 +37,7 @@ export default async function Soja() {
 
   return (
     <div>
-      <div className="flex items-center space-x-4 border">
+      <div className="flex items-center space-x-4">
         <Table>
           <thead className="text-sm uppercase bg-black/80">
             <tr>
@@ -50,7 +50,7 @@ export default async function Soja() {
           </thead>
           <tbody>
             {soja.map((item, index) => (
-              <tr className="bg-white dark:bg-black/50 hover:bg-gray-50 dark:hover:bg-black/30" key={index}>
+              <tr className="bg-white dark:bg-black/50 hover:bg-gray-50 dark:hover:bg-black/30 border border-black/30 last:border-b-0" key={index}>
                 <th
                   scope="row"
                   className="px-6 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white"

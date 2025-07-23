@@ -4,8 +4,8 @@
 import { useState, useEffect, useRef } from "react";
 import { ChevronDown, MapPin } from "lucide-react";
 import { redirect } from "next/navigation";
-import { estados } from "@/config";
-import { type Estado } from "@/types";
+import { states } from "@/config";
+import type { State } from "@/types";
 
 interface StateSelectorProps {
   isMobile?: boolean;
@@ -13,7 +13,7 @@ interface StateSelectorProps {
 
 export function StateSelector({ isMobile = false }: StateSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedEstado, setSelectedEstado] = useState<Estado | null>(null);
+  const [selectedEstado, setSelectedEstado] = useState<State | null>(null);
   const selectorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,10 +42,10 @@ export function StateSelector({ isMobile = false }: StateSelectorProps) {
     }
   }, [isOpen]);
 
-  const handleSelect = (estado: Estado) => {
+  const handleSelect = (estado: State) => {
     setSelectedEstado(estado);
     setIsOpen(false);
-    redirect(`/estado/${estado.sigla.toLowerCase()}`);
+    redirect(`/estado/${estado.abbr.toLowerCase()}`);
   };
 
   if (isMobile) {
@@ -64,11 +64,11 @@ export function StateSelector({ isMobile = false }: StateSelectorProps) {
             {selectedEstado ? (
               <div className="flex items-center gap-2">
                 <img
-                  src={selectedEstado.bandeira}
-                  alt={`Bandeira de ${selectedEstado.nome}`}
+                  src={`/images/bandeiras/square-rounded/${selectedEstado.abbr.toLowerCase()}.svg`}
+                  alt={`Bandeira de ${selectedEstado.name}`}
                   className="w-5 h-4 object-cover rounded"
                 />
-                <span className="text-sm">{selectedEstado.nome}</span>
+                <span className="text-sm">{selectedEstado.name}</span>
               </div>
             ) : (
               <span className="text-sm text-foreground/60">Selecione um estado</span>
@@ -80,18 +80,18 @@ export function StateSelector({ isMobile = false }: StateSelectorProps) {
 
           {isOpen && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-foreground/10 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50">
-              {estados.map((estado) => (
+              {states.map((estado) => (
                 <button
-                  key={estado.sigla}
+                  key={estado.abbr}
                   onClick={() => handleSelect(estado)}
                   className="flex items-center gap-2 w-full p-3 hover:bg-foreground/5 transition-colors text-left"
                 >
                   <img
-                    src={estado.bandeira}
-                    alt={`Bandeira de ${estado.nome}`}
+                    src={`/images/bandeiras/square-rounded/${estado.abbr.toLowerCase()}.svg`}
+                    alt={`Bandeira de ${estado.name}`}
                     className="w-5 h-4 object-cover rounded"
                   />
-                  <span className="text-sm">{estado.nome}</span>
+                  <span className="text-sm">{estado.name}</span>
                 </button>
               ))}
             </div>
@@ -110,12 +110,12 @@ export function StateSelector({ isMobile = false }: StateSelectorProps) {
         {selectedEstado ? (
           <>
             <img
-              src={selectedEstado.bandeira}
-              alt={`Bandeira de ${selectedEstado.nome}`}
+              src={`/images/bandeiras/square-rounded/${selectedEstado.abbr.toLowerCase()}.svg`}
+              alt={`Bandeira de ${selectedEstado.name}`}
               className="w-4 h-3 object-cover rounded"
             />
-            <span className="text-sm hidden lg:block">{selectedEstado.nome}</span>
-            <span className="text-sm lg:hidden">{selectedEstado.sigla}</span>
+            <span className="text-sm hidden lg:block">{selectedEstado.name}</span>
+            <span className="text-sm lg:hidden">{selectedEstado.abbr}</span>
           </>
         ) : (
           <>
@@ -130,18 +130,18 @@ export function StateSelector({ isMobile = false }: StateSelectorProps) {
 
       {isOpen && (
         <div className="absolute right-0 mt-1 w-48 bg-background border border-foreground/10 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50">
-          {estados.map((estado) => (
+          {states.map((estado) => (
             <button
-              key={estado.sigla}
+              key={estado.abbr}
               onClick={() => handleSelect(estado)}
               className="flex items-center gap-2 w-full p-2 hover:bg-foreground/5 transition-colors text-left"
             >
               <img
-                src={estado.bandeira}
-                alt={`Bandeira de ${estado.nome}`}
+                src={`/images/bandeiras/square-rounded/${estado.abbr.toLowerCase()}.svg`}
+                alt={`Bandeira de ${estado.name}`}
                 className="w-4 h-3 object-cover rounded"
               />
-              <span className="text-sm">{estado.nome}</span>
+              <span className="text-sm">{estado.name}</span>
             </button>
           ))}
         </div>
