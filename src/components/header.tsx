@@ -7,9 +7,9 @@ import { useState, useEffect, useRef } from "react";
 import { UserMenu } from "@/components/auth/user-menu";
 import EstadoDropdown from '@/components/ui/states';
 import NavigationMenu from '@/components/ui/navmenu';
-import type { UserWithProfile } from "@/types";
+import type { User } from "@/types";
 
-export default function Header({ user }: { user: UserWithProfile | null }) {
+export default function Header({ user }: { user: User | null }) {
   // const [isMenuOpen, setIsMenuOpen] = useState(false);
   // const pathname = usePathname();
 
