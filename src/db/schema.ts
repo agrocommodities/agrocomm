@@ -33,6 +33,22 @@ export const users = sqliteTable("users", {
   updatedAt: text(),
 });
 
+export const profiles = sqliteTable("profiles", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int()
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text().notNull(),
+  username: text().unique(),
+  bio: text(),
+  avatar: text().notNull().default("/images/avatar.svg"),
+  phone: text(),
+  location: text(),
+  website: text(),
+  createdAt: text().default(sql`(CURRENT_TIMESTAMP)`),
+  updatedAt: text(),
+});
+
 // Adicione a tabela de subscrições
 export const subscriptions = sqliteTable("subscriptions", {
   id: int().primaryKey({ autoIncrement: true }),
@@ -68,22 +84,6 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   }),
   sessions: many(sessions),
 }));
-
-export const profiles = sqliteTable("profiles", {
-  id: int().primaryKey({ autoIncrement: true }),
-  userId: int()
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  name: text().notNull(),
-  username: text().unique(),
-  bio: text(),
-  avatar: text().notNull().default("/images/avatar.svg"),
-  phone: text(),
-  location: text(),
-  website: text(),
-  createdAt: text().default(sql`(CURRENT_TIMESTAMP)`),
-  updatedAt: text(),
-});
 
 export const profilesRelations = relations(profiles, ({ one }) => ({
   user: one(users, {

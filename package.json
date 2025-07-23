@@ -14,7 +14,8 @@
     "db:scrape": "bun ./src/scraper/index.ts",
     "db:reset": "rm -rf ./drizzle/local.db ./drizzle/meta/ ./drizzle/*.sql",
     "db:studio": "bunx drizzle-kit studio",
-    "stripe": "stripe listen --forward-to localhost:3000/api/stripe/webhook"
+    "stripe": "stripe listen --forward-to localhost:3000/api/stripe/webhook",
+    "knip": "knip"
   },
   "dependencies": {
     "@libsql/client": "^0.15.9",
@@ -41,6 +42,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.4",
+    "knip": "^5.62.0",
     "sass": "^1.89.2",
     "tailwindcss": "^4",
     "typescript": "^5"
@@ -49,6 +51,7 @@
     "@parcel/watcher",
     "@tailwindcss/oxide",
     "esbuild",
+    "oxc-resolver",
     "sharp"
   ]
 }
