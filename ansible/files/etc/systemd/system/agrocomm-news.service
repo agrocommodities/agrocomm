@@ -1,0 +1,11 @@
+[Unit]
+Description=AgroComm News Service
+
+[Service]
+Type=oneshot
+User=nginx
+WorkingDirectory=/var/www/agrocomm
+ExecStart=/home/nginx/.bun/bin/bun /var/www/agrocomm/src/scraper/news.ts
+
+[Install]
+WantedBy=multi-user.target

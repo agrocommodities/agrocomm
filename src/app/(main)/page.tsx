@@ -26,7 +26,7 @@ export default function Home() {
           title="Boi"
           subtitle=""
           className="aspect-[4/3]"
-          href="/cultura"
+          href="/boi"
         />
       </div>
     </div>

@@ -1,5 +1,13 @@
 import { PlanInfo, Estado } from "@/types";
 
+export const navigationItems = [
+  { href: "/", label: "Início", icon: "🏠" },
+  { href: "/soja", label: "Soja", icon: "🌱" },
+  { href: "/milho", label: "Milho", icon: "🌽" },
+  { href: "/boi", label: "Boi", icon: "🐂" },
+  // { href: "/analises", label: "Análises", icon: "📊" },
+];
+
 export const estados: Estado[] = [
   {
     sigla: "BR",

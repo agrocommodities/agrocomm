@@ -1,8 +1,6 @@
 import nodemailer from "nodemailer";
 import Email from "email-templates";
-import path from "path";
 
-// Configurar os transportes
 const transporters = {
   iCloud: nodemailer.createTransport({
     service: "iCloud",
@@ -22,7 +20,7 @@ const transporters = {
   }),
 };
 
-export async function sendVerificationEmail(emailAddress: string, token: string, provider: string = "iCloud") {
+export function sendVerificationEmail(emailAddress: string, token: string, provider: string = "iCloud") {
   const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verificar-email?token=${token}`;
   const selectedTransporter = provider === "Gmail" ? transporters.Gmail : transporters.iCloud;
 
@@ -33,16 +31,10 @@ export async function sendVerificationEmail(emailAddress: string, token: string,
     },
     send: true,
     transport: selectedTransporter,
-    views: {
-      root: path.join(process.cwd(), "emails"),
-      options: {
-        extension: "pug"
-      }
-    }
   });
 
   try {
-    const result = await emailInstance.send({
+    const result = emailInstance.send({
       template: "verification",
       message: {
         to: emailAddress

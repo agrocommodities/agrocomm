@@ -169,7 +169,8 @@ async function createUserAccount(data: z.infer<typeof signUpSchema>, sendEmail: 
       }
 
       if (sendEmail) {
-        const emailSent = await sendVerificationEmail(data.email, verificationToken);
+        const emailSent = sendVerificationEmail(data.email, verificationToken);
+
         if (!emailSent) {
           tx.rollback();
           return null;

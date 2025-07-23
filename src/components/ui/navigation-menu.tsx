@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { navigationItems } from "@/config";
 
 interface NavigationItem {
   href: string;
@@ -14,14 +15,6 @@ interface NavigationMenuProps {
   isMobile?: boolean;
   onItemClick?: () => void;
 }
-
-const navigationItems: NavigationItem[] = [
-  { href: "/", label: "Início", icon: "🏠" },
-  { href: "/soja", label: "Soja", icon: "🌱" },
-  { href: "/milho", label: "Milho", icon: "🌽" },
-  { href: "/boi", label: "Boi", icon: "🐂" },
-  { href: "/analises", label: "Análises", icon: "📊" },
-];
 
 export function NavigationMenu({ isMobile = false, onItemClick }: NavigationMenuProps) {
   const pathname = usePathname();

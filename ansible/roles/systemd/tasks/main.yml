@@ -9,6 +9,8 @@
     - agrocomm.service
     - agrocomm-scrape.service
     - agrocomm-scrape.timer
+    - agrocomm-news.service
+    - agrocomm-news.timer
 
 - name: Creates /etc/sudoers.d directory
   ansible.builtin.file:
@@ -24,6 +26,10 @@
     name: agrocomm
     user: nginx
     commands:
+      - /usr/bin/systemctl stop agrocomm-news.service
+      - /usr/bin/systemctl start agrocomm-news.service
+      - /usr/bin/systemctl restart agrocomm-news.service
+      - /usr/bin/systemctl status agrocomm-news.service
       - /usr/bin/systemctl stop agrocomm.service
       - /usr/bin/systemctl start agrocomm.service
       - /usr/bin/systemctl restart agrocomm.service
@@ -46,3 +52,5 @@
     - agrocomm.service
     - agrocomm-scrape.service
     - agrocomm-scrape.timer
+    - agrocomm-news.service
+    - agrocomm-news.timer

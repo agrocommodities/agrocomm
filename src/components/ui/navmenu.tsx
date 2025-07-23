@@ -2,20 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { navigationItems } from "@/config";
 
 interface NavigationMenuProps {
   isOpen?: boolean;
   onToggle?: () => void;
   isMobile?: boolean;
 }
-
-const navigationItems = [
-  { href: "/", label: "Início", icon: "🏠" },
-  { href: "/soja", label: "Soja", icon: "🌱" },
-  { href: "/milho", label: "Milho", icon: "🌽" },
-  { href: "/boi", label: "Boi", icon: "🐂" },
-  { href: "/analises", label: "Análises", icon: "📊" },
-];
 
 export default function NavigationMenu({ onToggle, isMobile = false }: NavigationMenuProps) {
   const pathname = usePathname();
