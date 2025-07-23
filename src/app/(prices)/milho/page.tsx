@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { prices } from "@/db/schema"
 import Table from '@/components/ui/table';
-import { formatarReais } from "@/lib/utils";
+import { formatarReais } from "@/lib/prices";
 
 export default async function Milho() {
   const milho = await db.select().from(prices).where(eq(prices.commodity, "milho"))

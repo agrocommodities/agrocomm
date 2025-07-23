@@ -1,0 +1,20 @@
+extends ../layouts/default
+
+block content
+  h2(style='margin-top: 0;') Olá,
+  p Obrigado por se cadastrar no #{appName}! Estamos felizes em tê-lo conosco.
+  
+  p Para ativar sua conta e começar a usar nossos serviços, por favor confirme seu endereço de e-mail:
+
+  div(style='text-align: center; margin: 30px 0;')
+    a.button(href=verificationUrl) Confirmar E-mail
+
+  p(style='font-size: 14px; color: #666666;') Ou copie e cole este link em seu navegador:
+  p(style='word-break: break-all; font-size: 14px; color: #666666; background: #f9f9f9; padding: 10px; border-radius: 4px;') #{verificationUrl}
+
+  .divider
+
+  p(style='margin-bottom: 0;') Se você não se cadastrou no #{appName}, por favor ignore este e-mail ou entre em contato conosco caso acredite que isto é um erro.
+
+  p(style='margin-top: 20px;') Atenciosamente,
+  p(style='font-weight: bold;') Equipe #{appName}

@@ -1,7 +1,8 @@
 import { InferSelectModel, InferInsertModel } from "drizzle-orm";
-import { users, profiles, sessions, subscriptions } from "@/db/schema";
+import { users, profiles, sessions, subscriptions, prices } from "@/db/schema";
 
 // Tipos base do banco
+export type Price = InferSelectModel<typeof prices>;
 export type UserType = InferSelectModel<typeof users>;
 export type Profile = InferSelectModel<typeof profiles>;
 export type Session = InferSelectModel<typeof sessions>;

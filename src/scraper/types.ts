@@ -30,12 +30,13 @@ export interface Commodity {
   commodity: 'boi' | 'vaca' | 'soja' | 'milho' | 'machos' | 'femeas'
 }
 
-export interface Quote {
+export interface Price {
   valor: number
   estado: string
   cidade?: string
   commodity: string
   createdAt: string
+  variation: number
 }
 
 interface ProviderDetails {

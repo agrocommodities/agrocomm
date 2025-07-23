@@ -1,10 +1,12 @@
-import * as cheerio from 'cheerio'
-import { Element } from 'domhandler'
-import { db } from '@/db'
-import { prices } from '@/db/schema'
-import { extractCityAndState } from './utils'
-import { convertStringToDate } from './utils'
-import { loadScotUrl, stringToNumber } from './utils'
+import * as cheerio from "cheerio";
+import { Element } from "domhandler";
+import { db } from "@/db";
+import { eq, and, sql } from "drizzle-orm";
+import { prices } from "@/db/schema";
+import { extractCityAndState } from "./utils";
+import { convertStringToDate } from "./utils";
+import { loadScotUrl, stringToNumber } from "./utils";
+import { calculateVariation } from "@/lib/prices";
 
 interface Commodity {
   id: number
@@ -14,7 +16,7 @@ interface Commodity {
   tableDate: string
 }
 
-type Quote = typeof prices.$inferInsert
+type Price = typeof prices.$inferInsert
 // const url = 'https://www.scotconsultoria.com.br/cotacoes'
 const urls = {
   graos: 'https://www.scotconsultoria.com.br/cotacoes/graos/?ref=smnb',
@@ -24,33 +26,33 @@ const urls = {
 }
 
 const commodities: Commodity[] = [
-  { 
-    id: 1, 
-    name: 'boi', 
-    url: urls.boi, 
-    tr: 'div.conteudo_centro:nth-child(4) > table:nth-child(5) tbody tr', 
-    tableDate: '' 
+  {
+    id: 1,
+    name: 'boi',
+    url: urls.boi,
+    tr: 'div.conteudo_centro:nth-child(4) > table:nth-child(5) tbody tr',
+    tableDate: ''
   },
-  { 
-    id: 2, 
-    name: 'vaca', 
-    url: urls.vaca, 
-    tr: '', 
-    tableDate: '' 
+  {
+    id: 2,
+    name: 'vaca',
+    url: urls.vaca,
+    tr: '',
+    tableDate: ''
   },
-  { 
-    id: 3, 
-    name: 'soja', 
-    url: urls.graos, 
-    tr: '', 
-    tableDate: '' 
+  {
+    id: 3,
+    name: 'soja',
+    url: urls.graos,
+    tr: '',
+    tableDate: ''
   },
-  { 
-    id: 4, 
+  {
+    id: 4,
     name: 'milho',
-    url: urls.milho, 
-    tr: '', 
-    tableDate: '' 
+    url: urls.milho,
+    tr: '',
+    tableDate: ''
   }
 ]
 
@@ -58,12 +60,36 @@ function comm(name: string): Commodity | undefined {
   return commodities.find(commodity => commodity.name === name)
 }
 
-async function addData(data: Quote[]) {
+// async function addData(data: Price[]) {
+//   await db.insert(prices).values(data).onConflictDoNothing()
+// }
+
+async function addData(data: Price[]) {
+  // Calcular variação para cada item antes de inserir
+  for (const item of data) {
+    const lastPrice = await getLastPrice(item.commodity!, item.state);
+    item.variation = calculateVariation(item.price, lastPrice);
+  }
+  
   await db.insert(prices).values(data).onConflictDoNothing()
 }
 
+async function getLastPrice(commodity: string, state: string): Promise<number | null> {
+  const result = await db
+    .select({ price: prices.price })
+    .from(prices)
+    .where(and(
+      eq(prices.commodity, commodity),
+      eq(prices.state, state)
+    ))
+    .orderBy(sql`${prices.createdAt} DESC`)
+    .limit(1);
+
+  return result.length > 0 ? result[0].price : null;
+}
+
 export async function scrapeBoi() {
-  const data: Quote[] = []
+  const data: Price[] = []
   const commodity = comm('boi')
   if (!commodity) return
 
@@ -89,7 +115,8 @@ export async function scrapeBoi() {
           price,
           city: city ? city : '-',
           state,
-          commodity: 'boi'
+          commodity: 'boi',
+          variation: 0 // Será calculado na função addData
         })
       }
     }
@@ -99,7 +126,7 @@ export async function scrapeBoi() {
 }
 
 export async function scrapeVaca() {
-  const data: Quote[] = []
+  const data: Price[] = []
   const body = await loadScotUrl(urls.vaca)
   const $ = cheerio.load(body)
 
@@ -122,7 +149,8 @@ export async function scrapeVaca() {
           price,
           city: city ?? '-',
           state,
-          commodity: 'vaca'
+          commodity: 'vaca',
+          variation: 0 // Será calculado na função addData
         })
       }
     }
@@ -132,7 +160,7 @@ export async function scrapeVaca() {
 }
 
 export async function scrapeSoja() {
-  const data: Quote[] = []
+  const data: Price[] = []
   const body = await loadScotUrl(urls.graos)
   const $ = cheerio.load(body)
 
@@ -155,7 +183,8 @@ export async function scrapeSoja() {
           price,
           city: city ?? '-',
           state,
-          commodity: 'soja'
+          commodity: 'soja',
+          variation: 0 // Será calculado na função addData
         })
       }
     }
@@ -165,7 +194,7 @@ export async function scrapeSoja() {
 }
 
 export async function scrapeMilho() {
-  const data: Quote[] = []
+  const data: Price[] = []
 
   const body = await loadScotUrl(urls.milho)
   const $ = cheerio.load(body)
@@ -191,7 +220,8 @@ export async function scrapeMilho() {
           price,
           city: city ?? '-',
           state,
-          commodity: 'milho'
+          commodity: 'milho',
+          variation: 0 // Será calculado na função addData
         })
       }
     }
