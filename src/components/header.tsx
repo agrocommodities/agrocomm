@@ -1,232 +1,111 @@
+// src/components/header.tsx
 "use client";
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { UserMenu } from "@/components/auth/user-menu";
-import EstadoDropdown from '@/components/ui/states';
-import NavigationMenu from '@/components/ui/navmenu';
-import type { User } from "@/types";
+import { Menu } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { NavigationMenu } from "@/components/ui/navigation-menu";
+import { StateSelector } from "@/components/ui/state-selector";
+import { UserMenu } from "@/components/ui/user-menu";
+import { AuthButtons } from "./header/auth-buttons";
+import { MobileMenu } from "./header/mobile-menu";
+import type { UserWithProfile } from "@/types";
 
-export default function Header({ user }: { user: User | null }) {
-  // const [isMenuOpen, setIsMenuOpen] = useState(false);
-  // const pathname = usePathname();
+interface HeaderProps {
+  user: UserWithProfile | null;
+}
 
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isStateMenuOpen, setIsStateMenuOpen] = useState(false);
+export default function Header({ user }: HeaderProps) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
 
-  // Fechar menu ao mudar de rota
   useEffect(() => {
-    setIsMenuOpen(false);
-    setIsUserMenuOpen(false);
-    setIsStateMenuOpen(false);
+    setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  // Fechar menus ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-        setIsUserMenuOpen(false);
-        setIsStateMenuOpen(false);
+        setIsMobileMenuOpen(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    if (isMobileMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [isMobileMenuOpen]);
 
-  // Função para fechar outros menus quando um é aberto
-  const closeOtherMenus = (currentMenu: 'mobile' | 'user' | 'state') => {
-    if (currentMenu !== 'mobile') setIsMenuOpen(false);
-    if (currentMenu !== 'user') setIsUserMenuOpen(false);
-    if (currentMenu !== 'state') setIsStateMenuOpen(false);
-  };
-
-  const handleMobileMenuToggle = () => {
-    closeOtherMenus('mobile');
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  const handleUserMenuToggle = () => {
-    closeOtherMenus('user');
-    setIsUserMenuOpen(!isUserMenuOpen);
-  };
-
-  const handleStateMenuToggle = () => {
-    closeOtherMenus('state');
-    setIsStateMenuOpen(!isStateMenuOpen);
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b-2 border-black/40">
-      <nav className="container mx-auto px-3 md:px-0">
-        <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2 text-foreground font-bold text-2xl">
-            <Image
-              className="m-0"
-              src="/images/navbar.svg"
-              alt={process.env.NEXT_PUBLIC_APP_NAME!}
-              width={38}
-              height={38}
-              priority
-            />
-            {process.env.NEXT_PUBLIC_APP_NAME}
-          </Link>
-
-          {/* Menu de Navegação Central - Desktop */}
-          <div className="flex-1 flex justify-center">
-            <NavigationMenu />
-          </div>
-
-          {/* Controles do usuário - Lado direito */}
-          <div className="flex items-center gap-4">
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-4">
-              <EstadoDropdown
-                isOpen={isStateMenuOpen}
-                onToggle={handleStateMenuToggle}
+    <>
+      <header
+        ref={headerRef}
+        className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b-2 border-black/40"
+      >
+        <nav className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-foreground font-bold text-xl md:text-2xl"
+            >
+              <Image
+                className="w-8 h-8 md:w-10 md:h-10"
+                src="/images/navbar.svg"
+                alt={process.env.NEXT_PUBLIC_APP_NAME!}
+                width={40}
+                height={40}
+                priority
               />
-              {user ? (
-                <UserMenu
-                  user={user}
-                  isOpen={isUserMenuOpen}
-                  onToggle={handleUserMenuToggle}
-                />
-              ) : (
-                <div className="hidden md:flex items-center gap-4">
-                  <Link
-                    href="/entrar"
-                    className="text-sm hover:text-foreground/80 transition-colors"
-                  >
-                    Entrar
-                  </Link>
-                  <Link
-                    href="/cadastro"
-                    className="rounded-md text-white border border-black/80 bg-black/60 text-background py-1 px-2 text-sm font-medium transition-colors hover:bg-black/40"
-                  >
-                    Cadastrar
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
+              <span className="hidden sm:block">
+                {process.env.NEXT_PUBLIC_APP_NAME}
+              </span>
+            </Link>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-foreground hover:bg-foreground/10 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-foreground/20"
-            aria-expanded={isMenuOpen}
-            aria-label="Menu principal"
-          >
-            <span className="sr-only">Abrir menu</span>
-            {isMenuOpen ? (
-              // X icon
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            ) : (
-              // Hamburger icon
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            )}
-          </button>
-        </div>
-
-        {/* Mobile Menu */}
-        <div className={`md:hidden transition-all duration-300 ease-in-out ${isMenuOpen
-            ? "max-h-96 opacity-100"
-            : "max-h-0 opacity-0 overflow-hidden"
-          }`}>
-          <div className="px-2 pt-2 pb-3 space-y-3 bg-background border-t border-foreground/10 mt-2 rounded-b-lg">
-            {/* Navegação Mobile */}
-            <div className="border-b border-foreground/10 pb-3">
-              <h3 className="px-3 text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2">
-                Navegação
-              </h3>
-              <NavigationMenu
-                isMobile={true}
-                onToggle={handleMobileMenuToggle}
-              />
+            {/* Navegação Central - Desktop */}
+            <div className="flex-1 flex justify-center">
+              <NavigationMenu />
             </div>
 
-            {/* Controles Mobile */}
-            <div className="space-y-3">
-              <div>
-                <h3 className="px-3 text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2">
-                  Localização
-                </h3>
-                <div className="px-3">
-                  <EstadoDropdown
-                    isOpen={isStateMenuOpen}
-                    onToggle={handleStateMenuToggle}
-                  />
-                </div>
+            {/* Controles da Direita */}
+            <div className="flex items-center gap-3">
+              {/* Desktop Controls */}
+              <div className="hidden md:flex items-center gap-3">
+                <StateSelector />
+                {user ? (
+                  <UserMenu user={user} />
+                ) : (
+                  <AuthButtons />
+                )}
               </div>
 
-              {user ? (
-                <div>
-                  <h3 className="px-3 text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2">
-                    Conta
-                  </h3>
-                  <UserMenu
-                    user={user}
-                    isOpen={isUserMenuOpen}
-                    onToggle={handleUserMenuToggle}
-                  />
-                </div>
-              ) : (
-                <div>
-                  <h3 className="px-3 text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2">
-                    Acesso
-                  </h3>
-                  <div className="space-y-2">
-                    <Link
-                      href="/entrar"
-                      className="block px-3 py-2 rounded-md text-base font-medium hover:bg-foreground/10 transition-colors"
-                      onClick={handleMobileMenuToggle}
-                    >
-                      Entrar
-                    </Link>
-                    <Link
-                      href="/cadastro"
-                      className="block px-3 py-2 rounded-md text-base font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors"
-                      onClick={handleMobileMenuToggle}
-                    >
-                      Cadastrar
-                    </Link>
-                  </div>
-                </div>
-              )}
+              {/* Mobile Menu Button */}
+              <button
+                onClick={toggleMobileMenu}
+                className="md:hidden p-2 hover:bg-foreground/5 rounded-lg transition-colors"
+                aria-expanded={isMobileMenuOpen}
+                aria-label="Menu principal"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
             </div>
           </div>
-        </div>
-      </nav>
-    </header>
+        </nav>
+      </header>
+
+      {/* Mobile Menu */}
+      <MobileMenu
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        user={user}
+      />
+    </>
   );
 }
