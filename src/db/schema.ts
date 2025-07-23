@@ -5,6 +5,34 @@ export const roles = ["admin", "user"] as const;
 export const subscriptionPlans = ["free", "basic", "pro", "enterprise"] as const;
 export const subscriptionStatus = ["active", "cancelled", "past_due", "trialing"] as const;
 
+// export const users = sqliteTable("users", {
+//   id: int().primaryKey({ autoIncrement: true }),
+//   email: text().notNull().unique(),
+//   password: text().notNull(),
+//   role: text({ enum: ["admin", "user"] })
+//     .default("user")
+//     .notNull(),
+//   salt: text(),
+//   createdAt: text().default(sql`(CURRENT_TIMESTAMP)`),
+//   updatedAt: text(),
+// });
+
+// src/db/schema.ts (adicionar campos de verificação)
+export const users = sqliteTable("users", {
+  id: int().primaryKey({ autoIncrement: true }),
+  email: text().notNull().unique(),
+  password: text().notNull(),
+  role: text({ enum: ["admin", "user"] })
+    .default("user")
+    .notNull(),
+  salt: text(),
+  emailVerified: int({ mode: "boolean" }).default(false),
+  emailVerificationToken: text(),
+  emailVerificationExpires: text(),
+  createdAt: text().default(sql`(CURRENT_TIMESTAMP)`),
+  updatedAt: text(),
+});
+
 // Adicione a tabela de subscrições
 export const subscriptions = sqliteTable("subscriptions", {
   id: int().primaryKey({ autoIncrement: true }),
@@ -28,18 +56,6 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
   }),
 }));
 
-export const users = sqliteTable("users", {
-  id: int().primaryKey({ autoIncrement: true }),
-  email: text().notNull().unique(),
-  password: text().notNull(),
-  role: text({ enum: ["admin", "user"] })
-    .default("user")
-    .notNull(),
-  salt: text(),
-  createdAt: text().default(sql`(CURRENT_TIMESTAMP)`),
-  updatedAt: text(),
-});
-
 // Atualize usersRelations para incluir subscription
 export const usersRelations = relations(users, ({ one, many }) => ({
   profile: one(profiles, {
@@ -52,15 +68,6 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   }),
   sessions: many(sessions),
 }));
-
-// // Relations
-// export const usersRelations = relations(users, ({ one, many }) => ({
-//   profile: one(profiles, {
-//     fields: [users.id],
-//     references: [profiles.userId],
-//   }),
-//   sessions: many(sessions),
-// }));
 
 export const profiles = sqliteTable("profiles", {
   id: int().primaryKey({ autoIncrement: true }),

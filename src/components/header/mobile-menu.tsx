@@ -6,12 +6,12 @@ import { NavigationMenu } from "@/components/ui/navigation-menu";
 import { StateSelector } from "@/components/ui/state-selector";
 import { UserMenu } from "@/components/ui/user-menu";
 import { AuthButtons } from "./auth-buttons";
-import type { UserWithProfile } from "@/types";
+import type { User } from "@/types";
 
 interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  user: UserWithProfile | null;
+  user: User | null;
 }
 
 export function MobileMenu({ isOpen, onClose, user }: MobileMenuProps) {
@@ -21,7 +21,7 @@ export function MobileMenu({ isOpen, onClose, user }: MobileMenuProps) {
     <div className="md:hidden">
       {/* Overlay */}
       <div 
-        className="fixed inset-0 bg-black/50 z-40"
+        className="fixed inset-0 bg-black/50 z-30"
         onClick={onClose}
       />
       

@@ -4,12 +4,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
-import { User, Settings, LogOut, ChevronDown } from "lucide-react";
+import { User, Trophy, Settings, LogOut, ChevronDown } from "lucide-react";
 import { logOut } from "@/actions";
-import type { UserWithProfile } from "@/types";
+import type { User as UserType } from "@/types";
 
 interface UserMenuProps {
-  user: UserWithProfile;
+  user: UserType;
   isMobile?: boolean;
 }
 
@@ -58,14 +58,21 @@ export function UserMenu({ user, isMobile = false }: UserMenuProps) {
         
         <div className="space-y-1">
           <Link
+            href="/assinaturas"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-foreground/5 transition-colors"
+            onClick={handleMenuItemClick}
+          >
+            <Trophy className="w-4 h-4" />
+            <span className="text-sm">Assinaturas</span>
+          </Link>
+          <Link
             href="/ajustes"
             className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-foreground/5 transition-colors"
             onClick={handleMenuItemClick}
           >
             <Settings className="w-4 h-4" />
             <span className="text-sm">Ajustes</span>
-          </Link>
-          
+          </Link>          
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors w-full text-left"
@@ -100,7 +107,6 @@ export function UserMenu({ user, isMobile = false }: UserMenuProps) {
           className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
-
       {isOpen && (
         <div className="absolute right-0 mt-2 w-56 bg-background border border-foreground/10 rounded-lg shadow-lg py-2 z-50">
           {/* Header do menu */}
@@ -112,14 +118,21 @@ export function UserMenu({ user, isMobile = false }: UserMenuProps) {
           {/* Items do menu */}
           <div className="py-1">
             <Link
+              href="/assinaturas"
+              className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-foreground/5 transition-colors"
+              onClick={handleMenuItemClick}
+            >
+              <Trophy className="w-4 h-4" />
+              Assinaturas
+            </Link>            
+            <Link
               href="/ajustes"
               className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-foreground/5 transition-colors"
               onClick={handleMenuItemClick}
             >
               <Settings className="w-4 h-4" />
               Ajustes
-            </Link>
-            
+            </Link>            
             <button
               onClick={handleLogout}
               className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors w-full text-left"

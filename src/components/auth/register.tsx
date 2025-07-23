@@ -1,7 +1,8 @@
+// src/components/auth/register.tsx (atualizar para aceitar email e redirect)
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signUp } from "@/actions";
 import { z } from "zod";
 import { signUpSchema } from "@/schemas/auth";
@@ -10,15 +11,27 @@ import PasswordStrength from "@/components/ui/password-str";
 import Password from "@/components/ui/password";
 import Loader from "@/components/ui/loader";
 import Button from "@/components/ui/button";
+import { useSearchParams, useRouter } from "next/navigation";
 
 type FormData = z.infer<typeof signUpSchema>;
 
 export function SignUpForm() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const emailFromQuery = searchParams.get("email") || "";
+  const redirectTo = searchParams.get("redirect") || "/";
+
   const [formData, setFormData] = useState<FormData>({
     name: "",
-    email: "",
+    email: emailFromQuery,
     password: "",
   });
+
+  // const [formData, setFormData] = useState<FormData>({
+  //   name: "",
+  //   email: "",
+  //   password: "",
+  // });
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
     {}
@@ -81,12 +94,25 @@ export function SignUpForm() {
       return;
     }
 
+    // setLoading(true);
+    // const serverError = await signUp(result.data);
+    // setLoading(false);
+
     setLoading(true);
-    const serverError = await signUp(result.data);
+    const serverError = await signUp({
+      ...result.data,
+      sendVerificationEmail: true,
+      redirectTo,
+    });
     setLoading(false);
 
-    if (serverError) {
-      setSubmitError(serverError);
+    // if (serverError) {
+    //   setSubmitError(serverError);
+    // }
+
+    if (!serverError) {
+      // Redirecionar para página de confirmação
+      router.push("/confirmar-email");
     }
   }
 
@@ -160,7 +186,7 @@ export function SignUpForm() {
               onChange={handleChange}
               autoComplete="new-password"
               className={errors.password ? "border-red-500" : ""}
-              // showStrength={`true`}
+            // showStrength={`true`}
             />
             <PasswordStrength password={formData.password} />
             {errors.password && (

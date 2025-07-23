@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { managePlan, cancelSubscription } from "@/actions/stripe";
 import type { User } from "@/types";
 
-export default function ProfileEditForm({ user }: { user: User }) {
+export default function ProfileEditForm({ user }: { user: User | null }) {
   if (!user) return <p>Usuário não encontrado.</p>;
 
   const [state, formAction, isPending] = useActionState(updateProfile, null);

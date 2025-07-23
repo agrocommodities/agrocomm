@@ -11,10 +11,10 @@ import { StateSelector } from "@/components/ui/state-selector";
 import { UserMenu } from "@/components/ui/user-menu";
 import { AuthButtons } from "./header/auth-buttons";
 import { MobileMenu } from "./header/mobile-menu";
-import type { UserWithProfile } from "@/types";
+import type { User } from "@/types";
 
 interface HeaderProps {
-  user: UserWithProfile | null;
+  user: User | null;
 }
 
 export default function Header({ user }: HeaderProps) {
@@ -64,9 +64,7 @@ export default function Header({ user }: HeaderProps) {
                 height={40}
                 priority
               />
-              <span className="hidden sm:block">
-                {process.env.NEXT_PUBLIC_APP_NAME}
-              </span>
+              {process.env.NEXT_PUBLIC_APP_NAME}
             </Link>
 
             {/* Navegação Central - Desktop */}

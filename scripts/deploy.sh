@@ -92,10 +92,8 @@ bun install
 echo "Atualizando banco de dados..."
 bun run db:reset
 bun run db:push
-#bun run db:gen
-#bun run db:mig
 bun run db:seed
-bun run db:scr
+bun run db:scrape
 
 echo "Construindo aplicação..."
 bun run build

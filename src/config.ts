@@ -1,8 +1,4 @@
-export interface Estado {
-  sigla: string;
-  nome: string;
-  bandeira: string;
-}
+import { PlanInfo, Estado } from "@/types";
 
 export const estados: Estado[] = [
   {
@@ -146,3 +142,56 @@ export const estados: Estado[] = [
     bandeira: "/images/bandeiras/square-rounded/to.svg",
   },
 ];
+
+export const planos: Record<string, PlanInfo> = {
+  free: {
+    name: "free",
+    displayName: "Gratuito",
+    price: 0,
+    features: [
+      "Acesso básico às cotações",
+      "Histórico de 7 dias",
+      "1 alerta de preço",
+    ],
+    color: "gray",
+  },
+  basic: {
+    name: "basic",
+    displayName: "Básico",
+    price: 29.90,
+    features: [
+      "Todas as funcionalidades gratuitas",
+      "Histórico de 30 dias",
+      "10 alertas de preço",
+      "Relatórios mensais",
+    ],
+    color: "blue",
+  },
+  pro: {
+    name: "pro",
+    displayName: "Profissional",
+    price: 79.90,
+    features: [
+      "Todas as funcionalidades básicas",
+      "Histórico ilimitado",
+      "Alertas ilimitados",
+      "API de integração",
+      "Suporte prioritário",
+    ],
+    color: "purple",
+    popular: true,
+  },
+  enterprise: {
+    name: "enterprise",
+    displayName: "Empresarial",
+    price: 199.90,
+    features: [
+      "Todas as funcionalidades",
+      "Múltiplos usuários",
+      "Relatórios personalizados",
+      "Consultoria dedicada",
+      "SLA garantido",
+    ],
+    color: "gold",
+  },
+};

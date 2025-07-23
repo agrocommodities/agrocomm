@@ -1,0 +1,53 @@
+// src/app/(auth)/confirmar-email/page.tsx
+"use client";
+
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Mail } from "lucide-react";
+import Link from "next/link";
+
+export default function ConfirmarEmail() {
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email");
+
+  return (
+    <div className="w-full max-w-md mx-auto">
+      <div className="bg-black/50 border-2 border-black/40 rounded-lg shadow-lg p-8 text-center">
+        <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Mail className="w-8 h-8 text-white" />
+        </div>
+        
+        <h1 className="text-2xl font-bold mb-2">Verifique seu email!</h1>
+        
+        <p className="text-gray-400 mb-6">
+          Enviamos um link de confirmação para:
+          <br />
+          <span className="font-medium text-white">{email || "seu email"}</span>
+        </p>
+
+        <div className="bg-black/30 rounded-lg p-4 mb-6">
+          <p className="text-sm text-gray-300">
+            Por favor, verifique sua caixa de entrada e clique no link
+            para confirmar seu email e continuar com a assinatura.
+          </p>
+        </div>
+
+        <p className="text-sm text-gray-400">
+          Não recebeu o email?{" "}
+          <button className="text-primary-500 hover:underline">
+            Reenviar
+          </button>
+        </p>
+
+        <div className="mt-6 pt-6 border-t border-gray-700">
+          <Link
+            href="/"
+            className="text-sm text-gray-400 hover:text-white"
+          >
+            Voltar ao início
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

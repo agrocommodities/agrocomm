@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Button from "@/components/ui/button";
-import { PLANS, type Subscription, type PlanInfo } from "@/types";
+import { planos } from "@/config";
+import { type Subscription, type PlanInfo } from "@/types";
 import { Crown, TrendingUp, TrendingDown, X } from "lucide-react";
 
 interface SubscriptionCardProps {
@@ -17,7 +18,7 @@ export default function SubscriptionCard({ subscription, onUpgrade, onDowngrade,
   const [showPlans, setShowPlans] = useState(false);
   
   const currentPlan = subscription?.plan || "free";
-  const currentPlanInfo = PLANS[currentPlan];
+  const currentPlanInfo = planos[currentPlan];
   const isActive = subscription?.status === "active";
   const willCancel = subscription?.cancelAtPeriodEnd;
 
@@ -26,11 +27,11 @@ export default function SubscriptionCard({ subscription, onUpgrade, onDowngrade,
 
   const upgradePlans = planOrder
     .slice(currentPlanIndex + 1)
-    .map(plan => ({ ...PLANS[plan], key: plan }));
+    .map(plan => ({ ...planos[plan], key: plan }));
   
   const downgradePlans = planOrder
     .slice(0, currentPlanIndex)
-    .map(plan => ({ ...PLANS[plan], key: plan }));
+    .map(plan => ({ ...planos[plan], key: plan }));
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";

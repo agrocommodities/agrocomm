@@ -42,14 +42,14 @@ export async function uploadAvatar(formData: FormData) {
     const extension = path.extname(file.name);
     const filename = `avatar-${user.id}-${Date.now()}${extension}`;
     const filepath = path.join(uploadDir, filename);
-    
+
     // Converter file para buffer e salvar
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     await writeFile(filepath, buffer);
-    
+
     const avatarUrl = `/uploads/avatars/${filename}`;
-    
+
     // Atualizar o avatar no banco
     const existingProfile = await db.query.profiles.findFirst({ where: eq(profiles.userId, user.id) });
 
@@ -79,7 +79,7 @@ export async function uploadAvatar(formData: FormData) {
 
 export async function getUserById(id: string) {
   const userId = parseInt(id, 10);
-  
+
   if (!userId) return null;
 
   const user = await db.query.users.findFirst({
@@ -141,7 +141,14 @@ export async function signIn(unsafeData: z.infer<typeof signInSchema>) {
   redirect("/");
 }
 
-export async function signUp(unsafeData: z.infer<typeof signUpSchema>) {
+// src/actions.ts (atualizar função signUp)
+import { sendVerificationEmail } from "@/lib/email";
+import { generateVerificationToken, getTokenExpiry } from "@/lib/tokens";
+
+export async function signUp(unsafeData: z.infer<typeof signUpSchema> & {
+  sendVerificationEmail?: boolean;
+  redirectTo?: string;
+}) {
   const { success, data } = signUpSchema.safeParse(unsafeData);
   if (!success) return "Dados inválidos";
 
@@ -154,6 +161,8 @@ export async function signUp(unsafeData: z.infer<typeof signUpSchema>) {
   try {
     const salt = generateSalt();
     const hashedPassword = await hashPassword(data.password, salt);
+    const verificationToken = generateVerificationToken();
+    const verificationExpires = getTokenExpiry();
 
     // Criar usuário
     const [newUser] = await db
@@ -162,10 +171,11 @@ export async function signUp(unsafeData: z.infer<typeof signUpSchema>) {
         email: data.email,
         password: hashedPassword,
         salt,
+        emailVerified: false,
+        emailVerificationToken: verificationToken,
+        emailVerificationExpires: verificationExpires.toISOString(),
       })
       .returning({ id: users.id, email: users.email, role: users.role });
-
-    if (!newUser) return "Não foi possível criar a conta";
 
     // Criar profile
     await db.insert(profiles).values({
@@ -179,14 +189,67 @@ export async function signUp(unsafeData: z.infer<typeof signUpSchema>) {
       role: newUser.role,
     };
 
-    await createSession(sessionUser, await cookies());
+    
+    // Enviar email de verificação
+    if (unsafeData.sendVerificationEmail) {
+      await sendVerificationEmail(data.email, verificationToken);
+    }
+    
+    // Não criar sessão automaticamente - usuário precisa verificar email
+    // redirect para página de confirmação será feito no componente
+    // await createSession(sessionUser, await cookies());
   } catch (error) {
     console.error("Error creating user:", error);
     return "Não foi possível criar a conta";
   }
-
-  redirect("/");
 }
+
+// export async function signUp(unsafeData: z.infer<typeof signUpSchema>) {
+//   const { success, data } = signUpSchema.safeParse(unsafeData);
+//   if (!success) return "Dados inválidos";
+
+//   const existingUser = await db.query.users.findFirst({
+//     where: eq(users.email, data.email),
+//   });
+
+//   if (existingUser) return "Já existe uma conta com este e-mail";
+
+//   try {
+//     const salt = generateSalt();
+//     const hashedPassword = await hashPassword(data.password, salt);
+
+//     // Criar usuário
+//     const [newUser] = await db
+//       .insert(users)
+//       .values({
+//         email: data.email,
+//         password: hashedPassword,
+//         salt,
+//       })
+//       .returning({ id: users.id, email: users.email, role: users.role });
+
+//     if (!newUser) return "Não foi possível criar a conta";
+
+//     // Criar profile
+//     await db.insert(profiles).values({
+//       userId: newUser.id,
+//       name: data.name,
+//     });
+
+//     const sessionUser: SessionUser = {
+//       id: newUser.id,
+//       email: newUser.email,
+//       role: newUser.role,
+//     };
+
+//     await createSession(sessionUser, await cookies());
+//   } catch (error) {
+//     console.error("Error creating user:", error);
+//     return "Não foi possível criar a conta";
+//   }
+
+//   redirect("/");
+// }
 
 export async function updateUser(_prevState: any, formData: FormData) {
   const currentUser = await getCurrentUser();
@@ -361,7 +424,7 @@ export async function updateProfile(_prevState: any, formData: FormData) {
 
       const salt = generateSalt();
       const hashedPassword = await hashPassword(newPassword, salt);
-      
+
       await db
         .update(users)
         .set({

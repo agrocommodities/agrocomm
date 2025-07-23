@@ -17,6 +17,7 @@ sudo /usr/bin/systemctl stop ${SERVICE}
 bun install
 bun run db:push
 bun run db:seed
+bun run db:scrape
 bun run build
 
 sudo /usr/bin/systemctl start ${SERVICE}

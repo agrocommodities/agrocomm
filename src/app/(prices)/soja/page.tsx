@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { prices } from "@/db/schema"
 import Table from '@/components/ui/table';
+import { formatarReais } from "@/lib/utils";
 
 export default async function Soja() {
   const soja = await db.select().from(prices)
@@ -16,9 +17,9 @@ export default async function Soja() {
   }
 
   return (
-    <div className="flex items-center space-x-4">
+    <div className="flex items-center space-x-4 border">
       <Table>
-        <thead className="text-xs uppercase bg-black/80">
+        <thead className="text-sm uppercase bg-black/80">
           <tr>
             <th scope="col" className="px-6 py-3">
               Data
@@ -27,11 +28,11 @@ export default async function Soja() {
               Estado
             </th>
             <th scope="col" className="px-6 py-3">
-              Price
+              Preço (R$)
             </th>
-            <th scope="col" className="px-6 py-3">
+            {/* <th scope="col" className="px-6 py-3">
               <span className="sr-only">Edit</span>
-            </th>
+            </th> */}
           </tr>
         </thead>
         <tbody>
@@ -53,15 +54,15 @@ export default async function Soja() {
                 }
               </th>
               <td className="px-6 py-4">{item.state}</td>
-              <td className="px-6 py-4">R$ {item.price.toFixed(2)}</td>
-              <td className="px-6 py-4 text-right">
+              <td className="px-6 py-4">R$ {formatarReais(item.price)}</td>
+              {/* <td className="px-6 py-4 text-right">
                 <a
                   href="#"
                   className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
                 >
                   Edit
                 </a>
-              </td>
+              </td> */}
             </tr>
           ))}
         </tbody>
