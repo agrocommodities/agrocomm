@@ -1,6 +1,7 @@
 import localFont from "next/font/local";
 import HeaderWrapper from "@/components/header-wrapper";
 import Footer from "@/components/footer";
+import DebugSession from "@/components/debug/session";
 import type { Metadata } from "next";
 import "@/styles/main.scss";
 
@@ -46,6 +47,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`h-full antialiased ${nunito.className}`}>
+        <DebugSession />
         <div className="min-h-full flex flex-col">
           <HeaderWrapper />
             <main className="container mx-auto">

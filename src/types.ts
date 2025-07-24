@@ -1,13 +1,16 @@
 import { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { users, profiles, sessions, subscriptions, prices } from "@/db/schema";
 
-// Tipos base do banco
 export type Price = InferSelectModel<typeof prices>;
 export type UserType = InferSelectModel<typeof users>;
 export type Profile = InferSelectModel<typeof profiles>;
 export type Session = InferSelectModel<typeof sessions>;
 export type Subscription = InferSelectModel<typeof subscriptions>;
 export type NewSubscription = InferInsertModel<typeof subscriptions>;
+
+export type Roles = "admin" | "user" | "guest";
+export type SubscriptionPlans = "free" | "basic" | "pro" | "enterprise";
+export type SubscriptionStatus = "active" | "cancelled" | "past_due" | "trialing";
 
 // Tipos para inserção
 export type NewUser = InferInsertModel<typeof users>;
@@ -32,12 +35,8 @@ export type User = SafeUser & {
 export type SessionUser = {
   id: number;
   email: string;
-  role: "admin" | "user";
+  role: Roles | null;
 };
-
-export type Roles = "admin" | "user" | "guest";
-export type SubscriptionPlans = "free" | "basic" | "pro" | "enterprise";
-export type SubscriptionStatus = "active" | "cancelled" | "past_due" | "trialing";
 
 // Informações do plano
 export interface PlanInfo {

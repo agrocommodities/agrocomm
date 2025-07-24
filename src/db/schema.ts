@@ -17,6 +17,10 @@ export const users = sqliteTable("users", {
   emailVerificationExpires: text(),
   createdAt: text().default(sql`(CURRENT_TIMESTAMP)`),
   updatedAt: text(),
+  // ✅ Novos campos para controle de reenvio
+  emailResendCount: int().default(0), 
+  emailLastResent: text(),
+  emailResendBlocked: int({ mode: "boolean" }).default(false),
 });
 
 export const profiles = sqliteTable("profiles", {

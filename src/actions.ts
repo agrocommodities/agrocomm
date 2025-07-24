@@ -337,17 +337,32 @@ export async function signUpTwo(unsafeData: z.infer<typeof signUpSchema> & { sen
 //   redirect("/");
 // }
 
+// export async function reSendVerificationEmail(email: string) {
+//   const [user] = await db.select().from(users).where(eq(users.email, email))
+//   if (user) {
+//     if (user.emailVerificationToken) {
+//       await sendVerificationEmail(user.email, user.emailVerificationToken);
+//     } else {
+//       const emailVerificationToken = generateVerificationToken();
+//       const emailVerificationExpires = getTokenExpiry();
+//       await db.update(users).set({ emailVerificationToken, emailVerificationExpires: emailVerificationExpires.toString() }).where(eq(users.email, email))
+//       await sendVerificationEmail(user.email, emailVerificationToken);
+//     }
+//   }
+// }
+
+// src/actions.ts - Adicionar função de reenvio
 export async function reSendVerificationEmail(email: string) {
-  const [user] = await db.select().from(users).where(eq(users.email, email))
-  if (user) {
-    if (user.emailVerificationToken) {
-      await sendVerificationEmail(user.email, user.emailVerificationToken);
-    } else {
-      const emailVerificationToken = generateVerificationToken();
-      const emailVerificationExpires = getTokenExpiry();
-      await db.update(users).set({ emailVerificationToken, emailVerificationExpires: emailVerificationExpires.toString() }).where(eq(users.email, email))
-      await sendVerificationEmail(user.email, emailVerificationToken);
-    }
+  try {
+    const response = await fetch('/api/auth/resend-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    
+    return await response.json();
+  } catch (error) {
+    return { error: 'Erro de conexão' };
   }
 }
 
