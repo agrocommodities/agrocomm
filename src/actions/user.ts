@@ -27,7 +27,7 @@ export async function uploadAvatar(formData: FormData) {
     if (file.size > 5 * 1024 * 1024) return { error: "O arquivo deve ter no máximo 5MB" };
 
     // Criar diretório se não existir
-    const uploadDir = path.join(process.cwd(), "public/uploads/avatars", user.id.toString());
+    const uploadDir = path.join(process.cwd(), "public/uploads/avatars");
     try {
       await mkdir(uploadDir, { recursive: true });
     } catch (error) {
@@ -41,29 +41,19 @@ export async function uploadAvatar(formData: FormData) {
 
     // Converter file para buffer e salvar
     const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    const buffer = new Uint8Array(bytes);
     await writeFile(filepath, buffer);
 
     const avatarUrl = `/uploads/avatars/${filename}`;
 
     // Atualizar o avatar no banco
-    const existingProfile = await db.query.profiles.findFirst({ where: eq(profiles.userId, user.id) });
-
-    if (existingProfile) {
-      await db
-        .update(profiles)
-        .set({
-          avatar: avatarUrl,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(profiles.userId, user.id));
-    } else {
-      await db.insert(profiles).values({
-        userId: user.id,
-        name: user.email, // Nome padrão
+    await db
+      .update(users)
+      .set({
         avatar: avatarUrl,
-      });
-    }
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(users.id, user.id));
 
     revalidatePath("/ajustes");
     return { success: true, avatar: avatarUrl };
@@ -97,8 +87,9 @@ export async function updateUser(_prevState: any, formData: FormData) {
   if (!success) return { error: "Dados inválidos" };
 
   try {
-    // Atualizar dados do usuário (email, role, password)
+    // Atualizar dados do usuário
     const updateUserData: any = {
+      name: data.name,
       email: data.email,
       updatedAt: new Date().toISOString(),
     };
@@ -118,28 +109,7 @@ export async function updateUser(_prevState: any, formData: FormData) {
       .set(updateUserData)
       .where(eq(users.id, targetUserId));
 
-    // Atualizar ou criar profile
-    const existingProfile = await db.query.profiles.findFirst({
-      where: eq(profiles.userId, targetUserId),
-    });
-
-    if (existingProfile) {
-      await db
-        .update(profiles)
-        .set({
-          name: data.name,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(profiles.userId, targetUserId));
-    } else {
-      await db.insert(profiles).values({
-        userId: targetUserId,
-        name: data.name,
-      });
-    }
-
     revalidatePath("/admin");
-    // revalidatePath(`/conta/${userId}/editar`);
     redirect("/admin");
   } catch (error) {
     console.error("Error updating user:", error);
@@ -158,34 +128,29 @@ export async function updateProfile(_prevState: any, formData: FormData) {
   const newPassword = formData.get("newPassword") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
 
-  // Dados do profile
-  const profileData = {
-    //avatar: formData.get("avatarFile") as string,
+  // Dados do usuário
+  const userData = {
     name: formData.get("name") as string,
     username: formData.get("username") as string || null,
+    email: formData.get("email") as string,
     bio: formData.get("bio") as string || null,
     phone: formData.get("phone") as string || null,
     location: formData.get("location") as string || null,
     website: formData.get("website") as string || null,
   };
 
-  // Dados do user
-  const userData = {
-    email: formData.get("email") as string,
-  };
-
   // Validações básicas
-  if (!profileData.name || !userData.email) {
+  if (!userData.name || !userData.email) {
     return { error: "Nome e e-mail são obrigatórios" };
   }
 
   // Validar tamanho da bio
-  if (profileData.bio && profileData.bio.length > 500) {
+  if (userData.bio && userData.bio.length > 500) {
     return { error: "A biografia deve ter no máximo 500 caracteres" };
   }
 
   // Validar formato do website
-  if (profileData.website && !profileData.website.match(/^https?:\/\/.+/)) {
+  if (userData.website && !userData.website.match(/^https?:\/\/.+/)) {
     return { error: "O website deve começar com http:// ou https://" };
   }
 
@@ -202,12 +167,12 @@ export async function updateProfile(_prevState: any, formData: FormData) {
     }
 
     // Verificar username duplicado
-    if (profileData.username) {
-      const existingUsername = await db.query.profiles.findFirst({
-        where: eq(profiles.username, profileData.username),
+    if (userData.username) {
+      const existingUsername = await db.query.users.findFirst({
+        where: eq(users.username, userData.username),
       });
 
-      if (existingUsername && existingUsername.userId !== userId) {
+      if (existingUsername && existingUsername.id !== userId) {
         return { error: "Este nome de usuário já está em uso" };
       }
     }
@@ -241,7 +206,7 @@ export async function updateProfile(_prevState: any, formData: FormData) {
 
       const { success } = signUpSchema.shape.password.safeParse(newPassword);
       if (!success) {
-        return { error: "A nova senha deve ter pelo menos 8 caracteres, incluindo maiúsculas, minúsculas e números" };
+        return { error: "A nova senha deve ter pelo menos 4 caracteres" };
       }
 
       const salt = generateSalt();
@@ -257,7 +222,7 @@ export async function updateProfile(_prevState: any, formData: FormData) {
         })
         .where(eq(users.id, userId));
     } else {
-      // Atualizar apenas email se não estiver mudando senha
+      // Atualizar apenas dados básicos se não estiver mudando senha
       await db
         .update(users)
         .set({
@@ -265,28 +230,6 @@ export async function updateProfile(_prevState: any, formData: FormData) {
           updatedAt: new Date().toISOString(),
         })
         .where(eq(users.id, userId));
-    }
-
-    // Verificar se o profile existe
-    const existingProfile = await db.query.profiles.findFirst({
-      where: eq(profiles.userId, userId),
-    });
-
-    if (existingProfile) {
-      // Atualizar profile existente
-      await db
-        .update(profiles)
-        .set({
-          ...profileData,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(profiles.userId, userId));
-    } else {
-      // Criar novo profile
-      await db.insert(profiles).values({
-        userId,
-        ...profileData,
-      });
     }
 
     revalidatePath("/ajustes");

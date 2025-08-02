@@ -15,6 +15,8 @@
   },
   "dependencies": {
     "@libsql/client": "^0.15.10",
+    "@types/email-templates": "^10.0.4",
+    "@types/nodemailer": "^6.4.17",
     "cheerio": "^1.1.2",
     "drizzle-orm": "^0.44.4",
     "email-templates": "^12.0.3",

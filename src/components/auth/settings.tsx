@@ -1,56 +1,40 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { updateProfile } from "@/actions";
+import { updateProfile, uploadAvatar } from "@/actions/user";
 import { Button } from "@/components/ui/button";
 import { Input, Password } from "@/components/ui/input";
-import AvatarUpload from "@/components/ui/avatar";
-import SubscriptionCard from "@/components/subscription/subscription-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { managePlan, cancelSubscription } from "@/actions/stripe";
+import Image from "next/image";
 import type { User } from "@/types";
 
 export function SettingsForm({ user }: { user: User | null }) {
-  if (!user) return <p>Usuário não encontrado.</p>;
-
   const [state, formAction, isPending] = useActionState(updateProfile, null);
   const [showPasswordFields, setShowPasswordFields] = useState(false);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [currentAvatar, setCurrentAvatar] = useState(user.profile?.avatar || "/images/avatar.svg");
+  const [currentAvatar, setCurrentAvatar] = useState(user?.avatar || "/images/avatar.svg");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  const handleAvatarChange = (newAvatarUrl: string) => {
-    setCurrentAvatar(newAvatarUrl);
-  };
+  if (!user) return <p>Usuário não encontrado.</p>;
 
-  // Dentro do componente, antes do return:
-  const handleUpgrade = async (plan: string) => {
-    const result = await managePlan("upgrade", plan);
-    if ("error" in result && result.error) {
-      alert(result.error);
-    } else if ("checkoutUrl" in result && result.checkoutUrl) {
-      window.location.href = result.checkoutUrl;
-    }
-  };
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  const handleDowngrade = async (plan: string) => {
-    if (
-      confirm(
-        "Tem certeza que deseja fazer downgrade? Você perderá acesso a alguns recursos."
-      )
-    ) {
-      const result = await managePlan("downgrade", plan);
-      if ("error" in result && result.error) {
+    setUploadingAvatar(true);
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    try {
+      const result = await uploadAvatar(formData);
+      if (result.success && result.avatar) {
+        setCurrentAvatar(result.avatar);
+      } else if (result.error) {
         alert(result.error);
       }
-    }
-  };
-
-  const handleCancel = async () => {
-    if (confirm("Tem certeza que deseja cancelar sua assinatura?")) {
-      const result = await cancelSubscription();
-      if ("error" in result && result.error) {
-        alert(result.error);
-      }
+    } catch (error) {
+      alert("Erro ao fazer upload do avatar");
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -80,13 +64,33 @@ export function SettingsForm({ user }: { user: User | null }) {
           <CardTitle>Foto do Perfil</CardTitle>
         </CardHeader>
         <CardContent>
-          <AvatarUpload
-            currentAvatar={currentAvatar}
-            onAvatarChange={handleAvatarChange}
-          />
-          {avatarFile && (
-            <input type="hidden" name="avatarFile" value={avatarFile.name} />
-          )}
+          <div className="flex items-center gap-4">
+            <Image
+              src={currentAvatar}
+              alt="Avatar"
+              className="w-20 h-20 rounded-full object-cover border-2 border-white/20"
+              width={80}
+              height={80}
+            />
+            <div>
+              <label htmlFor="avatar-upload" className="cursor-pointer">
+                <span className="inline-block px-4 py-2 bg-black/30 hover:bg-black/45 rounded-md text-white font-medium transition-colors">
+                  {uploadingAvatar ? "Enviando..." : "Alterar foto"}
+                </span>
+              </label>
+              <input
+                id="avatar-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                disabled={uploadingAvatar}
+                className="hidden"
+              />
+              <p className="text-xs text-foreground/60 mt-1">
+                JPG, PNG ou WebP. Máximo 5MB.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -105,7 +109,7 @@ export function SettingsForm({ user }: { user: User | null }) {
                 id="name"
                 name="name"
                 type="text"
-                defaultValue={user.profile?.name}
+                defaultValue={user.name}
                 placeholder="João Silva"
                 required
               />
@@ -122,7 +126,7 @@ export function SettingsForm({ user }: { user: User | null }) {
                 id="username"
                 name="username"
                 type="text"
-                defaultValue={user.profile?.username}
+                defaultValue={user.username || ""}
                 placeholder="@joaosilva"
               />
               <p className="mt-1 text-xs text-foreground/60">
@@ -139,7 +143,6 @@ export function SettingsForm({ user }: { user: User | null }) {
               id="bio"
               name="bio"
               rows={4}
-              defaultValue={user.profile?.bio || ""}
               className="block w-full rounded-md border-2 border-black/80 bg-black/50 p-2.5 text-base placeholder:text-gray-400 focus:outline-none focus:border-black/80"
               placeholder="Conte um pouco sobre você..."
             />
@@ -179,7 +182,6 @@ export function SettingsForm({ user }: { user: User | null }) {
                 id="phone"
                 name="phone"
                 type="tel"
-                defaultValue={user.profile?.phone || ""}
                 placeholder="(11) 98765-4321"
               />
             </div>
@@ -197,7 +199,6 @@ export function SettingsForm({ user }: { user: User | null }) {
                 id="location"
                 name="location"
                 type="text"
-                defaultValue={user.profile?.location || ""}
                 placeholder="São Paulo, SP"
               />
             </div>
@@ -213,7 +214,6 @@ export function SettingsForm({ user }: { user: User | null }) {
                 id="website"
                 name="website"
                 type="url"
-                defaultValue={user.profile?.website || ""}
                 placeholder="https://meusite.com"
               />
             </div>
@@ -288,8 +288,7 @@ export function SettingsForm({ user }: { user: User | null }) {
               </div>
 
               <p className="text-xs text-foreground/60">
-                A senha deve ter pelo menos 8 caracteres, incluindo maiúsculas,
-                minúsculas e números
+                A senha deve ter pelo menos 4 caracteres
               </p>
             </div>
           )}
@@ -337,14 +336,6 @@ export function SettingsForm({ user }: { user: User | null }) {
           </div>
         </CardContent>
       </Card>
-
-      {/* Plano de Assinatura */}
-      <SubscriptionCard
-        subscription={user.subscription || null}
-        onUpgrade={handleUpgrade}
-        onDowngrade={handleDowngrade}
-        onCancel={handleCancel}
-      />
 
       {/* Botões de Ação */}
       <div className="flex justify-end gap-4 pt-4">

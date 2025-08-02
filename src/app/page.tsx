@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Table } from "@/components/ui/table";
+import { Plans } from "@/components/plans";
 import { getPrices } from "@/actions/price";
 import { formatCommodityName } from "@/lib/price";
 
@@ -7,7 +8,7 @@ export default async function Home() {
   const prices = await getPrices();
 
   return (
-    <div className="flex h-full items-center justify-center">
+    <div className="flex items-center justify-center">
       <div>
         <div className="flex h-full items-center justify-center">
           <Image
@@ -59,6 +60,9 @@ export default async function Home() {
             </Table>
           </div>
         )}
+        <section className="mt-8">
+          <Plans />
+        </section>
       </div>
     </div>
   );
