@@ -1,5 +1,6 @@
 import { Logo } from "./ui/logo";
-import { Navbar } from "./navbar";
+import { Navbar } from "./ui/navbar";
+import { UserMenu } from "./ui/usermenu";
 
 export async function Header() {
   return (
@@ -8,6 +9,7 @@ export async function Header() {
         <div className="md:flex items-center justify-between space-y-5 md:space-y-0">
           <Logo />
           <Navbar />
+          <UserMenu />
         </div>
       </div>
     </header>

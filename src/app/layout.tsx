@@ -10,6 +10,7 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL!),
   title: process.env.NEXT_PUBLIC_APP_NAME!,
   description: process.env.NEXT_PUBLIC_APP_DESC!,
   openGraph: {
