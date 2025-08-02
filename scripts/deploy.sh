@@ -6,12 +6,12 @@ SERVICE=$NAME.service
 TEMP_DIR=/tmp/$NAME
 PROJECT_DIR=/var/www/$NAME
 
-rm -rf "$TEMP_DIR"
+[ -d "$TEMP_DIR" ] && rm -rf "$TEMP_DIR"
 cp -a "$PROJECT_DIR" "$TEMP_DIR"
 cd "$TEMP_DIR" || exit 1
 
 git clean -fxd -e .env.production
-cp .env.production .env
+cp -f .env.production .env
 sudo /usr/bin/systemctl stop $SERVICE
 
 bun install
@@ -21,6 +21,6 @@ bun run db:seed
 bun run build
 
 rm -rf "$PROJECT_DIR"
-cp -a "$TEMP_DIR" "$PROJECT_DIR"
+mv "$TEMP_DIR" "$PROJECT_DIR"
 
 sudo /usr/bin/systemctl start $SERVICE
