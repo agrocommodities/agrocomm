@@ -6,7 +6,7 @@ import { prices } from "@/db/schema";
 import { extractCityAndState } from "./utils";
 import { convertStringToDate } from "./utils";
 import { loadScotUrl, stringToNumber } from "./utils";
-import { calculateVariation } from "@/lib/prices";
+import { calculateVariation } from "@/lib/price";
 
 interface Commodity {
   id: number
