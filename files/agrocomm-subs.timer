@@ -1,0 +1,10 @@
+[Unit]
+Description=AgroComm Subscriptions Timer
+
+[Timer]
+OnCalendar=*-*-* 0:00:00
+
+StartupDelaySec=10min
+
+[Install]
+WantedBy=timers.target

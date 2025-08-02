@@ -1,0 +1,10 @@
+[Unit]
+Description=AgroComm News Timer
+
+[Timer]
+OnCalendar=*-*-* 6,12,18,0:00:00
+OnCalendar=Mon..Fri
+StartupDelaySec=1min
+
+[Install]
+WantedBy=timers.target

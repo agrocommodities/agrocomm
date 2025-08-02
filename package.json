@@ -9,18 +9,25 @@
     "lint": "next lint",
     "db:push": "bunx drizzle-kit push",
     "db:reset": "rm -rf drizzle/*.db",
-    "db:seed": "bun ./src/db/seed.ts"
+    "db:seed": "bun ./src/db/seed.ts",
+    "scrape:local": "bun ./src/scraper/index.local.ts",
+    "scrape": "bun ./src/scraper/index.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.15.10",
+    "cheerio": "^1.1.2",
     "drizzle-orm": "^0.44.4",
+    "iconv-lite": "^0.6.3",
+    "jose": "^6.0.12",
     "next": "15.4.5",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "zod": "^4.0.14"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/bun": "^1.2.19",
     "@types/node": "^22.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
