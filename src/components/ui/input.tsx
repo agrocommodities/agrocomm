@@ -88,7 +88,8 @@ export function Input({ className = "", ...props }) {
         block w-full min-w-0 grow p-2.5 text-base dark:text-white
         placeholder:text-gray-400 focus:outline-none
         rounded-lg border-2 border-black/40 focus:border-black/50 
-        bg-black/30 dark:bg-black/40 dark:placeholder-gray-400 
+        bg-black/30 dark:bg-black/40 dark:placeholder-gray-400
+        autofill:bg-black/30 dark:autofill:bg-black/40 
         ${className}
       `.trim()}
       {...props}

@@ -47,7 +47,9 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       <body className={`${nunito.variable} antialiased`}>
         <div className="flex flex-col min-h-screen">
           <Header />
-          <div className={`container mx-auto flex flex-col lg:flex-row flex-grow ${pathname === '/' ? 'items-center justify-center' : ''}`}>
+          
+          {/* Main content com padding para header e footer fixos */}
+          <div className={`container mx-auto flex flex-col lg:flex-row flex-grow pt-20 pb-16 ${pathname === '/' ? 'items-center justify-center' : ''}`}>
             <main className="flex-grow p-3">
               {children}
             </main>
@@ -56,7 +58,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
                 <SideBar />
               </aside>
             )}
-          </div>          
+          </div>
+          
           <Footer />
         </div>
       </body>

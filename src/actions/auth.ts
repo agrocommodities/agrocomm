@@ -10,6 +10,20 @@ import { signInSchema, signUpSchema } from "@/schemas/auth";
 import { comparePasswords, generateSalt, hashPassword } from "@/lib/password";
 import { createUserSession, removeUserFromSession } from "@/lib/session";
 
+export async function reSendVerificationEmail(email: string) {
+  try {
+    const response = await fetch('/api/auth/resend-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    
+    return await response.json();
+  } catch (error) {
+    return { error: 'Erro de conexão' };
+  }
+}
+
 export async function signIn(unsafeData: z.infer<typeof signInSchema>) {
   const { success, data } = signInSchema.safeParse(unsafeData);
   if (!success) return "Não foi possível fazer login";
