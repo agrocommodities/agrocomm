@@ -1,22 +1,21 @@
-import { drizzle } from "drizzle-orm/libsql";
-import { eq } from "drizzle-orm";
+import { db } from "@/db";
 import { users } from "@/db/schema";
+import { hashPassword, generateSalt } from "@/lib/password";
   
-const db = drizzle(process.env.DB_FILE_NAME!);
+const salt = generateSalt();
+const password = await hashPassword("agrocomm", salt);
 
 async function main() {
   const user: typeof users.$inferInsert = {
-    name: "John",
-    age: 30,
-    email: "john@example.com",
+    name: "Agrocomm Admin",
+    email: "agrocomm@agrocomm.com.br",
+    password,
+    salt,
+    role: "admin",
   };
 
-  await db.insert(users).values(user);
-
-  // const usersList = await db.select().from(users);
-  // console.log('Getting all users from the database: ', usersList)
-  // await db.update(users).set({ age: 31 }).where(eq(users.email, user.email));
-  // await db.delete(users).where(eq(users.email, user.email));
+  await db.insert(users).values(user).onConflictDoNothing().returning();
 }
 
 main();
+
