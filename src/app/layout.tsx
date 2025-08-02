@@ -1,6 +1,8 @@
 // src/app/layout.tsx
+import { headers } from "next/headers";
 import { Nunito } from "next/font/google";
 import { Header } from "@/components/header";
+import { SideBar } from "@/components/sidebar";
 import { Footer } from "@/components/footer";
 import type { Metadata } from "next";
 import "@/styles/globals.css";
@@ -32,7 +34,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
+const sidebarPaths = ["/about"];
+
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
+  const pathname = (await headers()).get('next-url')
+
   return (
     <html lang="pt-BR">
       <head>
@@ -41,13 +47,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className={`${nunito.variable} antialiased`}>
         <div className="flex flex-col min-h-screen">
           <Header />
-          <div className="container mx-auto flex flex-col lg:flex-row flex-grow">
-            <main className="flex-grow p-4">
+          <div className={`container mx-auto flex flex-col lg:flex-row flex-grow ${pathname === '/' ? 'items-center justify-center' : ''}`}>
+            <main className="flex-grow p-3">
               {children}
             </main>
-            <aside className="w-full lg:w-64 p-4 bg-background">
-              Sidebar
-            </aside>
+            {pathname && sidebarPaths.includes(pathname) && (
+              <aside className="w-full md:w-72 p-3">
+                <SideBar />
+              </aside>
+            )}
           </div>          
           <Footer />
         </div>

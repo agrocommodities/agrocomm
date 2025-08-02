@@ -14,12 +14,14 @@ export function formatVariation(variation: number): string {
 
 export function formatCommodityName(commodity: string): string {
   switch (commodity.toLowerCase()) {
-    case 'soja':
-      return 'Saca de Soja';
-    case 'milho':
-      return 'Saca de Milho';
-    case 'boi':
-      return 'Arroba do Boi';
+    case "soja":
+      return "Saca de Soja";
+    case "milho":
+      return "Saca de Milho";
+    case "boi":
+      return "Arroba do Boi";
+    case "vaca":
+      return "Arroba da Vaca";
     default:
       return commodity.charAt(0).toUpperCase() + commodity.slice(1);
   }

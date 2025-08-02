@@ -8,7 +8,8 @@ import { users } from "@/db/schema";
 
 async function getUserFromDb(id: number) {
   return await db.query.users.findFirst({
-    columns: { id: true, email: true, role: true, name: true, username: true },
+    // columns: { id: true, email: true, role: true, name: true, username: true },
+    columns: { password: false, salt: false },
     where: eq(users.id, id),
   });
 }

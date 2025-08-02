@@ -1,16 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { signIn } from "@/actions/auth";
 import { z } from "zod";
 import { signInSchema } from "@/schemas/auth";
-import Link from "next/link";
+import { Input, Password } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 type FormData = z.infer<typeof signInSchema>;
 
 export function SignInForm() {
-  const [formData, setFormData] = useState<FormData>({ email: "", password: "" });
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [formData, setFormData] = useState<FormData>({
+    email: "",
+    password: "",
+  });
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
+    {}
+  );
   const [submitError, setSubmitError] = useState<string>();
   const [loading, setLoading] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
@@ -19,7 +26,8 @@ export function SignInForm() {
     if (!email) return "Email é obrigatório";
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) return "Email inválido. Exemplo: usuario@dominio.com";
+    if (!emailRegex.test(email))
+      return "Email inválido. Exemplo: usuario@dominio.com";
 
     return undefined;
   }
@@ -74,8 +82,7 @@ export function SignInForm() {
   }
 
   return (
-    <div className="border border-gray-200 rounded-lg shadow-lg p-6 md:w-xl">
-      <h2 className="text-xl font-bold mb-4">Entrar</h2>
+    <div>
       <form onSubmit={onSubmit} className="space-y-8">
         {submitError && (
           <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-md text-sm">
@@ -86,18 +93,18 @@ export function SignInForm() {
           <label htmlFor="email" className="block font-medium">
             Email
           </label>
-          <input
+          <Input
             id="email"
             name="email"
             type="email"
             value={formData.email}
             onChange={handleChange}
             onBlur={handleEmailBlur}
-            className={errors.email ? "border-rose-500" : ""}
+            className={formData.email.length > 0 && errors.email ? "border-rose-500" : ""}
             aria-invalid={!!errors.email}
             aria-describedby={errors.email ? "email-error" : undefined}
           />
-          {errors.email && (
+          {formData.email.length > 0 && errors.email && (
             <p id="email-error" className="text-sm text-rose-500">
               {errors.email}
             </p>
@@ -107,29 +114,30 @@ export function SignInForm() {
           <label htmlFor="password" className="block font-medium">
             Senha
           </label>
-          <input
+          <Password
             id="password"
             name="password"
             value={formData.password}
             onChange={handleChange}
             className={errors.password ? "border-rose-500" : ""}
-            placeholder="Digite sua senha..."
-            // showStrength={true}
           />
           {errors.password && (
             <p className="text-sm text-rose-500">{errors.password}</p>
           )}
         </div>
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="md:flex items-center justify-between">
+          <div className="mb-5 md:mb-0 mr-0 md:mr-6">
             Ainda não tem uma conta?{" "}
             <Link href="/cadastro" className="underline">
               Cadastre-se
             </Link>
           </div>
-          <button type="submit" disabled={loading || !!errors.email || !!errors.password}>
+          <Button
+            type="submit"
+            disabled={loading || !!errors.email || !!errors.password}
+          >
             {loading ? "Entrando..." : "Entrar"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

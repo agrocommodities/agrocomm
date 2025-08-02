@@ -1,4 +1,4 @@
-export function Burger() {
+export function Table() {
   return (
     <div className="flex items-center gap-4">
       <div className="sm:flex sm:gap-4">

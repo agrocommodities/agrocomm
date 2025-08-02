@@ -19,6 +19,7 @@
     "drizzle-orm": "^0.44.4",
     "iconv-lite": "^0.6.3",
     "jose": "^6.0.12",
+    "lucide-react": "^0.536.0",
     "next": "15.4.5",
     "react": "19.1.0",
     "react-dom": "19.1.0",
