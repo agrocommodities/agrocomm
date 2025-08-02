@@ -1,8 +1,7 @@
-// src/app/layout.tsx
+import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import type { Metadata } from "next";
 import "@/styles/globals.css";
 
 const nunito = Nunito({
@@ -34,18 +33,18 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="en">
       <head>
         <link rel="icon" href="/images/favicon.svg" sizes="any" type="image/svg+xml" />
       </head>
       <body className={`${nunito.variable} antialiased`}>
         <div className="flex flex-col min-h-screen">
           <Header />
-          <div className="container mx-auto flex flex-col lg:flex-row flex-grow">
-            <main className="flex-grow p-4">
+          <div className="container mx-auto flex flex-col md:flex-row flex-grow">
+            <main className="flex-grow p-4 order-2 md:order-1">
               {children}
             </main>
-            <aside className="w-full lg:w-64 p-4 bg-background">
+            <aside className="w-full md:w-64 p-4 bg-background order-1 md:order-2">
               Sidebar
             </aside>
           </div>          

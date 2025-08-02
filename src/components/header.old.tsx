@@ -1,14 +1,15 @@
-// src/components/header.tsx
 import { Logo } from "./ui/logo";
-import { ResponsiveNavbar } from "./ui/responsive-navbar";
+import { Navbar } from "./ui/navbar";
+import { UserMenu } from "./ui/usermenu";
 
 export async function Header() {
   return (
     <header className="bg-background border-b-2 border-black/50 p-2">
       <div className="container mx-auto">
-        <div className="flex items-center justify-between">
+        <div className="md:flex items-center justify-between space-y-5 md:space-y-0">
           <Logo />
-          <ResponsiveNavbar />
+          <Navbar />
+          <UserMenu />
         </div>
       </div>
     </header>

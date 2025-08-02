@@ -1,4 +1,3 @@
-// src/components/ui/logo.tsx
 import Link from "next/link";
 import Image from "next/image";
 
@@ -12,11 +11,11 @@ export function Logo() {
         <Image
           src="/images/logo.svg"
           alt="AgroComm"
-          className="h-8 w-8 md:h-11 md:w-11 border-3 border-white rounded-full"
-          width={44}
-          height={44}
+          className="h-11 w-auto border-3 border-white rounded-full"
+          width={32}
+          height={32}
         />
-        <span className="text-white text-xl md:text-3xl font-bold">AgroComm</span>
+        <span className="text-white text-3xl font-bold">AgroComm</span>
       </Link>
     </div>
   );
