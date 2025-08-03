@@ -12,7 +12,7 @@
 //   price_id: string;
 // }
 
-export function PlanCard() {
+export function PlanCard({ children }: { children: React.ReactNode }) {
   return (
     <div className="px-6 py-4 transition-colors duration-200 transform rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">
       <p className="text-lg font-medium text-gray-800 dark:text-gray-100">
@@ -125,9 +125,7 @@ export function PlanCard() {
         </div>
       </div>
 
-      <button className="w-full px-4 py-2 mt-10 font-medium tracking-wide text-white capitalize transition-colors duration-200 transform bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:bg-blue-600">
-        Choose plan
-      </button>
+      {children}
     </div>
   );
 }

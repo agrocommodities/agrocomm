@@ -23,6 +23,8 @@ export function PaymentModal({ plan, isOpen, onClose }: PaymentModalProps) {
   const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
   const fetchClientSecret = useCallback(async () => {
+    console.log("Fetching client secret for plan:", plan.price_id);
+
     const response = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

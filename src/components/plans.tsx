@@ -20,7 +20,7 @@ export function Plans() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/planos")
+    fetch("/api/plans")
       .then(res => res.json())
       .then(data => {
         data.reverse();
@@ -85,33 +85,37 @@ export function Plans() {
             </div>
             <div className="grid gap-6 mt-16 -mx-6 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {plans.map(plan => (              
-                <div
-                  key={plan.id}
-                  className="relative bg-white text-black rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow duration-300"
-                >
-                  <PlanCard />
-                  <div className="flex flex-col h-full">
-                    <div className="mb-6">
-                      <h2 className="text-2xl font-bold mb-2 text-gray-900">{plan.name}</h2>
-                      <p>{plan.description || "Plano de assinatura"}</p>
-                    </div>
-                    <div className="mb-6">
-                      <div className="flex items-baseline">
-                        <span className="text-4xl font-bold text-gray-900">R$</span>
-                        <span className="text-5xl font-bold ml-1 text-gray-900">{(plan.price / 100).toFixed(0)}</span>
-                        <span className="text-gray-600 ml-2">/{plan.interval === 'month' ? 'mês' : 'ano'}</span>
-                      </div>
-                    </div>
-                    <div className="mt-auto">
-                      <button
-                        onClick={() => handleSelectPlan(plan)}
-                        className="w-full bg-indigo-600 text-white rounded-lg px-6 py-3 font-medium hover:bg-indigo-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                      >
-                        Assinar Agora
-                      </button>
-                    </div>
-                  </div>
-                </div>
+
+                  <PlanCard key={plan.id}>
+                    <button
+                      onClick={() => handleSelectPlan(plan)}
+                      className="w-full px-4 py-2 mt-10 font-medium tracking-wide text-white capitalize transition-colors duration-200 transform bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:bg-blue-600">
+                      Choose plan
+                    </button>
+                  </PlanCard>
+
+                  // <div className="flex flex-col h-full">
+                  //   <div className="mb-6">
+                  //     <h2 className="text-2xl font-bold mb-2 text-gray-900">{plan.name}</h2>
+                  //     <p>{plan.description || "Plano de assinatura"}</p>
+                  //   </div>
+                  //   <div className="mb-6">
+                  //     <div className="flex items-baseline">
+                  //       <span className="text-4xl font-bold text-gray-900">R$</span>
+                  //       <span className="text-5xl font-bold ml-1 text-gray-900">{(plan.price / 100).toFixed(0)}</span>
+                  //       <span className="text-gray-600 ml-2">/{plan.interval === 'month' ? 'mês' : 'ano'}</span>
+                  //     </div>
+                  //   </div>
+                  //   <div className="mt-auto">
+                  //     <button
+                  //       onClick={() => handleSelectPlan(plan)}
+                  //       className="w-full bg-indigo-600 text-white rounded-lg px-6 py-3 font-medium hover:bg-indigo-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  //     >
+                  //       Assinar Agora
+                  //     </button>
+                  //   </div>
+                  // </div>
+
               ))}
             </div>
           </>
