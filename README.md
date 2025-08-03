@@ -2,8 +2,8 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./public/images/logo-email.png" />
-    <img alt="AgroComm" src="./public/images/logo-site.svg" />
+    <source media="(prefers-color-scheme: dark)" srcset="./public/images/logo-site.png" />
+    <img alt="AgroComm" src="./public/images/logo-email.png" />
   </picture>
 </p>
 

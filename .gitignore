@@ -49,7 +49,7 @@ drizzle/**
 
 # uploads
 # Ignora todos os arquivos dentro da pasta avatars
-#public/uploads/avatars/*
+public/uploads/avatars/*
 
 # Mas mantém a própria pasta (adiciona um arquivo .gitkeep vazio)
-#!public/uploads/avatars/.gitkeep
+!public/uploads/avatars/.gitkeep
