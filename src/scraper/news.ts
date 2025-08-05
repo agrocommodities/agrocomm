@@ -1,11 +1,7 @@
-import * as cheerio from 'cheerio'
-// import { Element } from 'domhandler'
-import { db } from '@/db'
-import { news } from '@/db/schema'
-// import { extractCityAndState } from './utils'
-// import { convertStringToDate } from './utils'
-// import { loadScotUrl, stringToNumber } from './utils'
-import type { News } from "@/types"
+import * as cheerio from "cheerio";
+import { db } from "@/db";
+import { news } from "@/db/schema";
+import type { News } from "@/types";
 
 async function scrapeNoticiasAgricolas(): Promise<News[]> {
   const news: News[] = [];

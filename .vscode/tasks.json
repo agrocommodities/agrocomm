@@ -13,6 +13,19 @@
 			"presentation": {
 				"reveal": "never"
 			}
+		},
+		{
+			"label": "studio",
+			"detail": "bun run db:studio - package.json",
+			"type": "bun",
+			"script": "db:studio",
+			"problemMatcher": [],
+			"runOptions": {
+				"runOn": "folderOpen"
+			},
+			"presentation": {
+				"reveal": "never"
+			}
 		}
 	]
 }

@@ -17,12 +17,12 @@ export function Navbar({ user }: NavbarProps) {
 
       {/* Desktop Navigation - Centralizado */}
       <nav className="hidden md:flex items-center justify-center flex-1">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-2">
           {navLinks.map((link) => (
             <Link
               key={link.name}
               href={link.href}
-              className="transition duration-300 bg-black/30 hover:bg-black/45 px-4 py-2 rounded-md text-white font-semibold"
+              className="text-lg font-bold md:pr-2 last:md:pr-0 text-white transition duration-300"
             >
               {link.name}
             </Link>

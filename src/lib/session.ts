@@ -28,6 +28,7 @@ export async function getUserFromSession(cookies: Pick<Cookies, "get">) {
 
   try {
     const { payload } = await jwtVerify(sessionToken, JWT_SECRET, { algorithms: ["HS256"] });
+    if (!payload) return null;
     const { success, data } = sessionSchema.safeParse(payload);
     return success ? data : null;
   } catch (error) {
