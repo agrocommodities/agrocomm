@@ -1,17 +1,5 @@
 import { sql } from "drizzle-orm";
-import { int, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
-
-// export const users = sqliteTable("users", {
-//   id: int().primaryKey({ autoIncrement: true }),
-//   name: text().notNull(),
-//   username: text().unique(),
-//   email: text().notNull().unique(),
-//   password: text().notNull(),
-//   salt: text().notNull(),
-//   role: text().notNull().default("guest"),
-//   createdAt: text().notNull().default(sql`(current_timestamp)`),
-//   updatedAt: text().notNull().$onUpdate(() => new Date().toISOString()),
-// });
+import { int, sqliteTable, text, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: int().primaryKey({ autoIncrement: true }),
@@ -26,21 +14,6 @@ export const users = sqliteTable("users", {
   updatedAt: text().notNull().$onUpdate(() => new Date().toISOString()),
 });
 
-export const prices = sqliteTable("prices", {
-  id: int().primaryKey({ autoIncrement: true }),
-  commodity: text().default("soja").notNull(),
-  state: text().notNull(),
-  city: text().default("N/A").notNull(),
-  price: int().notNull(),
-  variation: int(),
-  date: text(),
-  createdAt: text().default(sql`(CURRENT_TIMESTAMP)`),
-  updatedAt: text(),
-  source: text().default("scot").notNull(),
-}, (t) => [
-  unique().on(t.commodity, t.createdAt, t.state, t.city),
-]);
-
 export const news = sqliteTable("news", {
   id: int().primaryKey({ autoIncrement: true }),
   title: text().notNull(),
@@ -50,3 +23,56 @@ export const news = sqliteTable("news", {
   imageUrl: text(),
   publishedAt: int({ mode: "timestamp" }),
 });
+
+// src/db/schema.ts (atualizar a parte das cotações)
+export const commodities = sqliteTable("commodities", {
+  id: int().primaryKey({ autoIncrement: true }),
+  name: text().notNull(),
+  slug: text().notNull().unique(),
+  unit: text().notNull(),
+  createdAt: text().notNull().default(sql`(current_timestamp)`),
+});
+
+export const states = sqliteTable("states", {
+  id: int().primaryKey({ autoIncrement: true }),
+  code: text().notNull().unique(),
+  name: text().notNull(),
+});
+
+export const cities = sqliteTable("cities", {
+  id: int().primaryKey({ autoIncrement: true }),
+  name: text().notNull(),
+  stateId: int().notNull().references(() => states.id),
+}, (table) => [
+  uniqueIndex("unique_city").on(table.name, table.stateId),
+]);
+
+export const prices = sqliteTable("prices", {
+  id: int().primaryKey({ autoIncrement: true }),
+  commodityId: int().notNull().references(() => commodities.id),
+  stateId: int().notNull().references(() => states.id),
+  cityId: int().references(() => cities.id), // opcional, algumas cotações podem ser só por estado
+  price: int().notNull(),
+  date: text().notNull().default(sql`(current_timestamp)`),
+  // date: text().notNull(), // formato YYYY-MM-DD
+  source: text(), // opcional: URL ou nome da fonte
+  createdAt: text().notNull().default(sql`(current_timestamp)`),
+  updatedAt: text().notNull().$onUpdate(() => new Date().toISOString()),
+  variation: int().default(0), // variação percentual em relação ao último preço
+}, (table) => [
+  // Índice único para evitar duplicatas
+  uniqueIndex("unique_price").on(
+    table.commodityId,
+    table.stateId,
+    table.cityId, // incluindo cidade na proteção
+    table.date,
+    table.price
+  ),
+]);
+
+// Índices para melhor performance
+export const pricesDateIndex = index("prices_date_idx").on(prices.date);
+export const pricesCommodityStateIndex = index("prices_commodity_state_idx").on(
+  prices.commodityId,
+  prices.stateId
+);

@@ -1,7 +1,8 @@
 import * as cheerio from "cheerio";
+import { Element } from "domhandler";
 import { db } from "@/db";
 import { eq, and, sql } from "drizzle-orm";
-import { prices, states, cities } from "@/db/schema";
+import { prices } from "@/db/schema";
 import { extractCityAndState } from "./utils";
 import { convertStringToDate } from "./utils";
 import { loadScotUrl, stringToNumber } from "./utils";
@@ -16,7 +17,7 @@ interface Commodity {
 }
 
 type Price = typeof prices.$inferInsert
-
+// const url = 'https://www.scotconsultoria.com.br/cotacoes'
 const urls = {
   graos: 'https://www.scotconsultoria.com.br/cotacoes/graos/?ref=smnb',
   boi: 'https://www.scotconsultoria.com.br/cotacoes/boi-gordo/?ref=smnb',
@@ -24,7 +25,7 @@ const urls = {
   milho: 'https://www.scotconsultoria.com.br/cotacoes/milho/?ref=smnb'
 }
 
-const commodityData: Commodity[] = [
+const commodities: Commodity[] = [
   {
     id: 1,
     name: 'boi',
@@ -55,27 +56,31 @@ const commodityData: Commodity[] = [
   }
 ]
 
-function getCommodity(name: string): Commodity | undefined {
-  return commodityData.find(commodity => commodity.name === name)
+function comm(name: string): Commodity | undefined {
+  return commodities.find(commodity => commodity.name === name)
 }
+
+// async function addData(data: Price[]) {
+//   await db.insert(prices).values(data).onConflictDoNothing()
+// }
 
 async function addData(data: Price[]) {
   // Calcular variação para cada item antes de inserir
   for (const item of data) {
-    const lastPrice = await getLastPrice(item.commodityId!, item.stateId!);
+    const lastPrice = await getLastPrice(item.commodity!, item.state);
     item.variation = calculateVariation(item.price, lastPrice);
   }
   
   await db.insert(prices).values(data).onConflictDoNothing()
 }
 
-async function getLastPrice(commodityId: number, stateId: number): Promise<number | null> {
+async function getLastPrice(commodity: string, state: string): Promise<number | null> {
   const result = await db
     .select({ price: prices.price })
     .from(prices)
     .where(and(
-      eq(prices.commodityId, commodityId),
-      eq(prices.stateId, stateId)
+      eq(prices.commodity, commodity),
+      eq(prices.state, state)
     ))
     .orderBy(sql`${prices.createdAt} DESC`)
     .limit(1);
@@ -83,50 +88,9 @@ async function getLastPrice(commodityId: number, stateId: number): Promise<numbe
   return result.length > 0 ? result[0].price : null;
 }
 
-async function getOrCreateState(code: string, name: string): Promise<number> {
-  const existingState = await db
-    .select({ id: states.id })
-    .from(states)
-    .where(eq(states.code, code))
-    .get();
-
-  if (existingState) return existingState.id;
-
-  const result = await db
-    .insert(states)
-    .values({ code, name })
-    .returning({ id: states.id })
-    .get();
-
-  return result.id;
-}
-
-async function getOrCreateCity(name: string, stateId: number): Promise<number | null> {
-  if (!name || name === '-') return null;
-
-  const existingCity = await db
-    .select({ id: cities.id })
-    .from(cities)
-    .where(and(
-      eq(cities.name, name),
-      eq(cities.stateId, stateId)
-    ))
-    .get();
-
-  if (existingCity) return existingCity.id;
-
-  const result = await db
-    .insert(cities)
-    .values({ name, stateId })
-    .returning({ id: cities.id })
-    .get();
-
-  return result.id;
-}
-
 export async function scrapeBoi() {
   const data: Price[] = []
-  const commodity = getCommodity('boi')
+  const commodity = comm('boi')
   if (!commodity) return
 
   const body = await loadScotUrl(commodity.url)
@@ -138,41 +102,32 @@ export async function scrapeBoi() {
     .replace(/(\s+)/g, ' ')
   const createdAt = convertStringToDate(tableDate)
 
-  for (let idx = 0; idx < tr.length; idx++) {
+  tr.each((idx: number, el: Element) => {
     if (idx > 2) {
-      const el = tr[idx]
       const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ')
-      const { state: stateName, city: cityName } = extractCityAndState(location)
+      const { state, city } = extractCityAndState(location)
       const rawPrice = $(el).children().eq(1).text().replace(/(\s+)/g, ' ')
       const price = stringToNumber(rawPrice)
 
-      if (typeof price === 'number' && !isNaN(price) && stateName) {
-        const stateCode = stateName.toUpperCase().substring(0, 2)
-        const stateId = await getOrCreateState(stateCode, stateName)
-        const cityId = cityName ? await getOrCreateCity(cityName, stateId) : null
-
+      if (typeof price === 'number' && !isNaN(price) && state) {
         data.push({
-          commodityId: commodity.id,
-          stateId,
-          cityId,
-          price,
-          date: createdAt.toISOString(),
           createdAt: createdAt.toISOString(),
+          price,
+          city: city ? city : '-',
+          state,
+          commodity: 'boi',
           variation: 0 // Será calculado na função addData
         })
       }
     }
-  }
+  })
 
   if (data.length > 0) await addData(data)
 }
 
 export async function scrapeVaca() {
   const data: Price[] = []
-  const commodity = getCommodity('vaca')
-  if (!commodity) return
-
-  const body = await loadScotUrl(commodity.url)
+  const body = await loadScotUrl(urls.vaca)
   const $ = cheerio.load(body)
 
   const tr = $('div.conteudo_centro:nth-child(4) > table:nth-child(3) tbody tr')
@@ -181,41 +136,32 @@ export async function scrapeVaca() {
     .replace(/(\s+)/g, ' ')
   const createdAt = convertStringToDate(tableDate)
 
-  for (let idx = 0; idx < tr.length; idx++) {
+  tr.each((idx: number, el: Element) => {
     if (idx > 2) {
-      const el = tr[idx]
       const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ')
-      const { state: stateName, city: cityName } = extractCityAndState(location)
+      const { state, city } = extractCityAndState(location)
       const rawPrice = $(el).children().eq(2).text().replace(/(\s+)/g, ' ')
       const price = stringToNumber(rawPrice)
 
-      if (typeof price === 'number' && !isNaN(price) && stateName) {
-        const stateCode = stateName.toUpperCase().substring(0, 2)
-        const stateId = await getOrCreateState(stateCode, stateName)
-        const cityId = cityName ? await getOrCreateCity(cityName, stateId) : null
-
+      if (typeof price === 'number' && !isNaN(price) && state) {
         data.push({
-          commodityId: commodity.id,
-          stateId,
-          cityId,
-          price,
-          date: createdAt.toISOString(),
           createdAt: createdAt.toISOString(),
+          price,
+          city: city ?? '-',
+          state,
+          commodity: 'vaca',
           variation: 0 // Será calculado na função addData
         })
       }
     }
-  }
+  })
 
   if (data.length > 0) await addData(data)
 }
 
 export async function scrapeSoja() {
   const data: Price[] = []
-  const commodity = getCommodity('soja')
-  if (!commodity) return
-
-  const body = await loadScotUrl(commodity.url)
+  const body = await loadScotUrl(urls.graos)
   const $ = cheerio.load(body)
 
   const tr = $('div.conteudo_centro:nth-child(4) > table:nth-child(5) tbody tr')
@@ -224,41 +170,33 @@ export async function scrapeSoja() {
     .replace(/(\s+)/g, ' ')
   const createdAt = convertStringToDate(tableDate)
 
-  for (let idx = 0; idx < tr.length; idx++) {
+  tr.each((idx: number, el: Element) => {
     if (idx > 2) {
-      const el = tr[idx]
       const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ')
-      const { state: stateName, city: cityName } = extractCityAndState(location)
+      const { state, city } = extractCityAndState(location)
       const rawPrice = $(el).children().eq(2).text().replace(/(\s+)/g, ' ')
       const price = stringToNumber(rawPrice)
 
-      if (typeof price === 'number' && !isNaN(price) && stateName) {
-        const stateCode = stateName.toUpperCase().substring(0, 2)
-        const stateId = await getOrCreateState(stateCode, stateName)
-        const cityId = cityName ? await getOrCreateCity(cityName, stateId) : null
-
+      if (typeof price === 'number' && !isNaN(price) && state) {
         data.push({
-          commodityId: commodity.id,
-          stateId,
-          cityId,
-          price,
-          date: createdAt.toISOString(),
           createdAt: createdAt.toISOString(),
+          price,
+          city: city ?? '-',
+          state,
+          commodity: 'soja',
           variation: 0 // Será calculado na função addData
         })
       }
     }
-  }
+  })
 
   if (data.length > 0) await addData(data)
 }
 
 export async function scrapeMilho() {
   const data: Price[] = []
-  const commodity = getCommodity('milho')
-  if (!commodity) return
 
-  const body = await loadScotUrl(commodity.url)
+  const body = await loadScotUrl(urls.milho)
   const $ = cheerio.load(body)
 
   const tr = $('div.conteudo_centro:nth-child(4) > table:nth-child(2) tbody tr')
@@ -269,31 +207,25 @@ export async function scrapeMilho() {
     .replace(/(\s+)/g, ' ')
   const createdAt = convertStringToDate(tableDate)
 
-  for (let idx = 0; idx < tr.length; idx++) {
+  tr.each((idx: number, el: Element) => {
     if (idx > 2) {
-      const el = tr[idx]
       const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ')
-      const { state: stateName, city: cityName } = extractCityAndState(location)
+      const { state, city } = extractCityAndState(location)
       const rawPrice = $(el).children().eq(2).text().replace(/(\s+)/g, ' ')
       const price = stringToNumber(rawPrice)
 
-      if (typeof price === 'number' && !isNaN(price) && stateName) {
-        const stateCode = stateName.toUpperCase().substring(0, 2)
-        const stateId = await getOrCreateState(stateCode, stateName)
-        const cityId = cityName ? await getOrCreateCity(cityName, stateId) : null
-
+      if (typeof price === 'number' && !isNaN(price) && state) {
         data.push({
-          commodityId: commodity.id,
-          stateId,
-          cityId,
-          price,
-          date: createdAt.toISOString(),
           createdAt: createdAt.toISOString(),
+          price,
+          city: city ?? '-',
+          state,
+          commodity: 'milho',
           variation: 0 // Será calculado na função addData
         })
       }
     }
-  }
+  })
 
   if (data.length > 0) await addData(data)
 }
