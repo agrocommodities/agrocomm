@@ -26,6 +26,7 @@
     "email-templates": "^12.0.3",
     "iconv-lite": "^0.6.3",
     "jose": "^6.0.12",
+    "knip": "^5.62.0",
     "lucide-react": "^0.536.0",
     "next": "15.4.5",
     "nodemailer": "^7.0.5",

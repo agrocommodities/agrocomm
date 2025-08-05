@@ -2,12 +2,10 @@ import Image from "next/image";
 import { Table } from "@/components/ui/table";
 import { getPrices } from "@/actions/price";
 import { formatCommodityName } from "@/lib/price";
-import { getPricesByState } from "@/actions/price";
 
-export default async function CotacoesEstadosPage({ params }: { params: Promise<{ estado: string }> }) {
-  const { estado } = await params;
-  const prices = await getPricesByState(estado);
- 
+export default async function Home() {
+  const prices = await getPrices();
+
   return (
     <div className="flex items-center justify-center">
       <div>
@@ -27,7 +25,7 @@ export default async function CotacoesEstadosPage({ params }: { params: Promise<
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/50">
-                {prices.map((price) => (
+                {/* {prices.map((price) => (
                   <tr className="*:first:font-medium" key={price.id}>
                     <td className="px-3 py-2 whitespace-nowrap">
                       {price.createdAt &&
@@ -46,12 +44,12 @@ export default async function CotacoesEstadosPage({ params }: { params: Promise<
                       {price.variation}
                     </td>
                   </tr>
-                ))}
+                ))} */}
               </tbody>
             </Table>
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
