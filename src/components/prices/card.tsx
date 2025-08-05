@@ -19,7 +19,6 @@ export function PricesCard({ commodity }: { commodity?: string }) {
       imageSrc = "https://cdn.agrocomm.com.br/images/bg/daniela-paola-alchapar-AlqMN9ub3Aw-unsplash.jpg";
       link = "/cotacoes/soja";
       desc = "Cotação da saca de soja";
-
   }
 
   return (

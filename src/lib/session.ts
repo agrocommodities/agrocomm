@@ -70,3 +70,45 @@ function setCookie(token: string, cookies: Pick<Cookies, "set">) {
     expires: Date.now() + SESSION_EXPIRATION_SECONDS * 1000,
   });
 }
+
+// Adicionar no final do arquivo src/lib/session.ts
+export async function validateAndCleanSession(cookies: Pick<Cookies, "get" | "delete">) {
+  const sessionToken = cookies.get(COOKIE_SESSION_KEY)?.value;
+  if (!sessionToken) return null;
+
+  try {
+    const { payload } = await jwtVerify(sessionToken, JWT_SECRET, { algorithms: ["HS256"] });
+    if (!payload) {
+      cookies.delete(COOKIE_SESSION_KEY);
+      return null;
+    }
+
+    const { success, data } = sessionSchema.safeParse(payload);
+    if (!success) {
+      cookies.delete(COOKIE_SESSION_KEY);
+      return null;
+    }
+
+    // Verificar se o usuário ainda existe no banco
+    const { db } = await import("@/db");
+    const { users } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+
+    const user = await db.query.users.findFirst({
+      columns: { id: true },
+      where: eq(users.id, data.id),
+    });
+
+    if (!user) {
+      console.warn(`Cleaning invalid session for user ID: ${data.id}`);
+      cookies.delete(COOKIE_SESSION_KEY);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error validating session:", error);
+    cookies.delete(COOKIE_SESSION_KEY);
+    return null;
+  }
+}

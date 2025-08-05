@@ -14,17 +14,22 @@ interface Plan {
 }
 
 export function Plans() {
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const [allPlans, setAllPlans] = useState<Plan[]>([]);
+  const [filteredPlans, setFilteredPlans] = useState<Plan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month');
 
   useEffect(() => {
     fetch("/api/plans")
       .then(res => res.json())
       .then(data => {
         data.reverse();
-        setPlans(data);
+        setAllPlans(data);
+        // Filtrar planos mensais por padrão
+        const monthlyPlans = data.filter((plan: Plan) => plan.interval === 'month');
+        setFilteredPlans(monthlyPlans);
         setLoading(false);
       })
       .catch(err => {
@@ -33,6 +38,12 @@ export function Plans() {
       });
   }, []);
 
+  useEffect(() => {
+    // Filtrar planos baseado no intervalo selecionado
+    const filtered = allPlans.filter(plan => plan.interval === billingInterval);
+    setFilteredPlans(filtered);
+  }, [billingInterval, allPlans]);
+
   const handleSelectPlan = (plan: Plan) => {
     setSelectedPlan(plan);
     setIsModalOpen(true);
@@ -40,8 +51,19 @@ export function Plans() {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    // Pequeno delay para limpar o plano selecionado após a animação
     setTimeout(() => setSelectedPlan(null), 300);
+  };
+
+  const handleBillingChange = (interval: 'month' | 'year') => {
+    setBillingInterval(interval);
+  };
+
+  const formatPrice = (price: number, interval: string) => {
+    const formattedPrice = (price / 100).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    });
+    return `${formattedPrice}/${interval === 'month' ? 'mês' : 'ano'}`;
   };
 
   if (loading) {
@@ -56,53 +78,66 @@ export function Plans() {
   }
   
   return (
-    <div className="container px-6 py-8 mx-auto">
-        {plans.length === 0 ? (
-          <div className="text-center py-6">
-            <p className="text-gray-600 dark:text-gray-400">Nenhum plano disponível no momento.</p>
-          </div>
-        ) : (
-          <>
-            <div className="sm:flex sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
-                  Escolha seu Plano
-                </h2>
-                <p className="mt-4 text-gray-500 dark:text-gray-400">
-                  Selecione o plano que melhor atende às suas necessidades.
-                </p>
-              </div>
-              <div className="overflow-hidden p-0.5 mt-6 border rounded-lg dark:border-gray-700">
-                <div className="sm:-mx-0.5 flex">
-                  <button className=" focus:outline-none px-3 w-1/2 sm:w-auto py-1 sm:mx-0.5 text-white bg-blue-500 rounded-lg">
-                    Mensal
-                  </button>
-                  <button className=" focus:outline-none px-3 w-1/2 sm:w-auto py-1 sm:mx-0.5 text-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 bg-transparent rounded-lg hover:bg-gray-200">
-                    Anual
-                  </button>
-                </div>
-              </div>
+    <div className="w-full px-6 py-8">
+      {allPlans.length === 0 ? (
+        <div className="text-center py-6">
+          <p className="text-gray-600 dark:text-gray-400">Nenhum plano disponível no momento.</p>
+        </div>
+      ) : (
+        <>
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-white mb-4">
+              Escolha seu Plano
+            </h2>
+            <p className="text-gray-300 mb-8">
+              Selecione o plano que melhor atende às suas necessidades.
+            </p>
+            <div className="inline-flex overflow-hidden p-0.5 border-2 border-black/50 rounded-lg bg-black/20">
+              <button 
+                onClick={() => handleBillingChange('month')}
+                className={`focus:outline-none px-4 py-2 rounded-lg transition-colors font-medium ${
+                  billingInterval === 'month'
+                    ? 'text-white bg-black/60 border-2 border-black/80'
+                    : 'text-gray-300 hover:text-white hover:bg-black/30'
+                }`}
+              >
+                Mensal
+              </button>
+              <button 
+                onClick={() => handleBillingChange('year')}
+                className={`focus:outline-none px-4 py-2 rounded-lg transition-colors font-medium ${
+                  billingInterval === 'year'
+                    ? 'text-white bg-black/60 border-2 border-black/80'
+                    : 'text-gray-300 hover:text-white hover:bg-black/30'
+                }`}
+              >
+                Anual
+              </button>
             </div>
-            <div className="grid gap-6 mt-16 -mx-6 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {plans.map(plan => (              
-                <PlanCard key={plan.id}>
+          </div>
+          
+          <div className="flex flex-wrap justify-center gap-8 max-w-7xl mx-auto">
+            {filteredPlans.map(plan => (              
+              <div key={plan.id} className="w-full sm:w-80 flex-shrink-0">
+                <PlanCard plan={plan} formatPrice={formatPrice}>
                   <button
                     onClick={() => handleSelectPlan(plan)}
-                    className="w-full px-4 py-2 mt-10 font-medium tracking-wide text-white capitalize transition-colors duration-200 transform bg-blue-500 rounded-md hover:bg-blue-600 focus:outline-none focus:bg-blue-600">
+                    className="w-full px-4 py-2 mt-10 font-medium tracking-wide text-white capitalize transition-colors duration-200 transform bg-black/60 border-2 border-black/80 rounded-md hover:bg-black/75 focus:outline-none focus:bg-black/75">
                     Assinar
                   </button>
                 </PlanCard>
-              ))}
-            </div>
-          </>
-        )}
-        {selectedPlan && (
-          <PaymentModal
-            plan={selectedPlan}
-            isOpen={isModalOpen}
-            onClose={handleCloseModal}
-          />
-        )}      
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      {selectedPlan && (
+        <PaymentModal
+          plan={selectedPlan}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+        />
+      )}      
     </div>
   );
 }

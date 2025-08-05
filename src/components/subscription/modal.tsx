@@ -62,15 +62,15 @@ export function PaymentModal({ plan, isOpen, onClose }: PaymentModalProps) {
     >
       <div className="flex items-center justify-center min-h-screen p-4">
         {/* Modal panel */}
-        <div className="relative bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden">
+        <div className="relative bg-background border-2 border-black/50 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden">
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900" id="modal-title">
+              <h3 className="text-lg font-semibold text-white" id="modal-title">
                 Assinar {plan.name}
               </h3>
               <button
                 type="button"
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                className="text-gray-400 hover:text-white transition-colors p-2 rounded-md hover:bg-black/30"
                 onClick={onClose}
               >
                 <span className="sr-only">Fechar</span>
@@ -81,14 +81,17 @@ export function PaymentModal({ plan, isOpen, onClose }: PaymentModalProps) {
             </div>
             
             <div className="mt-3">
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                {plan.description}
+              <p className="text-sm text-gray-300 mb-4">
+                {plan.description || 'Acesso completo às funcionalidades da plataforma'}
               </p>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-                R$ {(plan.price / 100).toFixed(2)} / {plan.interval === 'month' ? 'mês' : 'ano'}
+              <p className="text-lg font-semibold text-white mb-6">
+                {(plan.price / 100).toLocaleString('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL'
+                })} / {plan.interval === 'month' ? 'mês' : 'ano'}
               </p>
               
-              <div className="stripe-checkout-container bg-white rounded-lg p-4 border border-gray-200">
+              <div className="stripe-checkout-container bg-white rounded-lg p-4 border-2 border-black/20">
                 <EmbeddedCheckoutProvider 
                   stripe={stripePromise} 
                   options={{ fetchClientSecret }}

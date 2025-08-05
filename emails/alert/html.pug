@@ -1,0 +1,30 @@
+doctype html
+html(lang="pt-BR")
+head
+  meta(charset="UTF-8")
+  title Cotações #{commodityName} - #{appName}
+body
+  .container
+    h1 Cotações de #{commodityName}
+    p Data: #{alertDate}
+    
+    .price-summary
+      h2 Resumo
+      p Preço médio: R$ #{averagePrice}
+      p Maior preço: R$ #{maxPrice} (#{maxState})
+      p Menor preço: R$ #{minPrice} (#{minState})
+    
+    table.prices
+      thead
+        tr
+          th Estado
+          th Cidade  
+          th Preço
+          th Variação
+      tbody
+        each price in prices
+          tr
+            td= price.stateName
+            td= price.cityName || '-'
+            td R$ #{price.formattedPrice}
+            td(class=price.variationClass)= price.formattedVariation

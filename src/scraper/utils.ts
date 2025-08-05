@@ -1,6 +1,67 @@
 import iconv from "iconv-lite";
 import { states } from "@/config";
 
+// export function stringToNumber(price: string): number {
+//   return parseInt(price.replace(",", ""), 10);
+// }
+
+// export function stringToNumber(price: string): number {
+//   // Remove espaços e converte vírgula para ponto
+//   const cleanPrice = price.trim().replace(",", ".");
+//   const numericValue = parseFloat(cleanPrice);
+  
+//   // Converte para centavos (multiplica por 100)
+//   return Math.round(numericValue * 100);
+// }
+
+export function stringToNumber(price: string): number {
+  if (!price || typeof price !== 'string') {
+    throw new Error(`Preço inválido: ${price}`);
+  }
+  
+  // Log do valor original para debug
+  console.log(`🔢 Convertendo preço: "${price}"`);
+  
+  // Remover espaços, símbolos de moeda e caracteres especiais
+  let cleanPrice = price
+    .trim()
+    .replace(/R\$\s*/g, '') // Remove R$
+    .replace(/\s+/g, '') // Remove espaços
+    .replace(/[^\d,.-]/g, ''); // Mantém apenas dígitos, vírgula, ponto e hífen
+  
+  console.log(`🧹 Preço limpo: "${cleanPrice}"`);
+  
+  // Se contém vírgula, assumir formato brasileiro (123,45)
+  if (cleanPrice.includes(',')) {
+    // Verificar se é formato brasileiro ou americano
+    const parts = cleanPrice.split(',');
+    if (parts.length === 2 && parts[1].length <= 2) {
+      // Formato brasileiro: 123,45
+      cleanPrice = cleanPrice.replace(',', '.');
+    } else {
+      // Formato americano com vírgula como separador de milhares: 1,234.56
+      cleanPrice = cleanPrice.replace(/,/g, '');
+    }
+  }
+  
+  const numericValue = parseFloat(cleanPrice);
+  
+  if (isNaN(numericValue)) {
+    throw new Error(`Não foi possível converter "${price}" para número`);
+  }
+  
+  // Converte para centavos
+  const priceInCents = Math.round(numericValue * 100);
+  console.log(`💰 Resultado: ${numericValue} -> ${priceInCents} centavos`);
+  
+  return priceInCents;
+}
+
+// Função auxiliar para debug
+export function formatPrice(priceInCents: number): string {
+  return (priceInCents / 100).toFixed(2).replace(".", ",");
+}
+
 export function getCurrentDateWithoutHours() {
   const now = new Date();
 
@@ -13,10 +74,6 @@ export function getCurrentDateWithoutHours() {
   const utcDateWithoutHours = new Date(Date.UTC(utcYear, utcMonth, utcDay));
 
   console.log(utcDateWithoutHours.toISOString().slice(0, 10)); // Output: YYYY-MM-DD
-}
-
-export function stringToNumber(price: string): number {
-  return parseInt(price.replace(",", ""), 10);
 }
 
 export function getRandomNumber(min: number, max: number) {

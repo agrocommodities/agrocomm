@@ -11,8 +11,8 @@
     "db:reset": "rm -rf drizzle/*.db",
     "db:seed": "bun ./src/db/seed.ts",
     "db:studio": "bunx drizzle-kit studio",
-    "scrape:local": "bun ./src/scraper/index.local.ts",
-    "scrape": "bun ./src/scraper/index.ts",
+    "db:scrape:local": "bun ./src/scraper/index.local.ts",
+    "db:scrape": "bun ./src/scraper/index.ts && bun ./src/scraper/news.ts",
     "scrape:news": "bun ./src/scraper/news.ts"
   },
   "dependencies": {

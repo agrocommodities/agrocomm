@@ -14,15 +14,10 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
   const { slug } = await params;
   const { state, date } = await searchParams;
 
-  const commodity = await db.query.commodities.findFirst({ 
-    where: eq(commodities.slug, slug) 
-  });
-  
+  const commodity = await db.query.commodities.findFirst({ where: eq(commodities.slug, slug) });
   if (!commodity) notFound();
 
-  const stateList = await db.query.states.findMany({ 
-    orderBy: (states, { asc }) => [asc(states.name)] 
-  });
+  const stateList = await db.query.states.findMany({ orderBy: (states, { asc }) => [asc(states.name)] });
 
   // Buscar datas disponíveis para este commodity
   const availableDates = await db
@@ -30,18 +25,22 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
     .from(prices)
     .where(eq(prices.commodityId, commodity.id))
     .groupBy(prices.date)
-    .orderBy(desc(prices.date))
-    .limit(30); // Limitar a 30 datas mais recentes
+    .orderBy(desc(prices.date));
 
+  console.log("Datas disponíveis:", availableDates);
+
+  // Se não houver cotações para este commodity
   if (availableDates.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">{commodity.name}</h1>
-          <p className="text-white/70">Unidade: {commodity.unit}</p>
+          <h1 className="text-3xl font-bold">{commodity.name}</h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Unidade: {commodity.unit}
+          </p>
         </div>
         
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-6 rounded-lg border-2 border-yellow-200 dark:border-yellow-800">
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-6 rounded-lg">
           <p className="text-yellow-800 dark:text-yellow-200">
             Ainda não há cotações disponíveis para {commodity.name}.
           </p>
@@ -50,7 +49,7 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
         <div className="mt-6">
           <Link          
             href="/cotacoes"
-            className="inline-flex items-center px-4 py-2 border-2 border-white/20 rounded-md shadow-sm text-sm font-medium text-white bg-black/30 hover:bg-black/50 transition-colors"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             ← Voltar
           </Link>
@@ -61,15 +60,20 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
 
   // Usar a data selecionada ou a mais recente disponível
   const selectedDate = date || availableDates[0].date;
+  
+  // Verificar se a data selecionada existe nas datas disponíveis
   const isValidDate = availableDates.some(d => d.date === selectedDate);
   const finalDate = isValidDate ? selectedDate : availableDates[0].date;
   
+  // Construir query para preços
   try {
+    // Condições base
     const conditions = [
       eq(prices.commodityId, commodity.id),
       eq(prices.date, finalDate)
     ];
 
+    // Adicionar filtro de estado se necessário
     if (state && state !== "all") {
       conditions.push(eq(states.code, state));
     }
@@ -79,7 +83,6 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
         id: prices.id,
         price: prices.price,
         date: prices.date,
-        variation: prices.variation,
         stateCode: states.code,
         stateName: states.name,
         stateId: states.id,
@@ -92,16 +95,18 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
       .where(and(...conditions))
       .orderBy(states.name, cities.name);
 
-    // Calcular média corretamente (preços em centavos)
+    // Calcular média
     const average = priceList.length > 0
-      ? (priceList.reduce((sum, q) => sum + q.price, 0) / priceList.length / 100).toFixed(2)
+      ? (priceList.reduce((sum, q) => sum + (q.price / 100) / priceList.length, 0).toFixed(2))
       : "0.00";
 
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">{commodity.name}</h1>
-          <p className="text-white/70">Unidade: {commodity.unit}</p>
+          <h1 className="text-3xl font-bold">{commodity.name}</h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Unidade: {commodity.unit}
+          </p>
         </div>
 
         <QuotationClient
@@ -121,11 +126,13 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">{commodity.name}</h1>
-          <p className="text-white/70">Unidade: {commodity.unit}</p>
+          <h1 className="text-3xl font-bold">{commodity.name}</h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Unidade: {commodity.unit}
+          </p>
         </div>
         
-        <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg border-2 border-red-200 dark:border-red-800">
+        <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg">
           <p className="text-red-800 dark:text-red-200">
             Erro ao carregar cotações. Por favor, tente novamente.
           </p>
@@ -134,7 +141,7 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
         <div className="mt-6">
           <Link
             href="/cotacoes"
-            className="inline-flex items-center px-4 py-2 border-2 border-white/20 rounded-md shadow-sm text-sm font-medium text-white bg-black/30 hover:bg-black/50 transition-colors"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             ← Voltar
           </Link>

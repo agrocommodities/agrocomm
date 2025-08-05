@@ -1,16 +1,14 @@
 import Image from "next/image";
-import { Table } from "@/components/ui/table";
 import { Plans } from "@/components/plans";
 import { getPrices } from "@/actions/price";
-import { formatCommodityName } from "@/lib/price";
 
 export default async function Home() {
   const prices = await getPrices();
 
   return (
-    <div className="flex items-center justify-center">
-      <div>
-        <div className="flex h-full items-center justify-center">
+    <div className="w-full flex flex-col items-center justify-center">
+      <div className="w-full max-w-7xl">
+        <div className="flex h-full items-center justify-center mb-8">
           <Image
             className="h-auto max-w-full"
             src="/images/logo-site.svg"
@@ -20,7 +18,7 @@ export default async function Home() {
             priority
           />
         </div>
-        <section className="container mx-auto mt-8">
+        <section className="w-full">
           <Plans />
         </section>
       </div>

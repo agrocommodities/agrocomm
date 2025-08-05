@@ -18,6 +18,7 @@ bun install
 bun run db:reset
 bun run db:push
 bun run db:seed
+bun run db:scrape
 bun run build
 
 rm -rf "$PROJECT_DIR"
