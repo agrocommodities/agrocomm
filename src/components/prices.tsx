@@ -29,15 +29,7 @@ interface QuotationClientProps {
   average: string;
 }
 
-export function QuotationClient({
-  commodity,
-  states,
-  prices,
-  availableDates,
-  selectedDate,
-  selectedState,
-  average,
-}: QuotationClientProps) {
+export function QuotationClient({ commodity, states, prices, availableDates, selectedDate, selectedState, average }: QuotationClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [sortField, setSortField] = useState<string>('state');

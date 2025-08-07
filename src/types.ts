@@ -15,7 +15,7 @@ export type SessionUser = {
 export type User = Omit<FullUser, "password" | "salt"> | null;
 
 export interface State {
-  abbr: string;
+  code: string;
   name: string;
   flag?: string;
 }

@@ -1,15 +1,7 @@
-import iconv from "iconv-lite";
 import { states } from "@/config";
 import { db } from "@/db";
 import { eq, and } from "drizzle-orm";
 import { cities } from "@/db/schema";
-
-
-export async function loadScotUrl(url: string): Promise<string> {
-  const response = await fetch(url);
-  const buffer = await response.arrayBuffer();
-  return iconv.decode(Buffer.from(buffer), "iso-8859-1");
-}
 
 export function extractCityAndState(location: string) {
   if (!location) return { state: null, city: null };
@@ -43,11 +35,11 @@ export function extractCityAndState(location: string) {
     // Verificar se a primeira parte é um estado conhecido
     const stateFound = states.find(s => 
       s.name.toLowerCase() === statePart.toLowerCase() || 
-      s.abbr.toLowerCase() === statePart.toLowerCase()
+      s.code.toLowerCase() === statePart.toLowerCase()
     );
     
     if (stateFound) {
-      return { state: stateFound.abbr, city: cityPart };
+      return { state: stateFound.code, city: cityPart };
     }
   }
   
@@ -59,20 +51,20 @@ export function extractCityAndState(location: string) {
       .replace(/[\/\-,]/g, '')
       .trim();
     return { 
-      state: stateFound.abbr, 
+      state: stateFound.code, 
       city: city || null 
     };
   }
   
   // Padrão 5: Verificar se contém sigla de estado
   for (const state of states) {
-    if (location.includes(state.abbr)) {
+    if (location.includes(state.code)) {
       const city = location
-        .replace(state.abbr, '')
+        .replace(state.code, '')
         .replace(/[\/\-,]/g, '')
         .trim();
       return { 
-        state: state.abbr, 
+        state: state.code, 
         city: city || null 
       };
     }
@@ -93,32 +85,19 @@ export function convertStringToDate(dateString: string): string {
 
 // Conversão correta de preço
 export function stringToNumber(price: string): number {
-  if (!price || typeof price !== 'string') {
-    throw new Error(`Preço inválido: ${price}`);
-  }
+  if (!price || typeof price !== 'string') throw new Error(`Preço inválido: ${price}`);
   
   // Limpar o preço
-  let cleanPrice = price
-    .trim()
-    .replace(/R\$\s*/gi, '')
-    .replace(/\s+/g, '')
-    .replace(/[^\d,.-]/g, '');
+  let cleanPrice = price.trim().replace(/R\$\s*/gi, '').replace(/\s+/g, '').replace(/[^\d,.-]/g, '');
   
   // Se a string ficou vazia após limpeza, é inválida
-  if (!cleanPrice) {
-    throw new Error(`Preço vazio após limpeza: "${price}"`);
-  }
+  if (!cleanPrice) throw new Error(`Preço vazio após limpeza: "${price}"`);
   
   // Converter vírgula para ponto (formato brasileiro)
-  if (cleanPrice.includes(',')) {
-    cleanPrice = cleanPrice.replace('.', '').replace(',', '.');
-  }
+  if (cleanPrice.includes(',')) cleanPrice = cleanPrice.replace('.', '').replace(',', '.');
   
   const numericValue = parseFloat(cleanPrice);
-  
-  if (isNaN(numericValue)) {
-    throw new Error(`Não foi possível converter "${price}" para número`);
-  }
+  if (isNaN(numericValue)) throw new Error(`Não foi possível converter "${price}" para número`);
   
   // Retornar valor em centavos
   return Math.round(numericValue * 100);

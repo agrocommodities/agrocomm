@@ -23,6 +23,9 @@ export function StateSelect({ states, selectedState, onStateChange, className = 
   const selectRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  console.log('StateSelect mounted with states:', states.length); // Debug
+  console.log('StateSelect mounted with states:', states); // Debug
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
@@ -55,9 +58,7 @@ export function StateSelect({ states, selectedState, onStateChange, className = 
     }
     
     const foundState = states.find(s => s.code === selectedState);
-    if (foundState) {
-      return foundState;
-    }
+    if (foundState) return foundState;
     
     return { name: "Selecione um estado...", code: "" };
   };
@@ -88,8 +89,8 @@ export function StateSelect({ states, selectedState, onStateChange, className = 
           <div className="flex items-center gap-3">
             <div className="w-6 h-6 rounded overflow-hidden flex-shrink-0">
               <Image
-                src={`/images/bandeiras/square-rounded/${selectedStateData.code.toLowerCase()}.svg`}
-                alt={`Bandeira ${selectedStateData.code}`}
+                src={`/images/bandeiras/square-rounded/${selectedStateData.code.toLowerCase()}.svg` || "/images/bandeiras/square-rounded/br.svg"}
+                alt={`Bandeira ${selectedStateData.code || "br"}`}
                 width={24}
                 height={24}
                 className="w-full h-full object-cover"

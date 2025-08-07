@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db } from "@/db";
-import { states, prices } from "@/db/schema";
+import { prices } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { QuotationClient } from "@/components/prices";
 
@@ -13,13 +13,9 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
   const { slug } = await params;
   const { state, date } = await searchParams;
   
-  console.log('Page params:', { slug, state, date }); // Debug
+  //console.log('Page params:', { slug, state, date }); // Debug
 
-  const stateList = await db.query.states.findMany({ 
-    orderBy: (states, { asc }) => [asc(states.name)] 
-  });
-
-  console.log('States from DB:', stateList.length); // Debug
+  const stateList = await db.query.states.findMany({ orderBy: (states, { asc }) => [asc(states.name)] });
 
   // Buscar datas disponíveis para este commodity
   const availableDates = await db
@@ -49,7 +45,10 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
             href="/cotacoes"
             className="inline-flex items-center px-4 py-2 border-2 border-white/20 rounded-md shadow-sm text-sm font-medium text-white bg-black/30 hover:bg-black/50 transition-colors"
           >
-            ← Voltar
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Voltar
           </Link>
         </div>
       </div>
@@ -63,10 +62,7 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
   
   try {
     const conditions = [eq(prices.commodity, slug), eq(prices.date, finalDate)];
-
-    if (state && state !== "all") {
-      conditions.push(eq(prices.state, state));
-    }
+    if (state && state !== "all") conditions.push(eq(prices.state, state));
 
     // Query simplificada - estado e cidade já são strings
     const priceList = await db
@@ -83,13 +79,10 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
       .where(and(...conditions))
       .orderBy(prices.state, prices.city);
 
-    console.log('Prices from DB:', priceList.length); // Debug
+    // console.log('Prices from DB:', priceList.length); // Debug
 
     // Mapear códigos de estado para nomes completos
-    const priceListWithStateNames = priceList.map(price => ({
-      ...price,
-      stateName: getStateName(price.stateCode),
-    }));
+    const priceListWithStateNames = priceList.map(price => ({ ...price, stateName: price.stateCode }));
 
     // Calcular média corretamente (preços em centavos)
     const average = priceListWithStateNames.length > 0
@@ -143,24 +136,13 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
             href="/cotacoes"
             className="inline-flex items-center px-4 py-2 border-2 border-white/20 rounded-md shadow-sm text-sm font-medium text-white bg-black/30 hover:bg-black/50 transition-colors"
           >
-            ← Voltar
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Voltar
           </Link>
         </div>
       </div>
     );
   }
-}
-
-// Função helper para mapear código do estado para nome completo
-function getStateName(stateCode: string): string {
-  const stateNames: Record<string, string> = {
-    'AC': 'Acre', 'AL': 'Alagoas', 'AP': 'Amapá', 'AM': 'Amazonas',
-    'BA': 'Bahia', 'CE': 'Ceará', 'DF': 'Distrito Federal', 'ES': 'Espírito Santo',
-    'GO': 'Goiás', 'MA': 'Maranhão', 'MT': 'Mato Grosso', 'MS': 'Mato Grosso do Sul',
-    'MG': 'Minas Gerais', 'PA': 'Pará', 'PB': 'Paraíba', 'PR': 'Paraná',
-    'PE': 'Pernambuco', 'PI': 'Piauí', 'RJ': 'Rio de Janeiro', 'RN': 'Rio Grande do Norte',
-    'RS': 'Rio Grande do Sul', 'RO': 'Rondônia', 'RR': 'Roraima', 'SC': 'Santa Catarina',
-    'SP': 'São Paulo', 'SE': 'Sergipe', 'TO': 'Tocantins'
-  };
-  return stateNames[stateCode] || stateCode;
 }

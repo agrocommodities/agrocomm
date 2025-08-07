@@ -1,10 +1,9 @@
+import iconv from "iconv-lite";
 import * as cheerio from "cheerio";
 import { db } from "@/db";
 import { eq, and, sql } from "drizzle-orm";
 import { prices } from "@/db/schema";
-import { extractCityAndState } from "./utils";
-import { convertStringToDate } from "./utils";
-import { loadScotUrl, stringToNumber } from "./utils";
+import { extractCityAndState, stringToNumber, convertStringToDate } from "./utils";
 import { calculateVariation } from "@/lib/price";
 
 type Price = typeof prices.$inferInsert
@@ -16,8 +15,25 @@ const urls = {
   milho: 'https://www.scotconsultoria.com.br/cotacoes/milho/?ref=smnb'
 }
 
+// export async function loadScotUrl(url: string): Promise<string> {
+//   const response = await fetch(url);
+//   const buffer = await response.arrayBuffer();
+//   return iconv.decode(Buffer.from(buffer), "iso-8859-1");
+// }
+
+export async function loadScotUrl(url: string): Promise<string> {
+  const response = await fetch(url);
+  const contentType = response.headers.get('content-type');
+  const buffer = await response.arrayBuffer();
+  
+  if (contentType?.includes('iso-8859-1')) {
+    return iconv.decode(Buffer.from(buffer), "iso-8859-1");
+  }
+  
+  return new TextDecoder('utf-8').decode(buffer);
+}
+
 async function addData(data: Price[]) {
-  // Calcular variação para cada item antes de inserir
   for (const item of data) {
     const lastPrice = await getLastPrice(item.commodity!, item.state!);
     item.variation = calculateVariation(item.price, lastPrice);
@@ -60,7 +76,7 @@ export async function scrapeBoi() {
       const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ').trim()
       
       // Se a linha estiver vazia ou só tiver espaços, pular
-      if (!location) continue
+      if (!location && !currentState) continue
 
       let { state, city } = extractCityAndState(location)
       
@@ -176,58 +192,33 @@ export async function scrapeVaca() {
 
 export async function scrapeSoja() {
   const data: Price[] = []
-
   const body = await loadScotUrl(urls.graos)
   const $ = cheerio.load(body)
 
   const tr = $('div.conteudo_centro:nth-child(4) > table:nth-child(5) tbody tr')
   const tableDate = $('div.conteudo_centro:nth-child(4) > table:nth-child(5) > thead:nth-child(1) > tr:nth-child(1) > th:nth-child(1)')
-    .text()
-    .replace(/(\s+)/g, ' ')
+    .text().replace(/(\s+)/g, ' ')
   const createdAt = convertStringToDate(tableDate)
-
-  let currentState = '' // Variável para armazenar o estado atual
+  let oldState = '' // Variável para armazenar o estado atual
 
   for (let idx = 0; idx < tr.length; idx++) {
     if (idx > 2) {
       const el = tr[idx]      
-      const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ').trim()
-      
-      // Se a linha estiver vazia ou só tiver espaços, pular
-      if (!location) continue
-
-      let { state, city } = extractCityAndState(location)
-      
-      // Se não encontrou estado na linha atual, usar o estado anterior
-      if (!state && currentState) {
-        state = currentState
-        // Se não tem estado mas tem location, tratar location como cidade
-        city = location || null
-      } else if (state) {
-        // Se encontrou estado, atualizar o estado atual
-        currentState = state
-      }
-      
+      let state = $(el).children().eq(0).text().replace(/(\s+)/g, ' ').trim()
+      let city = $(el).children().eq(1).text().replace(/(\s+)/g, ' ').trim()
+      if (!state && !city) continue
+      if (!state && oldState) state = oldState
+      else if (state) oldState = state
+      if (!city) city = "N/A"      
       const rawPrice = $(el).children().eq(2).text().replace(/(\s+)/g, ' ').trim()
-      
-      // Pular se não houver preço
       if (!rawPrice) continue
 
       try {
         const price = stringToNumber(rawPrice)
 
-        if (typeof price === 'number' && !isNaN(price) && state) {
+        if (price && state) {
           console.log(`Soja: ${state} - ${city || 'N/A'} - R$ ${(price/100).toFixed(2)}`)
-          
-          data.push({
-            commodity: 'soja',
-            state,
-            city: city || "",
-            price,
-            date: createdAt.toString(),
-            createdAt: createdAt.toString(),
-            variation: 0
-          })
+          data.push({ commodity: 'soja', state, city, price, date: createdAt.toString(), createdAt: createdAt.toString(), variation: 0 })
         }
       } catch (error) {
         console.warn(`Erro ao processar preço da soja: ${location} - ${rawPrice}`, error)
@@ -255,31 +246,19 @@ export async function scrapeMilho() {
     .replace(/(\s+)/g, ' ')
   const createdAt = convertStringToDate(tableDate)
 
-  let currentState = '' // Variável para armazenar o estado atual
+  let oldState = '' // Variável para armazenar o estado atual
 
   for (let idx = 0; idx < tr.length; idx++) {
     if (idx > 2) {
       const el = tr[idx]
-      const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ').trim()
-      
-      // Se a linha estiver vazia ou só tiver espaços, pular
-      if (!location) continue
-
-      let { state, city } = extractCityAndState(location)
-      
-      // Se não encontrou estado na linha atual, usar o estado anterior
-      if (!state && currentState) {
-        state = currentState
-        // Se não tem estado mas tem location, tratar location como cidade
-        city = location || null
-      } else if (state) {
-        // Se encontrou estado, atualizar o estado atual
-        currentState = state
-      }
-
+      // const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ').trim()
+      let state = $(el).children().eq(0).text().replace(/(\s+)/g, ' ').trim()
+      let city = $(el).children().eq(1).text().replace(/(\s+)/g, ' ').trim()
+      if (!state && !city) continue
+      if (!state && oldState) state = oldState
+      else if (state) oldState = state
+      if (!city) city = "N/A"      
       const rawPrice = $(el).children().eq(2).text().replace(/(\s+)/g, ' ').trim()
-      
-      // Pular se não houver preço
       if (!rawPrice) continue
 
       try {
@@ -293,16 +272,7 @@ export async function scrapeMilho() {
           }
 
           console.log(`Milho: ${state} - ${city || 'N/A'} - R$ ${(price/100).toFixed(2)}`)
-
-          data.push({
-            commodity: 'milho',
-            state,
-            city: city || "",
-            price,
-            date: createdAt.toString(),
-            createdAt: createdAt.toString(),
-            variation: 0
-          })
+          data.push({ commodity: 'milho', state, city, price, date: createdAt.toString(), createdAt: createdAt.toString(), variation: 0 })
         }
       } catch (error) {
         console.warn(`Erro ao processar preço do milho: ${location} - ${rawPrice}`, error)

@@ -28,7 +28,7 @@ export const news = sqliteTable("news", {
 export const states = sqliteTable("states", {
   id: int().primaryKey({ autoIncrement: true }),
   code: text().notNull().unique(), // SP, MG, etc.
-  name: text().notNull(), // São Paulo, Minas Gerais, etc.
+  name: text().notNull().unique(), // São Paulo, Minas Gerais, etc.
 });
 
 // Tabela simplificada de cidades - apenas para referência
@@ -57,7 +57,8 @@ export const prices = sqliteTable("prices", {
     table.commodity,
     table.state,
     table.city,
-    table.date
+    table.date,
+    table.price
   ),
 ]);
 
