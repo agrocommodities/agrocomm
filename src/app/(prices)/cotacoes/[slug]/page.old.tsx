@@ -12,14 +12,7 @@ interface PageProps {
 export default async function CommodityPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const { state, date } = await searchParams;
-  
-  console.log('Page params:', { slug, state, date }); // Debug
-
-  const stateList = await db.query.states.findMany({ 
-    orderBy: (states, { asc }) => [asc(states.name)] 
-  });
-
-  console.log('States from DB:', stateList.length); // Debug
+  const stateList = await db.query.states.findMany({ orderBy: (states, { asc }) => [asc(states.name)] });
 
   // Buscar datas disponíveis para este commodity
   const availableDates = await db
@@ -64,9 +57,7 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
   try {
     const conditions = [eq(prices.commodity, slug), eq(prices.date, finalDate)];
 
-    if (state && state !== "all") {
-      conditions.push(eq(prices.state, state));
-    }
+    if (state && state !== "all") conditions.push(eq(prices.state, state));
 
     // Query simplificada - estado e cidade já são strings
     const priceList = await db
@@ -83,8 +74,6 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
       .where(and(...conditions))
       .orderBy(prices.state, prices.city);
 
-    console.log('Prices from DB:', priceList.length); // Debug
-
     // Mapear códigos de estado para nomes completos
     const priceListWithStateNames = priceList.map(price => ({
       ...price,
@@ -95,14 +84,6 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
     const average = priceListWithStateNames.length > 0
       ? (priceListWithStateNames.reduce((sum, q) => sum + q.price, 0) / priceListWithStateNames.length / 100).toFixed(2)
       : "0.00";
-
-    console.log('Final data to component:', {
-      commodity: slug,
-      selectedState: state || "all",
-      selectedDate: finalDate,
-      statesCount: stateList.length,
-      pricesCount: priceListWithStateNames.length,
-    }); // Debug
 
     return (
       <div className="container mx-auto px-4 py-8">

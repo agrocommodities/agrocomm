@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { int, sqliteTable, text, uniqueIndex, index, foreignKey } from "drizzle-orm/sqlite-core";
+import { int, sqliteTable, text, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: int().primaryKey({ autoIncrement: true }),
@@ -24,31 +24,34 @@ export const news = sqliteTable("news", {
   publishedAt: int({ mode: "timestamp" }),
 });
 
+// Tabela simplificada de estados - apenas para referência
+export const states = sqliteTable("states", {
+  id: int().primaryKey({ autoIncrement: true }),
+  code: text().notNull().unique(), // SP, MG, etc.
+  name: text().notNull(), // São Paulo, Minas Gerais, etc.
+});
+
+// Tabela simplificada de cidades - apenas para referência
 export const cities = sqliteTable("cities", {
   id: int().primaryKey({ autoIncrement: true }),
   name: text().notNull(),
-  state: text().notNull().references(() => states.code),
+  state: text().notNull(), // Código do estado (SP, MG, etc.)
 }, (table) => [
   uniqueIndex("unique_city").on(table.name, table.state),
 ]);
 
-export const states = sqliteTable("states", {
-  id: int().primaryKey({ autoIncrement: true }),
-  code: text().notNull().unique(),
-  name: text().notNull(),
-});
-
+// Tabela de preços simplificada - estado e cidade como strings
 export const prices = sqliteTable("prices", {
   id: int().primaryKey({ autoIncrement: true }),
-  commodity: text().notNull(),
-  state: text().notNull().references(() => states.code),
+  commodity: text().notNull(), // soja, milho, boi, vaca
+  state: text().notNull(), // Código do estado (SP, MG, etc.)
   city: text().notNull(), // Nome da cidade
-  price: int().notNull(),
-  date: text().notNull(),
+  price: int().notNull(), // Preço em centavos
+  date: text().notNull(), // Data no formato YYYY-MM-DD
   source: text(),
   createdAt: text().notNull().default(sql`(date('now'))`),
   updatedAt: text().notNull().$onUpdate(() => new Date().toISOString().split('T')[0]),
-  variation: int().default(0),
+  variation: int().default(0), // Variação em pontos base
 }, (table) => [
   uniqueIndex("unique_price").on(
     table.commodity,
@@ -56,24 +59,7 @@ export const prices = sqliteTable("prices", {
     table.city,
     table.date
   ),
-  
-  // Chave estrangeira composta
-  foreignKey({
-    columns: [table.state, table.city],
-    foreignColumns: [cities.state, cities.name],
-  })
 ]);
-
-export const pricesRelations = relations(prices, ({ one }) => ({
-  city: one(cities, {
-    fields: [prices.state, prices.city], // Campos LOCAIS
-    references: [cities.state, cities.name] // Campos REFERENCIADOS
-  }),
-  state: one(states, {
-    fields: [prices.state],
-    references: [states.code]
-  }) 
-}));
 
 // Índices para melhor performance
 export const pricesDateIndex = index("prices_date_idx").on(prices.date);

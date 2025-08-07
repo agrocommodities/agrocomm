@@ -2,7 +2,7 @@ import * as cheerio from "cheerio";
 import { db } from "@/db";
 import { eq, and, sql } from "drizzle-orm";
 import { prices } from "@/db/schema";
-import { extractCityAndState, getOrCreateCity } from "./utils";
+import { extractCityAndState } from "./utils";
 import { convertStringToDate } from "./utils";
 import { loadScotUrl, stringToNumber } from "./utils";
 import { calculateVariation } from "@/lib/price";
@@ -52,31 +52,59 @@ export async function scrapeBoi() {
     .replace(/(\s+)/g, ' ')
   const createdAt = convertStringToDate(tableDate)
 
+  let currentState = '' // Variável para armazenar o estado atual
+
   for (let idx = 0; idx < tr.length; idx++) {
     if (idx > 2) {
       const el = tr[idx]
-      const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ')
-      const { state, city: cityName } = extractCityAndState(location)
-      const rawPrice = $(el).children().eq(1).text().replace(/(\s+)/g, ' ')
-      const price = stringToNumber(rawPrice)
+      const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ').trim()
+      
+      // Se a linha estiver vazia ou só tiver espaços, pular
+      if (!location) continue
 
-      if (price && state) {
-        const city = await getOrCreateCity(cityName, state)
+      let { state, city } = extractCityAndState(location)
+      
+      // Se não encontrou estado na linha atual, usar o estado anterior
+      if (!state && currentState) {
+        state = currentState
+        // Se não tem estado mas tem location, tratar location como cidade
+        city = location || null
+      } else if (state) {
+        // Se encontrou estado, atualizar o estado atual
+        currentState = state
+      }
 
-        data.push({
-          commodity: "boi",
-          state,
-          city: city || "",
-          price,
-          date: createdAt.toString(),
-          createdAt: createdAt.toString(),
-          variation: 0 // Será calculado na função addData
-        })
+      const rawPrice = $(el).children().eq(1).text().replace(/(\s+)/g, ' ').trim()
+      
+      // Pular se não houver preço
+      if (!rawPrice) continue
+      
+      try {
+        const price = stringToNumber(rawPrice)
+
+        if (price && state) {
+          console.log(`Boi: ${state} - ${city || 'N/A'} - R$ ${(price/100).toFixed(2)}`)
+          
+          data.push({
+            commodity: "boi",
+            state,
+            city: city || "",
+            price,
+            date: createdAt.toString(),
+            createdAt: createdAt.toString(),
+            variation: 0
+          })
+        }
+      } catch (error) {
+        console.warn(`Erro ao processar preço do boi: ${location} - ${rawPrice}`, error)
       }
     }
   }
 
-  if (data.length > 0) await addData(data)
+  if (data.length > 0) {
+    await addData(data)
+    console.log(`✅ Boi: ${data.length} preços inseridos`)
+  }
 }
 
 export async function scrapeVaca() {
@@ -91,31 +119,59 @@ export async function scrapeVaca() {
     .replace(/(\s+)/g, ' ')
   const createdAt = convertStringToDate(tableDate)
 
+  let currentState = '' // Variável para armazenar o estado atual
+
   for (let idx = 0; idx < tr.length; idx++) {
     if (idx > 2) {
       const el = tr[idx]
-      const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ')
-      const { state, city: cityName } = extractCityAndState(location)
-      const rawPrice = $(el).children().eq(2).text().replace(/(\s+)/g, ' ')
-      const price = stringToNumber(rawPrice)
+      const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ').trim()
+      
+      // Se a linha estiver vazia ou só tiver espaços, pular
+      if (!location) continue
 
-      if (typeof price === 'number' && !isNaN(price) && state) {
-        const city = await getOrCreateCity(cityName, state)
+      let { state, city } = extractCityAndState(location)
+      
+      // Se não encontrou estado na linha atual, usar o estado anterior
+      if (!state && currentState) {
+        state = currentState
+        // Se não tem estado mas tem location, tratar location como cidade
+        city = location || null
+      } else if (state) {
+        // Se encontrou estado, atualizar o estado atual
+        currentState = state
+      }
 
-        data.push({
-          commodity: 'vaca',
-          state,
-          city,
-          price,
-          date: createdAt.toString(),
-          createdAt: createdAt.toString(),
-          variation: 0 // Será calculado na função addData
-        })
+      const rawPrice = $(el).children().eq(2).text().replace(/(\s+)/g, ' ').trim()
+      
+      // Pular se não houver preço
+      if (!rawPrice) continue
+
+      try {
+        const price = stringToNumber(rawPrice)
+
+        if (typeof price === 'number' && !isNaN(price) && state) {
+          console.log(`Vaca: ${state} - ${city || 'N/A'} - R$ ${(price/100).toFixed(2)}`)
+          
+          data.push({
+            commodity: 'vaca',
+            state,
+            city: city || "",
+            price,
+            date: createdAt.toString(),
+            createdAt: createdAt.toString(),
+            variation: 0
+          })
+        }
+      } catch (error) {
+        console.warn(`Erro ao processar preço da vaca: ${location} - ${rawPrice}`, error)
       }
     }
   }
 
-  if (data.length > 0) await addData(data)
+  if (data.length > 0) {
+    await addData(data)
+    console.log(`✅ Vaca: ${data.length} preços inseridos`)
+  }
 }
 
 export async function scrapeSoja() {
@@ -130,31 +186,51 @@ export async function scrapeSoja() {
     .replace(/(\s+)/g, ' ')
   const createdAt = convertStringToDate(tableDate)
 
-  let oldState = ''
+  let currentState = '' // Variável para armazenar o estado atual
 
   for (let idx = 0; idx < tr.length; idx++) {
     if (idx > 2) {
       const el = tr[idx]      
-      const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ')
-      let { state, city: cityName } = extractCityAndState(location)
-      if (!state) state = oldState 
-      else if (!oldState) oldState = state
+      const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ').trim()
       
-      const rawPrice = $(el).children().eq(2).text().replace(/(\s+)/g, ' ')
-      const price = stringToNumber(rawPrice)
+      // Se a linha estiver vazia ou só tiver espaços, pular
+      if (!location) continue
 
-      if (typeof price === 'number' && !isNaN(price) && state) {
-        const city = await getOrCreateCity(cityName, state)
+      let { state, city } = extractCityAndState(location)
+      
+      // Se não encontrou estado na linha atual, usar o estado anterior
+      if (!state && currentState) {
+        state = currentState
+        // Se não tem estado mas tem location, tratar location como cidade
+        city = location || null
+      } else if (state) {
+        // Se encontrou estado, atualizar o estado atual
+        currentState = state
+      }
+      
+      const rawPrice = $(el).children().eq(2).text().replace(/(\s+)/g, ' ').trim()
+      
+      // Pular se não houver preço
+      if (!rawPrice) continue
 
-        data.push({
-          commodity: 'soja',
-          state,
-          city,
-          price,
-          date: createdAt.toString(),
-          createdAt: createdAt.toString(),
-          variation: 0 // Será calculado na função addData
-        })
+      try {
+        const price = stringToNumber(rawPrice)
+
+        if (typeof price === 'number' && !isNaN(price) && state) {
+          console.log(`Soja: ${state} - ${city || 'N/A'} - R$ ${(price/100).toFixed(2)}`)
+          
+          data.push({
+            commodity: 'soja',
+            state,
+            city: city || "",
+            price,
+            date: createdAt.toString(),
+            createdAt: createdAt.toString(),
+            variation: 0
+          })
+        }
+      } catch (error) {
+        console.warn(`Erro ao processar preço da soja: ${location} - ${rawPrice}`, error)
       }
     }
   }
@@ -179,34 +255,63 @@ export async function scrapeMilho() {
     .replace(/(\s+)/g, ' ')
   const createdAt = convertStringToDate(tableDate)
 
+  let currentState = '' // Variável para armazenar o estado atual
+
   for (let idx = 0; idx < tr.length; idx++) {
     if (idx > 2) {
       const el = tr[idx]
-      const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ')
-      const { state, city: cityName } = extractCityAndState(location)
-      const rawPrice = $(el).children().eq(2).text().replace(/(\s+)/g, ' ')
-      const price = stringToNumber(rawPrice)
+      const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ').trim()
+      
+      // Se a linha estiver vazia ou só tiver espaços, pular
+      if (!location) continue
 
-      if (typeof price === 'number' && !isNaN(price) && state) {
-        const city = await getOrCreateCity(cityName, state)
+      let { state, city } = extractCityAndState(location)
+      
+      // Se não encontrou estado na linha atual, usar o estado anterior
+      if (!state && currentState) {
+        state = currentState
+        // Se não tem estado mas tem location, tratar location como cidade
+        city = location || null
+      } else if (state) {
+        // Se encontrou estado, atualizar o estado atual
+        currentState = state
+      }
 
-        if (price < 1000 || price > 500000) {
-          console.warn(`Preço suspeito de milho ignorado: ${cityName}/${state} - R$ ${price/100}`);
-          continue;
+      const rawPrice = $(el).children().eq(2).text().replace(/(\s+)/g, ' ').trim()
+      
+      // Pular se não houver preço
+      if (!rawPrice) continue
+
+      try {
+        const price = stringToNumber(rawPrice)
+
+        if (typeof price === 'number' && !isNaN(price) && state) {
+          // Validação de preço para milho (evitar valores absurdos)
+          if (price < 1000 || price > 500000) {
+            console.warn(`Preço suspeito de milho ignorado: ${city}/${state} - R$ ${price/100}`);
+            continue;
+          }
+
+          console.log(`Milho: ${state} - ${city || 'N/A'} - R$ ${(price/100).toFixed(2)}`)
+
+          data.push({
+            commodity: 'milho',
+            state,
+            city: city || "",
+            price,
+            date: createdAt.toString(),
+            createdAt: createdAt.toString(),
+            variation: 0
+          })
         }
-
-        data.push({
-          commodity: 'milho',
-          state,
-          city,
-          price,
-          date: createdAt.toString(),
-          createdAt: createdAt.toString(),
-          variation: 0 // Será calculado na função addData
-        })
+      } catch (error) {
+        console.warn(`Erro ao processar preço do milho: ${location} - ${rawPrice}`, error)
       }
     }
   }
 
-  if (data.length > 0) await addData(data)
+  if (data.length > 0) {
+    await addData(data)
+    console.log(`✅ Milho: ${data.length} preços inseridos`)
+  }
 }

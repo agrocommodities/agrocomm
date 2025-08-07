@@ -4,59 +4,83 @@ import { db } from "@/db";
 import { eq, and } from "drizzle-orm";
 import { cities } from "@/db/schema";
 
+
 export async function loadScotUrl(url: string): Promise<string> {
   const response = await fetch(url);
   const buffer = await response.arrayBuffer();
   return iconv.decode(Buffer.from(buffer), "iso-8859-1");
 }
 
-export async function getOrCreateCity(city: string | null, state: string): Promise<string> {
-  if (!city || city === '-' || !state) return "";
-
-  const existingCity = await db
-    .select({ name: cities.name })
-    .from(cities)
-    .where(and(
-      eq(cities.name, city),
-      eq(cities.state, state)
-    ))
-    .get();
-
-  if (existingCity) return existingCity.name;
-
-  const result = await db
-    .insert(cities)
-    .values({ name: city, state })
-    .returning({ name: cities.name })
-    .get();
-
-  return result.name;
-}
-
 export function extractCityAndState(location: string) {
   if (!location) return { state: null, city: null };
+  
   location = location.trim();
   
-  // Tentar extrair estado do final (formato: "Cidade/UF" ou "UF")
-  const stateMatch = location.match(/\/([A-Z]{2})$/) || location.match(/^([A-Z]{2})$/);
+  // Se a string estiver vazia após trim, retornar null
+  if (!location) return { state: null, city: null };
   
-  if (stateMatch) {
-    const state = stateMatch[1];
-    const city = location.replace(`/${state}`, '').replace(state, '').trim();
+  // Padrão 1: "Cidade/UF" (ex: "São Paulo/SP")
+  const cityStateMatch = location.match(/^(.+)\/([A-Z]{2})$/);
+  if (cityStateMatch) {
+    const city = cityStateMatch[1].trim();
+    const state = cityStateMatch[2];
     return { state, city: city || null };
   }
   
-  // Procurar por nome completo do estado
+  // Padrão 2: Apenas "UF" (ex: "SP")
+  const stateOnlyMatch = location.match(/^([A-Z]{2})$/);
+  if (stateOnlyMatch) {
+    const state = stateOnlyMatch[1];
+    return { state, city: null };
+  }
+  
+  // Padrão 3: "Estado - Cidade" (ex: "São Paulo - Capital")
+  const stateDashCityMatch = location.match(/^(.+)\s*-\s*(.+)$/);
+  if (stateDashCityMatch) {
+    const statePart = stateDashCityMatch[1].trim();
+    const cityPart = stateDashCityMatch[2].trim();
+    
+    // Verificar se a primeira parte é um estado conhecido
+    const stateFound = states.find(s => 
+      s.name.toLowerCase() === statePart.toLowerCase() || 
+      s.abbr.toLowerCase() === statePart.toLowerCase()
+    );
+    
+    if (stateFound) {
+      return { state: stateFound.abbr, city: cityPart };
+    }
+  }
+  
+  // Padrão 4: Procurar por nome completo do estado na string
   const stateFound = states.find(s => location.includes(s.name));
   if (stateFound) {
-    const city = location.replace(stateFound.name, '').replace(/[\/\-,]/g, '').trim();
+    const city = location
+      .replace(stateFound.name, '')
+      .replace(/[\/\-,]/g, '')
+      .trim();
     return { 
       state: stateFound.abbr, 
       city: city || null 
     };
   }
   
-  return { state: null, city: null };
+  // Padrão 5: Verificar se contém sigla de estado
+  for (const state of states) {
+    if (location.includes(state.abbr)) {
+      const city = location
+        .replace(state.abbr, '')
+        .replace(/[\/\-,]/g, '')
+        .trim();
+      return { 
+        state: state.abbr, 
+        city: city || null 
+      };
+    }
+  }
+  
+  // Se chegou até aqui, pode ser apenas uma cidade sem estado especificado
+  // Neste caso, retornamos state: null e city será a string completa
+  return { state: null, city: location };
 }
 
 export function convertStringToDate(dateString: string): string {
@@ -67,11 +91,7 @@ export function convertStringToDate(dateString: string): string {
   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 }
 
-
-
-
-
-// Conversão correta de preço - NÃO multiplicar por 100 se já vier em centavos
+// Conversão correta de preço
 export function stringToNumber(price: string): number {
   if (!price || typeof price !== 'string') {
     throw new Error(`Preço inválido: ${price}`);
@@ -84,6 +104,11 @@ export function stringToNumber(price: string): number {
     .replace(/\s+/g, '')
     .replace(/[^\d,.-]/g, '');
   
+  // Se a string ficou vazia após limpeza, é inválida
+  if (!cleanPrice) {
+    throw new Error(`Preço vazio após limpeza: "${price}"`);
+  }
+  
   // Converter vírgula para ponto (formato brasileiro)
   if (cleanPrice.includes(',')) {
     cleanPrice = cleanPrice.replace('.', '').replace(',', '.');
@@ -95,8 +120,7 @@ export function stringToNumber(price: string): number {
     throw new Error(`Não foi possível converter "${price}" para número`);
   }
   
-  // IMPORTANTE: Retornar valor em centavos
-  // Se o valor já estiver correto, não multiplicar por 100
+  // Retornar valor em centavos
   return Math.round(numericValue * 100);
 }
 
@@ -105,23 +129,17 @@ export function formatPrice(priceInCents: number): string {
   return (priceInCents / 100).toFixed(2).replace(".", ",");
 }
 
+// Resto das funções permanecem iguais...
 export function getCurrentDateWithoutHours() {
   const now = new Date();
-
-  // Get UTC components
   const utcYear = now.getUTCFullYear();
-  const utcMonth = now.getUTCMonth(); // Month is 0-indexed (0 for January, 11 for December)
+  const utcMonth = now.getUTCMonth();
   const utcDay = now.getUTCDate();
-
-  // Create a new Date object representing the UTC date at midnight
   const utcDateWithoutHours = new Date(Date.UTC(utcYear, utcMonth, utcDay));
-
-  console.log(utcDateWithoutHours.toISOString().slice(0, 10)); // Output: YYYY-MM-DD
+  console.log(utcDateWithoutHours.toISOString().slice(0, 10));
 }
 
 export function getRandomNumber(min: number, max: number) {
-  // Math.floor(Math.random() * (600 - 60 + 1)) + 60 * 1000
-  // return Math.random() * (max - min) + min;
   return (Math.floor(Math.random() * (max - min + 1)) + min) * 1000 * 60;
 }
 
@@ -135,27 +153,25 @@ export async function loadUrl(url: string): Promise<string> {
   return data
 }
 
-// DATE
 export function getCurrentDate(): Date {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  const timezoneOffset = now.getTimezoneOffset() * 60000; // getTimezoneOffset() retorna em minutos
+  const timezoneOffset = now.getTimezoneOffset() * 60000;
   const utcDate = new Date(now.getTime() - timezoneOffset);
-  // return utcDate.toISOString()
   return utcDate;
 }
 
 export function getCurrentDateString(): string {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  const timezoneOffset = now.getTimezoneOffset() * 60000; // getTimezoneOffset() retorna em minutos
+  const timezoneOffset = now.getTimezoneOffset() * 60000;
   const utcDate = new Date(now.getTime() - timezoneOffset);
   return utcDate.toISOString();
 }
 
 function formatDateToDDMMYYYY(date: Date): string {
   const day = date.getUTCDate().toString().padStart(2, "0");
-  const month = (date.getUTCMonth() + 1).toString().padStart(2, "0"); // Meses são 0-indexados
+  const month = (date.getUTCMonth() + 1).toString().padStart(2, "0");
   const year = date.getUTCFullYear().toString();
   return `${day}/${month}/${year}`;
 }
@@ -180,7 +196,6 @@ export function convertStringToFormattedDate(dateString: string): Date {
   const regex = /(\d{2})\/(\d{2})\/(\d{4})/;
   const matches = dateString.match(regex);
 
-  // if (!matches) throw new Error(`Formato de data inválido: ${dateString}`)
   if (!matches) return getCurrentDate();
 
   const day = parseInt(matches[1], 10);
@@ -188,7 +203,7 @@ export function convertStringToFormattedDate(dateString: string): Date {
   const year = parseInt(matches[3], 10);
 
   const date = new Date(Date.UTC(year, month, day));
-  date.setUTCHours(date.getUTCHours()); // date.setUTCHours(date.getUTCHours() + 3)
+  date.setUTCHours(date.getUTCHours());
 
   return date;
 }
@@ -202,13 +217,13 @@ export function getExpiryInSeconds(expiry: string): number {
 
   switch (unit) {
     case "d":
-      return value * 24 * 60 * 60; // Dias para segundos
+      return value * 24 * 60 * 60;
     case "h":
-      return value * 60 * 60; // Horas para segundos
+      return value * 60 * 60;
     case "m":
-      return value * 60; // Minutos para segundos
+      return value * 60;
     case "s":
-      return value; // Segundos
+      return value;
     default:
       throw new Error("Unidade de expiração inválida.");
   }
@@ -217,3 +232,48 @@ export function getExpiryInSeconds(expiry: string): number {
 export function generateOtpCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
+
+
+export async function getOrCreateCity(city: string | null, state: string): Promise<string> {
+  if (!city || city === '-' || !state) return "";
+
+  const existingCity = await db
+    .select({ name: cities.name })
+    .from(cities)
+    .where(and(
+      eq(cities.name, city),
+      eq(cities.state, state)
+    ))
+    .get();
+
+  if (existingCity) return existingCity.name;
+
+  const result = await db
+    .insert(cities)
+    .values({ name: city, state })
+    .returning({ name: cities.name })
+    .get();
+
+  return result.name;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
