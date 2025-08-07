@@ -1,47 +1,92 @@
 import iconv from "iconv-lite";
 import { states } from "@/config";
+import { db } from "@/db";
+import { eq, and } from "drizzle-orm";
+import { cities } from "@/db/schema";
 
-// export function stringToNumber(price: string): number {
-//   return parseInt(price.replace(",", ""), 10);
-// }
+export async function loadScotUrl(url: string): Promise<string> {
+  const response = await fetch(url);
+  const buffer = await response.arrayBuffer();
+  return iconv.decode(Buffer.from(buffer), "iso-8859-1");
+}
 
-// export function stringToNumber(price: string): number {
-//   // Remove espaços e converte vírgula para ponto
-//   const cleanPrice = price.trim().replace(",", ".");
-//   const numericValue = parseFloat(cleanPrice);
+export async function getOrCreateCity(city: string | null, state: string): Promise<string> {
+  if (!city || city === '-' || !state) return "";
+
+  const existingCity = await db
+    .select({ name: cities.name })
+    .from(cities)
+    .where(and(
+      eq(cities.name, city),
+      eq(cities.state, state)
+    ))
+    .get();
+
+  if (existingCity) return existingCity.name;
+
+  const result = await db
+    .insert(cities)
+    .values({ name: city, state })
+    .returning({ name: cities.name })
+    .get();
+
+  return result.name;
+}
+
+export function extractCityAndState(location: string) {
+  if (!location) return { state: null, city: null };
+  location = location.trim();
   
-//   // Converte para centavos (multiplica por 100)
-//   return Math.round(numericValue * 100);
-// }
+  // Tentar extrair estado do final (formato: "Cidade/UF" ou "UF")
+  const stateMatch = location.match(/\/([A-Z]{2})$/) || location.match(/^([A-Z]{2})$/);
+  
+  if (stateMatch) {
+    const state = stateMatch[1];
+    const city = location.replace(`/${state}`, '').replace(state, '').trim();
+    return { state, city: city || null };
+  }
+  
+  // Procurar por nome completo do estado
+  const stateFound = states.find(s => location.includes(s.name));
+  if (stateFound) {
+    const city = location.replace(stateFound.name, '').replace(/[\/\-,]/g, '').trim();
+    return { 
+      state: stateFound.abbr, 
+      city: city || null 
+    };
+  }
+  
+  return { state: null, city: null };
+}
 
+export function convertStringToDate(dateString: string): string {
+  const dateMatch = dateString.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!dateMatch) return new Date().toISOString().split('T')[0];
+  
+  const [_, day, month, year] = dateMatch;
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+}
+
+
+
+
+
+// Conversão correta de preço - NÃO multiplicar por 100 se já vier em centavos
 export function stringToNumber(price: string): number {
   if (!price || typeof price !== 'string') {
     throw new Error(`Preço inválido: ${price}`);
   }
   
-  // Log do valor original para debug
-  console.log(`🔢 Convertendo preço: "${price}"`);
-  
-  // Remover espaços, símbolos de moeda e caracteres especiais
+  // Limpar o preço
   let cleanPrice = price
     .trim()
-    .replace(/R\$\s*/g, '') // Remove R$
-    .replace(/\s+/g, '') // Remove espaços
-    .replace(/[^\d,.-]/g, ''); // Mantém apenas dígitos, vírgula, ponto e hífen
+    .replace(/R\$\s*/gi, '')
+    .replace(/\s+/g, '')
+    .replace(/[^\d,.-]/g, '');
   
-  console.log(`🧹 Preço limpo: "${cleanPrice}"`);
-  
-  // Se contém vírgula, assumir formato brasileiro (123,45)
+  // Converter vírgula para ponto (formato brasileiro)
   if (cleanPrice.includes(',')) {
-    // Verificar se é formato brasileiro ou americano
-    const parts = cleanPrice.split(',');
-    if (parts.length === 2 && parts[1].length <= 2) {
-      // Formato brasileiro: 123,45
-      cleanPrice = cleanPrice.replace(',', '.');
-    } else {
-      // Formato americano com vírgula como separador de milhares: 1,234.56
-      cleanPrice = cleanPrice.replace(/,/g, '');
-    }
+    cleanPrice = cleanPrice.replace('.', '').replace(',', '.');
   }
   
   const numericValue = parseFloat(cleanPrice);
@@ -50,11 +95,9 @@ export function stringToNumber(price: string): number {
     throw new Error(`Não foi possível converter "${price}" para número`);
   }
   
-  // Converte para centavos
-  const priceInCents = Math.round(numericValue * 100);
-  console.log(`💰 Resultado: ${numericValue} -> ${priceInCents} centavos`);
-  
-  return priceInCents;
+  // IMPORTANTE: Retornar valor em centavos
+  // Se o valor já estiver correto, não multiplicar por 100
+  return Math.round(numericValue * 100);
 }
 
 // Função auxiliar para debug
@@ -90,38 +133,6 @@ export async function loadUrl(url: string): Promise<string> {
       return decoder.decode(buffer)
     })
   return data
-}
-
-export async function loadScotUrl(url: string): Promise<string> {
-  const response = await fetch(url);
-  const buffer = await response.arrayBuffer();
-
-  // Converte de iso-8859-1 para utf-8
-  return iconv.decode(Buffer.from(buffer), "iso-8859-1");
-}
-
-// export async function loadScotUrl(url: string): Promise<string> {
-//   const response = await fetch(url);
-//   const buffer = await response.arrayBuffer();
-//   return new TextDecoder('windows-1252').decode(buffer);
-// }
-
-export function extractCityAndState(location: string) {
-  if (!location) return { state: null, city: null };
-
-  let stateFound = states.find((state) => location === state.abbr || location.includes(state.name));
-  if (stateFound) return { state: stateFound.abbr, city: "-" };
-
-  const stateAbbr = location.substring(0, 2);
-  stateFound = states.find((state) => stateAbbr === state.abbr);
-
-  if (stateFound)
-    return {
-      state: stateFound.abbr,
-      city: location.length > 2 ? location.substring(3) : "-",
-    };
-
-  return { state: null, city: null };
 }
 
 // DATE
@@ -179,16 +190,6 @@ export function convertStringToFormattedDate(dateString: string): Date {
   const date = new Date(Date.UTC(year, month, day));
   date.setUTCHours(date.getUTCHours()); // date.setUTCHours(date.getUTCHours() + 3)
 
-  return date;
-}
-
-export function convertStringToDate(dateString: string): Date {
-  const dateMatch = dateString.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-  if (!dateMatch) throw new Error("Formato de data não encontrado. Esperado padrão: DD/MM/YYYY");
-  const [_, day, month, year] = dateMatch;
-  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
-  date.setUTCHours(date.getUTCHours()); // date.setUTCHours(date.getUTCHours() + 3)
-  // return new Date(Number(year), Number(month) - 1, Number(day));
   return date;
 }
 

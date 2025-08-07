@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { db } from "@/db";
-import { commodities, states, cities, prices } from "@/db/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { states, cities, prices } from "@/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { QuotationClient } from "@/components/prices";
 
 interface PageProps {
@@ -13,22 +12,13 @@ interface PageProps {
 export default async function CommodityPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const { state, date } = await searchParams;
-
-  const commodity = await db.query.commodities.findFirst({ 
-    where: eq(commodities.slug, slug) 
-  });
-  
-  if (!commodity) notFound();
-
-  const stateList = await db.query.states.findMany({ 
-    orderBy: (states, { asc }) => [asc(states.name)] 
-  });
+  const stateList = await db.query.states.findMany({ orderBy: (states, { asc }) => [asc(states.name)] });
 
   // Buscar datas disponíveis para este commodity
   const availableDates = await db
     .select({ date: prices.date })
     .from(prices)
-    .where(eq(prices.commodityId, commodity.id))
+    .where(eq(prices.commodity, slug))
     .groupBy(prices.date)
     .orderBy(desc(prices.date))
     .limit(30); // Limitar a 30 datas mais recentes
@@ -37,13 +27,13 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">{commodity.name}</h1>
-          <p className="text-white/70">Unidade: {commodity.unit}</p>
+          <h1 className="text-3xl font-bold text-white">{slug}</h1>
+          <p className="text-white/70">Unidade: {slug}</p>
         </div>
         
         <div className="bg-yellow-50 dark:bg-yellow-900/20 p-6 rounded-lg border-2 border-yellow-200 dark:border-yellow-800">
           <p className="text-yellow-800 dark:text-yellow-200">
-            Ainda não há cotações disponíveis para {commodity.name}.
+            Ainda não há cotações disponíveis para {slug}.
           </p>
         </div>
         
@@ -65,21 +55,16 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
   const finalDate = isValidDate ? selectedDate : availableDates[0].date;
   
   try {
-    const conditions = [
-      eq(prices.commodityId, commodity.id),
-      eq(prices.date, finalDate)
-    ];
+    const conditions = [eq(prices.commodity, slug), eq(prices.date, finalDate)];
 
-    if (state && state !== "all") {
-      conditions.push(eq(states.code, state));
-    }
+    if (state && state !== "all") conditions.push(eq(states.code, state));
 
     const priceList = await db
       .select({
         id: prices.id,
         price: prices.price,
         date: prices.date,
-        variation: prices.variation,
+        variation: prices.variation || 0,
         stateCode: states.code,
         stateName: states.name,
         stateId: states.id,
@@ -87,8 +72,8 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
         cityId: cities.id,
       })
       .from(prices)
-      .innerJoin(states, eq(prices.stateId, states.id))
-      .leftJoin(cities, eq(prices.cityId, cities.id))
+      .innerJoin(states, eq(prices.state, states.code))
+      .leftJoin(cities, eq(prices.city, cities.name))
       .where(and(...conditions))
       .orderBy(states.name, cities.name);
 
@@ -100,12 +85,12 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">{commodity.name}</h1>
-          <p className="text-white/70">Unidade: {commodity.unit}</p>
+          <h1 className="text-3xl font-bold text-white">{slug}</h1>
+          <p className="text-white/70">Unidade: {slug}</p>
         </div>
 
         <QuotationClient
-          commodity={commodity}
+          commodity={slug}
           states={stateList}
           prices={priceList}
           availableDates={availableDates.map(d => d.date)}
@@ -121,8 +106,8 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">{commodity.name}</h1>
-          <p className="text-white/70">Unidade: {commodity.unit}</p>
+          <h1 className="text-3xl font-bold text-white">{slug}</h1>
+          <p className="text-white/70">Unidade: {slug}</p>
         </div>
         
         <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg border-2 border-red-200 dark:border-red-800">

@@ -5,12 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 interface QuotationClientProps {
-  commodity: {
-    id: number;
-    name: string;
-    slug: string;
-    unit: string;
-  };
+  commodity: string;
   states: Array<{
     id: number;
     code: string;
@@ -20,7 +15,7 @@ interface QuotationClientProps {
     id: number;
     price: number;
     date: string;
-    variation: number;
+    variation: number | null;
     stateCode: string;
     stateName: string;
     stateId: number;
@@ -65,14 +60,14 @@ export function QuotationClient({
     } else {
       params.set("state", state);
     }
-    router.push(`/cotacoes/${commodity.slug}?${params.toString()}`);
+    router.push(`/cotacoes/${commodity}?${params.toString()}`);
   };
 
   const handleDateChange = (date: string) => {
     const params = new URLSearchParams(searchParams);
     params.set("date", date);
     setShowCalendar(false);
-    router.push(`/cotacoes/${commodity.slug}?${params.toString()}`);
+    router.push(`/cotacoes/${commodity}?${params.toString()}`);
   };
 
   const formatDate = (dateStr: string) => {
@@ -303,7 +298,7 @@ export function QuotationClient({
             <tbody className="divide-y divide-white/20">
               {prices.length > 0 ? (
                 prices.map((price) => {
-                  const isPositive = price.variation > 0;
+                  const isPositive = price.variation && price.variation > 0 ? true : false;
                   
                   return (
                     <tr key={price.id} className="hover:bg-white/5">
@@ -327,20 +322,20 @@ export function QuotationClient({
                           R$ {formatPrice(price.price)}
                         </div>
                         <div className="text-xs text-white/60">
-                          por {commodity.unit}
+                          por {commodity}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          Math.abs(price.variation) < 1
+                          Math.abs(price.variation || 0) < 1
                             ? "bg-white/20 text-white/70"
                             : isPositive
                             ? "bg-green-500/20 text-green-300"
                             : "bg-red-500/20 text-red-300"
                         }`}>
-                          {Math.abs(price.variation) < 1 
+                          {Math.abs(price.variation || 0) < 1 
                             ? "=" 
-                            : formatVariation(price.variation)
+                            : formatVariation(price.variation || 0)
                           }
                         </span>
                       </td>

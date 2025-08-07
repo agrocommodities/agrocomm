@@ -1,5 +1,5 @@
-// src/app/layout.tsx
 import { headers } from "next/headers";
+import { Toaster, toast } from "sonner";
 import { Nunito } from "next/font/google";
 import { Header } from "@/components/header";
 import { SideBar } from "@/components/sidebar";
@@ -11,6 +11,20 @@ const nunito = Nunito({
   variable: "--font-nunito",
   subsets: ["latin"],
 });
+
+
+// ...
+
+// function App() {
+//   return (
+//     <div>
+//       <Toaster />
+//       <button onClick={() => toast('My first toast')}>
+//         Give me a toast
+//       </button>
+//     </div>
+//   )
+// }
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL!),
@@ -45,6 +59,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <link rel="icon" href="/images/favicon.svg" sizes="any" type="image/svg+xml" />
       </head>
       <body className={`${nunito.variable} antialiased`}>
+        <Toaster />
         <div className="flex flex-col min-h-screen">
           <Header />
           
