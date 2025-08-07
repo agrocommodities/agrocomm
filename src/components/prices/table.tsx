@@ -128,7 +128,7 @@ export function QuotationTable({ data, commodity, onSort, sortField, sortDirecti
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0">
                           <Image
-                            src={`/images/bandeiras/square-rounded/${item.stateCode.toLowerCase()}.png`}
+                            src={`/images/bandeiras/square-rounded/${item.stateCode.toLowerCase()}.svg`}
                             alt={`Bandeira ${item.stateCode}`}
                             width={32}
                             height={32}

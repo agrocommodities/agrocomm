@@ -88,7 +88,7 @@ export function StateSelect({ states, selectedState, onStateChange, className = 
           <div className="flex items-center gap-3">
             <div className="w-6 h-6 rounded overflow-hidden flex-shrink-0">
               <Image
-                src={`/images/bandeiras/square-rounded/${selectedStateData.code.toLowerCase()}.png`}
+                src={`/images/bandeiras/square-rounded/${selectedStateData.code.toLowerCase()}.svg`}
                 alt={`Bandeira ${selectedStateData.code}`}
                 width={24}
                 height={24}
@@ -141,7 +141,7 @@ export function StateSelect({ states, selectedState, onStateChange, className = 
             >
               <div className="w-6 h-6 rounded overflow-hidden flex-shrink-0">
                 <Image
-                  src="/images/bandeiras/square-rounded/br.png"
+                  src="/images/bandeiras/square-rounded/br.svg"
                   alt="Bandeira do Brasil"
                   width={24}
                   height={24}
@@ -171,7 +171,7 @@ export function StateSelect({ states, selectedState, onStateChange, className = 
               >
                 <div className="w-6 h-6 rounded overflow-hidden flex-shrink-0">
                   <Image
-                    src={`/images/bandeiras/square-rounded/${state.code.toLowerCase()}.png`}
+                    src={`/images/bandeiras/square-rounded/${state.code.toLowerCase()}.svg`}
                     alt={`Bandeira ${state.code}`}
                     width={24}
                     height={24}
