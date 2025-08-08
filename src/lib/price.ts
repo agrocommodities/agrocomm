@@ -35,36 +35,9 @@ export function formatPrice(priceInCents: number): string {
   return (priceInCents / 100).toFixed(2).replace(".", ",");
 }
 
-// export function calculateVariation(currentPrice: number, previousPrice: number | null): number {
-//   if (!previousPrice || previousPrice === 0) return 0;
-//   // Calcula a variação percentual e converte para inteiro (multiplicado por 100) Ex: 5% de variação = 500 (inteiro)
-//   const variation = ((currentPrice - previousPrice) / previousPrice) * 10000;
-//   return Math.round(variation);
-// }
-
-// export function formatVariation(variation: number): string {
-//   const percentage = variation / 100;
-//   return `${percentage > 0 ? '+' : ''}${percentage.toFixed(2)}%`;
-// }
-
-// export function formatCommodityName(commodity: string): string {
-//   switch (commodity.toLowerCase()) {
-//     case "soja":
-//       return "Saca de Soja";
-//     case "milho":
-//       return "Saca de Milho";
-//     case "boi":
-//       return "Arroba do Boi";
-//     case "vaca":
-//       return "Arroba da Vaca";
-//     default:
-//       return commodity.charAt(0).toUpperCase() + commodity.slice(1);
-//   }
-// }
-
 export function formatStateName(state: string, long = true) {
-  if (long) return states.filter(item => item.abbr === state.toUpperCase())[0].name;
-  return states.filter(item => item.abbr === state.toUpperCase())[0];
+  if (long) return states.filter(item => item.code === state.toUpperCase())[0].name;
+  return states.filter(item => item.code === state.toUpperCase())[0];
 }
 
 export function formatarReais(valor: number): string {
