@@ -1,22 +1,54 @@
-import Image from "next/image";
 import { Plans } from "@/components/plans";
-import { getPrices } from "@/actions/price";
+import { Carousel } from "@/components/ui/carousel";
+
+// daniela-paola-alchapar-AlqMN9ub3Aw-unsplash.jpg 
+// juliana-e-mariana-amorim-PidIm_k0Un8-unsplash.jpg
+// lukasz-szmigiel-gmsiVT5sfl0-unsplash.jpg
+// adrian-infernus-BN6iQEVN0ZQ-unsplash.jpg
+// dan-meyers-IQVFVH0ajag-unsplash.jpg 
+// luca-basili-0vVQWN_D26c-unsplash.jpg
+// randy-fath-dDc0vuVH_LU-unsplash.jpg
+
+const watermark = {
+  logo: '/images/logo.svg', // Caminho para o logo do seu site
+  alt: 'Logo do Site',
+  opacity: 1, // Opcional - padrão 0.7
+  position: 'bottom-right' as const, // Opcional - padrão 'bottom-right'
+  size: 'md' as const, // Opcional - padrão 'md'
+}
+
+const slides = [
+  {
+    id: 1,
+    image: 'https://cdn.agrocomm.com.br/images/bg/daniela-paola-alchapar-AlqMN9ub3Aw-unsplash.jpg',
+    alt: 'Descrição da imagem 1',
+  },
+  {
+    id: 2,
+    image: 'https://cdn.agrocomm.com.br/images/bg/juliana-e-mariana-amorim-PidIm_k0Un8-unsplash.jpg',
+    alt: 'Descrição da imagem 2',
+  },
+  {
+    id: 3,
+    image: 'https://cdn.agrocomm.com.br/images/bg/lukasz-szmigiel-gmsiVT5sfl0-unsplash.jpg',
+    alt: 'Descrição da imagem 3',
+  },
+]
 
 export default async function Home() {
-  const prices = await getPrices();
-
   return (
     <div className="w-full flex flex-col items-center justify-center">
       <div className="w-full max-w-7xl">
         <div className="flex h-full items-center justify-center mb-8">
-          <Image
+          <Carousel slides={slides} watermark={watermark} />
+          {/* <Image
             className="h-auto max-w-full"
             src="/images/logo-site.svg"
             alt={process.env.NEXT_PUBLIC_APP_NAME!}
             width={800}
             height={200}
             priority
-          />
+          /> */}
         </div>
         <section className="w-full">
           <Plans />

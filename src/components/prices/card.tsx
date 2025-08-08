@@ -22,19 +22,19 @@ export function PricesCard({ commodity }: { commodity?: string }) {
   }
 
   return (
-    <Link href={link} className="group relative block bg-black rounded-md">
+    <Link href={link} className="group relative block bg-black rounded-md w-80 h-80">
       <Image
         alt=""
         src={imageSrc}
-        className="rounded-md absolute inset-0 h-full w-full object-cover opacity-75 transition-opacity group-hover:opacity-50"
+        className="rounded-md absolute inset-0 h-full w-full object-cover opacity-75 transition-opacity group-hover:opacity-40"
         width={600}
         height={600}
         priority
       />
       <div className="relative p-4 sm:p-6 lg:p-8">
         <p className="text-xl font-bold text-white sm:text-2xl">{commodity?.toUpperCase()}</p>
-        <div className="mt-32 sm:mt-48 lg:mt-64">
-          <div className="translate-y-8 transform opacity-0 transition-all group-hover:translate-y-0 group-hover:opacity-100">
+        <div className="mt-32 sm:mt-48">
+          <div className="translate-y-8 transform opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
             <p className="text-sm text-white">
               {desc}
             </p>

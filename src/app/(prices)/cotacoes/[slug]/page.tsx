@@ -30,8 +30,8 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">{slug}</h1>
-          <p className="text-white/70">Commodity: {slug}</p>
+          <h1 className="text-3xl font-bold text-white">{slug.toUpperCase()}</h1>
+          {/* <p className="text-white/70">Commodity: {slug}</p> */}
         </div>
         
         <div className="bg-yellow-50 dark:bg-yellow-900/20 p-6 rounded-lg border-2 border-yellow-200 dark:border-yellow-800">
@@ -100,8 +100,8 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">{slug}</h1>
-          <p className="text-white/70">Commodity: {slug}</p>
+          <h1 className="text-3xl font-bold text-white">{slug.toUpperCase()}</h1>
+          {/* <p className="text-white/70">Commodity: {slug}</p> */}
         </div>
 
         <QuotationClient
@@ -121,8 +121,8 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">{slug}</h1>
-          <p className="text-white/70">Commodity: {slug}</p>
+          <h1 className="text-3xl font-bold text-white">{slug.toUpperCase()}</h1>
+          {/* <p className="text-white/70">Commodity: {slug}</p> */}
         </div>
         
         <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg border-2 border-red-200 dark:border-red-800">
