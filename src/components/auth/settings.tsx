@@ -306,7 +306,7 @@ export function SettingsForm({ user }: { user: User | null }) {
               Tipo de Conta
             </label>
             <div className="
-              p-3 bg-gray-100 rounded-lg border-2 border-black/80 focus:border-black/80 
+              p-3 rounded-lg border-2 border-black/80 focus:border-black/80 
               bg-black/50 dark:bg-black/70 dark:placeholder-gray-400
             ">
               <span className="text-sm font-medium capitalize">
@@ -324,7 +324,7 @@ export function SettingsForm({ user }: { user: User | null }) {
               Membro desde
             </label>
             <div className="
-              p-3 bg-gray-100 rounded-lg border-2 border-black/80 focus:border-black/80 
+              p-3 rounded-lg border-2 border-black/80 focus:border-black/80 
               bg-black/50 dark:bg-black/70 dark:placeholder-gray-400
             ">
               <span className="text-sm">

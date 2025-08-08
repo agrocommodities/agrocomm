@@ -26,9 +26,7 @@ export async function loadScotUrl(url: string): Promise<string> {
   const contentType = response.headers.get('content-type');
   const buffer = await response.arrayBuffer();
   
-  if (contentType?.includes('iso-8859-1')) {
-    return iconv.decode(Buffer.from(buffer), "iso-8859-1");
-  }
+  if (contentType?.includes('iso-8859-1')) return iconv.decode(Buffer.from(buffer), "iso-8859-1");
   
   return new TextDecoder('utf-8').decode(buffer);
 }

@@ -1,7 +1,6 @@
-#!/usr/bin/env bun
-
 import * as cheerio from "cheerio";
-import { loadScotUrl, stringToNumber, extractCityAndState } from "./utils";
+import { loadScotUrl } from "./scot";
+import { stringToNumber, extractCityAndState } from "./utils";
 
 // URLs da Scot
 const urls = {
