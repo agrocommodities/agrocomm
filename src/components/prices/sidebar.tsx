@@ -9,6 +9,16 @@ interface State {
   name: string;
 }
 
+interface Price {
+  id: number;
+  price: number;
+  date: string;
+  variation: number | null;
+  stateCode: string;
+  stateName: string;
+  cityName: string | null;
+}
+
 interface SidebarProps {
   states: State[];
   selectedState: string;
@@ -19,6 +29,7 @@ interface SidebarProps {
   commodity: string;
   average: string;
   pricesCount: number;
+  prices: Price[]; // Adicionando prices para passar ao StateSelect
 }
 
 export function QuotationSidebar({
@@ -31,6 +42,7 @@ export function QuotationSidebar({
   commodity,
   average,
   pricesCount,
+  prices,
 }: SidebarProps) {
   const formatDate = (dateStr: string) => {
     try {
@@ -101,6 +113,8 @@ export function QuotationSidebar({
               states={states}
               selectedState={selectedState}
               onStateChange={onStateChange}
+              prices={prices}
+              showPriceCount={true}
             />
           </div>
 

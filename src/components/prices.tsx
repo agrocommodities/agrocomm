@@ -165,6 +165,7 @@ export function QuotationClient({
                   commodity={commodity}
                   average={average}
                   pricesCount={prices.length}
+                  prices={prices} // Adicionando prices
                 />
               </div>
             </div>
@@ -238,6 +239,7 @@ export function QuotationClient({
           commodity={commodity}
           average={average}
           pricesCount={prices.length}
+          prices={prices} // Adicionando prices
         />
       </div>
     </div>

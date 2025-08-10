@@ -12,8 +12,6 @@ interface PageProps {
 export default async function CommodityPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const { state, date } = await searchParams;
-  
-  //console.log('Page params:', { slug, state, date }); // Debug
 
   const stateList = await db.query.states.findMany({ orderBy: (states, { asc }) => [asc(states.name)] });
 
@@ -31,7 +29,6 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">{slug.toUpperCase()}</h1>
-          {/* <p className="text-white/70">Commodity: {slug}</p> */}
         </div>
         
         <div className="bg-yellow-50 dark:bg-yellow-900/20 p-6 rounded-lg border-2 border-yellow-200 dark:border-yellow-800">
@@ -64,22 +61,37 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
     const conditions = [eq(prices.commodity, slug), eq(prices.date, finalDate)];
     if (state && state !== "all") conditions.push(eq(prices.state, state));
 
-    // Query simplificada - estado e cidade já são strings
+    // Query para preços
     const priceList = await db
       .select({
         id: prices.id,
         price: prices.price,
         date: prices.date,
         variation: prices.variation,
-        stateCode: prices.state, // Diretamente do campo state
-        stateName: prices.state, // Será mapeado posteriormente
-        cityName: prices.city, // Diretamente do campo city
+        stateCode: prices.state,
+        stateName: prices.state,
+        cityName: prices.city,
       })
       .from(prices)
       .where(and(...conditions))
       .orderBy(prices.state, prices.city);
 
-    // console.log('Prices from DB:', priceList.length); // Debug
+    // **NOVA QUERY: Buscar estados que têm cotações para este commodity**
+    const statesWithPrices = await db
+      .select({ 
+        state: prices.state 
+      })
+      .from(prices)
+      .where(eq(prices.commodity, slug))
+      .groupBy(prices.state);
+
+    // Filtrar apenas estados que têm cotações
+    const availableStates = stateList.filter(state => 
+      statesWithPrices.some(sp => sp.state === state.code)
+    );
+
+    console.log('States with prices:', statesWithPrices.map(s => s.state));
+    console.log('Available states after filter:', availableStates.map(s => s.code));
 
     // Mapear códigos de estado para nomes completos
     const priceListWithStateNames = priceList.map(price => ({ ...price, stateName: price.stateCode }));
@@ -93,20 +105,19 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
       commodity: slug,
       selectedState: state || "all",
       selectedDate: finalDate,
-      statesCount: stateList.length,
+      availableStatesCount: availableStates.length,
       pricesCount: priceListWithStateNames.length,
-    }); // Debug
+    });
 
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">{slug.toUpperCase()}</h1>
-          {/* <p className="text-white/70">Commodity: {slug}</p> */}
         </div>
 
         <QuotationClient
           commodity={slug}
-          states={stateList}
+          states={availableStates} // Passando apenas estados com cotações
           prices={priceListWithStateNames}
           availableDates={availableDates.map(d => d.date)}
           selectedDate={finalDate}
@@ -122,7 +133,6 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">{slug.toUpperCase()}</h1>
-          {/* <p className="text-white/70">Commodity: {slug}</p> */}
         </div>
         
         <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg border-2 border-red-200 dark:border-red-800">

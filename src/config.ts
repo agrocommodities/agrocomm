@@ -1,8 +1,22 @@
 import type { State } from "@/types";
 
-export const navLinks = [
+export interface NavLink {
+  name: string;
+  href?: string;
+  subItems?: Array<{ name: string; href: string }>;
+}
+
+export const navLinks: NavLink[] = [
   { name: "Início", href: "/" },
-  { name: "Cotações", href: "/cotacoes" },
+  { 
+    name: "Cotações", 
+    subItems: [
+      { name: "Soja", href: "/cotacoes/soja" },
+      { name: "Milho", href: "/cotacoes/milho" },
+      { name: "Arroba do Boi", href: "/cotacoes/boi" },
+      { name: "Arroba da Vaca", href: "/cotacoes/vaca" },
+    ]
+  },
 ];
 
 export const navigationItems = [

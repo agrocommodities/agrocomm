@@ -138,6 +138,11 @@ interface MobileMenuProps {
 
 export function MobileMenu({ user }: MobileMenuProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [expandedItem, setExpandedItem] = useState<string | null>(null);
+
+  const toggleSubItems = (name: string) => {
+    setExpandedItem(expandedItem === name ? null : name);
+  };
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -228,14 +233,51 @@ export function MobileMenu({ user }: MobileMenuProps) {
           {/* Navigation Links */}
           <nav className="flex flex-col space-y-4 mb-8">
             {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                href={link.href}
-                onClick={closeMenu}
-                className="text-white font-semibold text-lg py-3 px-4 rounded-md bg-black/30 hover:bg-black/45 transition-colors"
-              >
-                {link.name}
-              </Link>
+              <div key={link.name}>
+                {link.href ? (
+                  <Link
+                    href={link.href}
+                    onClick={closeMenu}
+                    className="text-white font-semibold text-lg py-3 px-4 rounded-md bg-black/30 hover:bg-black/45 transition-colors block"
+                  >
+                    {link.name}
+                  </Link>
+                ) : (
+                  <div>
+                    <button
+                      onClick={() => toggleSubItems(link.name)}
+                      className="w-full text-left text-white font-semibold text-lg py-3 px-4 rounded-md bg-black/30 hover:bg-black/45 transition-colors flex justify-between items-center"
+                    >
+                      {link.name}
+                      <svg
+                        className={`w-4 h-4 transition-transform ${
+                          expandedItem === link.name ? "rotate-180" : ""
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {expandedItem === link.name && (
+                      <div className="pl-4 mt-2 space-y-2">
+                        {link.subItems?.map((subItem) => (
+                          <Link
+                            key={subItem.name}
+                            href={subItem.href}
+                            onClick={closeMenu}
+                            className="text-white font-medium text-base py-2 px-4 rounded-md bg-black/20 hover:bg-black/35 transition-colors block"
+                          >
+                            {subItem.name}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             ))}
           </nav>
 
