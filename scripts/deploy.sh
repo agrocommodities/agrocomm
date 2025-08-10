@@ -19,7 +19,7 @@ bun install
 bun run db:push
 bun run db:seed
 bun run db:scrape
-bun run build
+bun run build || exit 1
 
 rm -rf "$PROJECT_DIR"
 mv "$TEMP_DIR" "$PROJECT_DIR"

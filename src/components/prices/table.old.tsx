@@ -29,37 +29,6 @@ const COMMODITY_UNITS: Record<string, string> = {
   'arroba-vaca': 'arroba',
 };
 
-// Mapeamento dos códigos dos estados para nomes completos
-const STATE_NAMES: Record<string, string> = {
-  'AC': 'Acre',
-  'AL': 'Alagoas',
-  'AP': 'Amapá',
-  'AM': 'Amazonas',
-  'BA': 'Bahia',
-  'CE': 'Ceará',
-  'DF': 'Distrito Federal',
-  'ES': 'Espírito Santo',
-  'GO': 'Goiás',
-  'MA': 'Maranhão',
-  'MT': 'Mato Grosso',
-  'MS': 'Mato Grosso do Sul',
-  'MG': 'Minas Gerais',
-  'PA': 'Pará',
-  'PB': 'Paraíba',
-  'PR': 'Paraná',
-  'PE': 'Pernambuco',
-  'PI': 'Piauí',
-  'RJ': 'Rio de Janeiro',
-  'RN': 'Rio Grande do Norte',
-  'RS': 'Rio Grande do Sul',
-  'RO': 'Rondônia',
-  'RR': 'Roraima',
-  'SC': 'Santa Catarina',
-  'SP': 'São Paulo',
-  'SE': 'Sergipe',
-  'TO': 'Tocantins',
-};
-
 export function QuotationTable({ data, commodity, onSort, sortField, sortDirection }: QuotationTableProps) {
   const formatPrice = (priceInCents: number) => {
     return (priceInCents / 100).toFixed(2).replace('.', ',');
@@ -72,10 +41,6 @@ export function QuotationTable({ data, commodity, onSort, sortField, sortDirecti
 
   const getCommodityUnit = (commodity: string) => {
     return COMMODITY_UNITS[commodity.toLowerCase()] || 'unidade';
-  };
-
-  const getFullStateName = (stateCode: string) => {
-    return STATE_NAMES[stateCode.toUpperCase()] || stateCode;
   };
 
   const handleSort = (field: string) => {
@@ -153,7 +118,6 @@ export function QuotationTable({ data, commodity, onSort, sortField, sortDirecti
             {data.length > 0 ? (
               data.map((item, index) => {
                 const isPositive = item.variation && item.variation > 0;
-                const fullStateName = getFullStateName(item.stateCode);
                 
                 return (
                   <tr 
@@ -176,7 +140,7 @@ export function QuotationTable({ data, commodity, onSort, sortField, sortDirecti
                         </div>
                         <div>
                           <div className="text-sm font-medium text-white">
-                            {fullStateName}
+                            {item.stateName}
                           </div>
                           <div className="text-sm text-white/60">
                             {item.stateCode}

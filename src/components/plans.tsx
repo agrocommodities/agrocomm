@@ -25,6 +25,8 @@ export function Plans() {
     fetch("/api/plans")
       .then(res => res.json())
       .then(data => {
+        console.log("Planos carregados:", data);
+        if (!Array.isArray(data)) return;
         data.reverse();
         setAllPlans(data);
         // Filtrar planos mensais por padrão

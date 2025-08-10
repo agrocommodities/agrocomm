@@ -3,9 +3,8 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { DatePicker } from "@/components/ui/datepicker";
-import { StateSelect } from "@/components/ui/state-select";
 import { QuotationTable } from "@/components/prices/table";
+import { QuotationSidebar } from "@/components/prices/sidebar";
 
 interface QuotationClientProps {
   commodity: string;
@@ -29,14 +28,23 @@ interface QuotationClientProps {
   average: string;
 }
 
-export function QuotationClient({ commodity, states, prices, availableDates, selectedDate, selectedState, average }: QuotationClientProps) {
+export function QuotationClient({ 
+  commodity, 
+  states, 
+  prices, 
+  availableDates, 
+  selectedDate, 
+  selectedState, 
+  average 
+}: QuotationClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [sortField, setSortField] = useState<string>('state');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleStateChange = (state: string) => {
-    console.log(`Mudando para estado: ${state}`); // Debug
+    console.log(`Mudando para estado: ${state}`);
     
     const params = new URLSearchParams(searchParams);
     if (state === "all") {
@@ -46,19 +54,19 @@ export function QuotationClient({ commodity, states, prices, availableDates, sel
     }
     
     const newUrl = `/cotacoes/${commodity}?${params.toString()}`;
-    console.log(`Nova URL: ${newUrl}`); // Debug
+    console.log(`Nova URL: ${newUrl}`);
     
     router.push(newUrl);
   };
 
   const handleDateChange = (date: string) => {
-    console.log(`Mudando para data: ${date}`); // Debug
+    console.log(`Mudando para data: ${date}`);
     
     const params = new URLSearchParams(searchParams);
     params.set("date", date);
     
     const newUrl = `/cotacoes/${commodity}?${params.toString()}`;
-    console.log(`Nova URL: ${newUrl}`); // Debug
+    console.log(`Nova URL: ${newUrl}`);
     
     router.push(newUrl);
   };
@@ -69,22 +77,6 @@ export function QuotationClient({ commodity, states, prices, availableDates, sel
     } else {
       setSortField(field);
       setSortDirection('asc');
-    }
-  };
-
-  const formatDate = (dateStr: string) => {
-    try {
-      const [year, month, day] = dateStr.split('-');
-      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      
-      return date.toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      });
-    } catch (error) {
-      console.error("Erro ao formatar data:", error);
-      return dateStr;
     }
   };
 
@@ -124,123 +116,129 @@ export function QuotationClient({ commodity, states, prices, availableDates, sel
     return sortDirection === 'desc' ? -comparison : comparison;
   });
 
-  const getCommodityTitle = (commodity: string) => {
-    const titles: Record<string, string> = {
-      'soja': 'Soja',
-      'milho': 'Milho',
-      'boi': 'Boi Gordo',
-      'vaca': 'Vaca Gorda',
-      'arroba-boi': 'Arroba do Boi',
-      'arroba-vaca': 'Arroba da Vaca',
-    };
-    return titles[commodity.toLowerCase()] || commodity.charAt(0).toUpperCase() + commodity.slice(1);
-  };
-
-  // Debug dos dados recebidos
-  console.log('QuotationClient - Props:', {
-    commodity,
-    selectedState,
-    selectedDate,
-    statesCount: states.length,
-    pricesCount: prices.length,
-  });
-
   return (
-    <div className="space-y-6">
-      {/* Filtros */}
-      <div className="bg-background/80 border-2 border-white/20 p-6 rounded-lg shadow-lg">
-        <h2 className="text-lg font-semibold mb-4 text-white">Filtros</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2 text-white">
-              Estado
-            </label>
-            <StateSelect
-              states={states}
-              selectedState={selectedState}
-              onStateChange={handleStateChange}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2 text-white">
-              Data
-            </label>
-            <DatePicker
-              selectedDate={selectedDate}
-              availableDates={availableDates}
-              onDateChange={handleDateChange}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Resumo */}
-      <div className="bg-white/10 border-2 border-white/20 p-6 rounded-lg">
-        <h3 className="text-lg font-semibold text-white mb-4">
-          Resumo - {getCommodityTitle(commodity)}
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-          <div className="bg-black/20 rounded-lg p-4">
-            <p className="text-sm text-white/70 mb-1">Cotações encontradas</p>
-            <p className="text-2xl font-bold text-white">
-              {prices.length}
-            </p>
-          </div>
-          <div className="bg-black/20 rounded-lg p-4">
-            <p className="text-sm text-white/70 mb-1">Preço médio</p>
-            <p className="text-2xl font-bold text-white">
-              R$ {average}
-            </p>
-          </div>
-          <div className="bg-black/20 rounded-lg p-4">
-            <p className="text-sm text-white/70 mb-1">Data selecionada</p>
-            <p className="text-lg font-semibold text-white">
-              {formatDate(selectedDate)}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabela de Cotações */}
-      <QuotationTable
-        data={sortedPrices}
-        commodity={commodity}
-        onSort={handleSort}
-        sortField={sortField}
-        sortDirection={sortDirection}
-      />
-
-      {/* Navegação */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-        <Link
-          href="/cotacoes"
-          className="inline-flex items-center px-4 py-2 border-2 border-white/20 rounded-md shadow-sm text-sm font-medium text-white bg-black/30 hover:bg-black/50 transition-colors"
+    <div className="flex flex-col lg:flex-row gap-6">
+      {/* Sidebar Mobile Toggle */}
+      <div className="lg:hidden">
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="w-full px-4 py-3 bg-background/80 border-2 border-white/20 rounded-lg text-white font-medium hover:bg-black/50 transition-colors flex items-center justify-between"
         >
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          <span>Filtros e Resumo</span>
+          <svg 
+            className={`w-5 h-5 transition-transform ${sidebarOpen ? 'rotate-180' : ''}`} 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
-          Voltar
-        </Link>
-        
-        <div className="flex gap-2 flex-wrap justify-center">
-          <span className="text-sm text-white/60 self-center mr-2">
-            Datas recentes:
-          </span>
-          {availableDates.slice(0, 5).map((date) => (
-            <button
-              key={date}
-              onClick={() => handleDateChange(date)}
-              className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                date === selectedDate
-                  ? "bg-white text-background"
-                  : "bg-white/20 text-white hover:bg-white/30"
-              }`}
-            >
-              {formatShortDate(date)}
-            </button>
-          ))}
+        </button>
+
+        {/* Mobile Sidebar Overlay */}
+        {sidebarOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div 
+              className="absolute inset-0 bg-black/50" 
+              onClick={() => setSidebarOpen(false)}
+            />
+            <div className="absolute top-0 right-0 h-full w-80 max-w-[85vw] bg-background border-l-2 border-white/20 overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-white">Filtros e Resumo</h3>
+                  <button
+                    onClick={() => setSidebarOpen(false)}
+                    className="p-2 text-white/70 hover:text-white rounded-md hover:bg-white/10 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <QuotationSidebar
+                  states={states}
+                  selectedState={selectedState}
+                  selectedDate={selectedDate}
+                  availableDates={availableDates}
+                  onStateChange={handleStateChange}
+                  onDateChange={handleDateChange}
+                  commodity={commodity}
+                  average={average}
+                  pricesCount={prices.length}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 space-y-6">
+        {/* Mobile filters collapsed state (mostrar apenas resumo compacto) */}
+        <div className={`lg:hidden ${sidebarOpen ? 'hidden' : 'block'}`}>
+          <div className="bg-white/10 border-2 border-white/20 p-4 rounded-lg">
+            <div className="flex justify-between items-center text-sm text-white">
+              <span>{prices.length} cotações</span>
+              <span>Média: R$ {average}</span>
+            </div>
+          </div>
         </div>
+
+        {/* Tabela de Cotações */}
+        <QuotationTable
+          data={sortedPrices}
+          commodity={commodity}
+          onSort={handleSort}
+          sortField={sortField}
+          sortDirection={sortDirection}
+        />
+
+        {/* Navegação */}
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <Link
+            href="/cotacoes"
+            className="inline-flex items-center px-4 py-2 border-2 border-white/20 rounded-md shadow-sm text-sm font-medium text-white bg-black/30 hover:bg-black/50 transition-colors"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Voltar
+          </Link>
+          
+          <div className="flex gap-2 flex-wrap justify-center">
+            <span className="text-sm text-white/60 self-center mr-2">
+              Datas recentes:
+            </span>
+            {availableDates.slice(0, 5).map((date) => (
+              <button
+                key={date}
+                onClick={() => handleDateChange(date)}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  date === selectedDate
+                    ? "bg-white text-background"
+                    : "bg-white/20 text-white hover:bg-white/30"
+                }`}
+              >
+                {formatShortDate(date)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:block w-80 flex-shrink-0">
+        <QuotationSidebar
+          states={states}
+          selectedState={selectedState}
+          selectedDate={selectedDate}
+          availableDates={availableDates}
+          onStateChange={handleStateChange}
+          onDateChange={handleDateChange}
+          commodity={commodity}
+          average={average}
+          pricesCount={prices.length}
+        />
       </div>
     </div>
   );
