@@ -26,7 +26,7 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
 
   if (availableDates.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">{slug.toUpperCase()}</h1>
         </div>
@@ -90,9 +90,6 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
       statesWithPrices.some(sp => sp.state === state.code)
     );
 
-    console.log('States with prices:', statesWithPrices.map(s => s.state));
-    console.log('Available states after filter:', availableStates.map(s => s.code));
-
     // Mapear códigos de estado para nomes completos
     const priceListWithStateNames = priceList.map(price => ({ ...price, stateName: price.stateCode }));
 
@@ -101,16 +98,8 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
       ? (priceListWithStateNames.reduce((sum, q) => sum + q.price, 0) / priceListWithStateNames.length / 100).toFixed(2)
       : "0.00";
 
-    console.log('Final data to component:', {
-      commodity: slug,
-      selectedState: state || "all",
-      selectedDate: finalDate,
-      availableStatesCount: availableStates.length,
-      pricesCount: priceListWithStateNames.length,
-    });
-
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">{slug.toUpperCase()}</h1>
         </div>
@@ -130,7 +119,7 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
     console.error("Erro ao buscar preços:", error);
     
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">{slug.toUpperCase()}</h1>
         </div>

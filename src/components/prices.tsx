@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { QuotationTable } from "@/components/prices/table";
-import { QuotationSidebar } from "@/components/prices/sidebar";
+import { DatePicker } from "@/components/ui/datepicker";
+import { StateSelect } from "@/components/ui/state-select";
+import { PriceChart } from "@/components/prices/chart";
 
 interface QuotationClientProps {
   commodity: string;
@@ -41,34 +43,21 @@ export function QuotationClient({
   const searchParams = useSearchParams();
   const [sortField, setSortField] = useState<string>('state');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleStateChange = (state: string) => {
-    console.log(`Mudando para estado: ${state}`);
-    
     const params = new URLSearchParams(searchParams);
     if (state === "all") {
       params.delete("state");
     } else {
       params.set("state", state);
     }
-    
-    const newUrl = `/cotacoes/${commodity}?${params.toString()}`;
-    console.log(`Nova URL: ${newUrl}`);
-    
-    router.push(newUrl);
+    router.push(`/cotacoes/${commodity}?${params.toString()}`);
   };
 
   const handleDateChange = (date: string) => {
-    console.log(`Mudando para data: ${date}`);
-    
     const params = new URLSearchParams(searchParams);
     params.set("date", date);
-    
-    const newUrl = `/cotacoes/${commodity}?${params.toString()}`;
-    console.log(`Nova URL: ${newUrl}`);
-    
-    router.push(newUrl);
+    router.push(`/cotacoes/${commodity}?${params.toString()}`);
   };
 
   const handleSort = (field: string) => {
@@ -80,11 +69,24 @@ export function QuotationClient({
     }
   };
 
+  const formatDate = (dateStr: string) => {
+    try {
+      const [year, month, day] = dateStr.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      return date.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
+    } catch (error) {
+      return dateStr;
+    }
+  };
+
   const formatShortDate = (dateStr: string) => {
     try {
       const [year, month, day] = dateStr.split('-');
       const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      
       return date.toLocaleDateString("pt-BR", {
         day: "2-digit",
         month: "2-digit",
@@ -116,86 +118,107 @@ export function QuotationClient({
     return sortDirection === 'desc' ? -comparison : comparison;
   });
 
+  const getCommodityTitle = (commodity: string) => {
+    const titles: Record<string, string> = {
+      'soja': 'Soja',
+      'milho': 'Milho',
+      'boi': 'Boi Gordo',
+      'vaca': 'Vaca Gorda',
+    };
+    return titles[commodity.toLowerCase()] || commodity.charAt(0).toUpperCase() + commodity.slice(1);
+  };
+
   return (
-    <div className="flex flex-col lg:flex-row gap-6">
-      {/* Sidebar Mobile Toggle */}
-      <div className="lg:hidden">
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="w-full px-4 py-3 bg-background/80 border-2 border-white/20 rounded-lg text-white font-medium hover:bg-black/50 transition-colors flex items-center justify-between"
-        >
-          <span>Filtros e Resumo</span>
-          <svg 
-            className={`w-5 h-5 transition-transform ${sidebarOpen ? 'rotate-180' : ''}`} 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {/* Mobile Sidebar Overlay */}
-        {sidebarOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <div 
-              className="absolute inset-0 bg-black/50" 
-              onClick={() => setSidebarOpen(false)}
+    <div className="space-y-6">
+      {/* Filtros - Layout Responsivo */}
+      <div className="bg-background/80 border-2 border-white/20 p-4 sm:p-6 rounded-lg shadow-lg">
+        <h2 className="text-lg font-semibold mb-4 text-white">Filtros</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2 text-white">
+              Estado
+            </label>
+            <StateSelect
+              states={states}
+              selectedState={selectedState}
+              onStateChange={handleStateChange}
+              prices={prices}
+              showPriceCount={true}
             />
-            <div className="absolute top-0 right-0 h-full w-80 max-w-[85vw] bg-background border-l-2 border-white/20 overflow-y-auto">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-white">Filtros e Resumo</h3>
-                  <button
-                    onClick={() => setSidebarOpen(false)}
-                    className="p-2 text-white/70 hover:text-white rounded-md hover:bg-white/10 transition-colors"
-                  >
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                <QuotationSidebar
-                  states={states}
-                  selectedState={selectedState}
-                  selectedDate={selectedDate}
-                  availableDates={availableDates}
-                  onStateChange={handleStateChange}
-                  onDateChange={handleDateChange}
-                  commodity={commodity}
-                  average={average}
-                  pricesCount={prices.length}
-                  prices={prices} // Adicionando prices
-                />
-              </div>
-            </div>
           </div>
-        )}
-      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 space-y-6">
-        {/* Mobile filters collapsed state (mostrar apenas resumo compacto) */}
-        <div className={`lg:hidden ${sidebarOpen ? 'hidden' : 'block'}`}>
-          <div className="bg-white/10 border-2 border-white/20 p-4 rounded-lg">
-            <div className="flex justify-between items-center text-sm text-white">
-              <span>{prices.length} cotações</span>
-              <span>Média: R$ {average}</span>
-            </div>
+          <div>
+            <label className="block text-sm font-medium mb-2 text-white">
+              Data
+            </label>
+            <DatePicker
+              selectedDate={selectedDate}
+              availableDates={availableDates}
+              onDateChange={handleDateChange}
+            />
           </div>
         </div>
+      </div>
 
-        {/* Tabela de Cotações */}
-        <QuotationTable
-          data={sortedPrices}
-          commodity={commodity}
-          onSort={handleSort}
-          sortField={sortField}
-          sortDirection={sortDirection}
-        />
+      {/* Tabela de Cotações */}
+      <QuotationTable
+        data={sortedPrices}
+        commodity={commodity}
+        onSort={handleSort}
+        sortField={sortField}
+        sortDirection={sortDirection}
+      />
 
-        {/* Navegação */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+      <PriceChart 
+        data={prices} 
+        commodity={commodity} 
+        selectedState={selectedState}
+      />
+
+      {/* Card de Resumo - Compacto */}
+      <div className="bg-white/10 border-2 border-white/20 p-4 rounded-lg">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+          <div>
+            <p className="text-xs sm:text-sm text-white/70">Cotações</p>
+            <p className="text-xl sm:text-2xl font-bold text-white">{prices.length}</p>
+          </div>
+          <div>
+            <p className="text-xs sm:text-sm text-white/70">Preço médio</p>
+            <p className="text-xl sm:text-2xl font-bold text-white">R$ {average}</p>
+          </div>
+          <div>
+            <p className="text-xs sm:text-sm text-white/70">Data</p>
+            <p className="text-sm sm:text-base font-semibold text-white">
+              {formatDate(selectedDate)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Navegação e Datas Rápidas */}
+      <div className="flex flex-col gap-4">
+        {/* Datas Rápidas */}
+        <div className="flex flex-wrap gap-2 justify-center">
+          <span className="text-sm text-white/60 self-center">
+            Datas recentes:
+          </span>
+          {availableDates.slice(0, 5).map((date) => (
+            <button
+              key={date}
+              onClick={() => handleDateChange(date)}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                date === selectedDate
+                  ? "bg-white text-background"
+                  : "bg-white/20 text-white hover:bg-white/30"
+              }`}
+            >
+              {formatShortDate(date)}
+            </button>
+          ))}
+        </div>
+
+        {/* Botão Voltar */}
+        <div className="flex justify-center">
           <Link
             href="/cotacoes"
             className="inline-flex items-center px-4 py-2 border-2 border-white/20 rounded-md shadow-sm text-sm font-medium text-white bg-black/30 hover:bg-black/50 transition-colors"
@@ -205,42 +228,7 @@ export function QuotationClient({
             </svg>
             Voltar
           </Link>
-          
-          <div className="flex gap-2 flex-wrap justify-center">
-            <span className="text-sm text-white/60 self-center mr-2">
-              Datas recentes:
-            </span>
-            {availableDates.slice(0, 5).map((date) => (
-              <button
-                key={date}
-                onClick={() => handleDateChange(date)}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  date === selectedDate
-                    ? "bg-white text-background"
-                    : "bg-white/20 text-white hover:bg-white/30"
-                }`}
-              >
-                {formatShortDate(date)}
-              </button>
-            ))}
-          </div>
         </div>
-      </div>
-
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:block w-80 flex-shrink-0">
-        <QuotationSidebar
-          states={states}
-          selectedState={selectedState}
-          selectedDate={selectedDate}
-          availableDates={availableDates}
-          onStateChange={handleStateChange}
-          onDateChange={handleDateChange}
-          commodity={commodity}
-          average={average}
-          pricesCount={prices.length}
-          prices={prices} // Adicionando prices
-        />
       </div>
     </div>
   );

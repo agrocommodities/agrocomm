@@ -198,11 +198,6 @@ export function StateSelect({
                   </span>
                 )}
               </div>
-              {selectedState !== "all" && selectedState && (
-                <div className="text-xs text-white/60">
-                  {selectedStateData.code.toUpperCase()}
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -224,11 +219,11 @@ export function StateSelect({
           </div>
 
           {/* Informação sobre filtro */}
-          {states.length > 0 && (
+          {/* {states.length > 0 && (
             <div className="px-4 py-2 text-xs text-white/60 border-b border-white/20">
               Mostrando apenas estados com cotações disponíveis ({states.length} estados)
             </div>
-          )}
+          )} */}
 
           {/* Lista de estados */}
           <div className="overflow-y-auto max-h-64">
@@ -302,10 +297,7 @@ export function StateSelect({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-white font-medium">{fullStateName}</div>
-                        <div className="text-white/60 text-sm">{state.code}</div>
-                      </div>
+                      <div className="text-white font-medium">{fullStateName}</div>
                       {showPriceCount && priceCount > 0 && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 ml-2">
                           {priceCount}

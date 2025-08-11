@@ -81,20 +81,16 @@ export function Plans() {
   
   return (
     <div className="w-full px-6 py-8">
-      {allPlans.length === 0 ? (
-        <div className="text-center py-6">
-          <p className="text-gray-600 dark:text-gray-400">Nenhum plano disponível no momento.</p>
-        </div>
-      ) : (
+      {allPlans.length > 0 && (
         <>
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-white mb-4">
               Escolha seu Plano
             </h2>
-            <p className="text-gray-300 mb-8">
+            <p className="text-gray-300 mb-4">
               Selecione o plano que melhor atende às suas necessidades.
             </p>
-            <div className="inline-flex overflow-hidden p-0.5 border-2 border-black/50 rounded-lg bg-black/20">
+            {/* <div className="inline-flex overflow-hidden p-0.5 border-2 border-black/50 rounded-lg bg-black/20">
               <button 
                 onClick={() => handleBillingChange('month')}
                 className={`focus:outline-none px-4 py-2 rounded-lg transition-colors font-medium ${
@@ -115,7 +111,7 @@ export function Plans() {
               >
                 Anual
               </button>
-            </div>
+            </div> */}
           </div>
           
           <div className="flex flex-wrap justify-center gap-8 max-w-7xl mx-auto">
@@ -124,7 +120,15 @@ export function Plans() {
                 <PlanCard plan={plan} formatPrice={formatPrice}>
                   <button
                     onClick={() => handleSelectPlan(plan)}
-                    className="w-full px-4 py-2 mt-10 font-medium tracking-wide text-white capitalize transition-colors duration-200 transform bg-black/60 border-2 border-black/80 rounded-md hover:bg-black/75 focus:outline-none focus:bg-black/75">
+                    className="
+                      w-full px-4 py-2 mt-10 font-medium 
+                      tracking-wide text-white capitalize 
+                      transition-colors duration-200 transform 
+                      bg-black/60 border-2 border-black/80 
+                      rounded-md hover:bg-black/75 focus:outline-none focus:bg-black/75
+                      cursor-pointer
+                    "
+                  >
                     Assinar
                   </button>
                 </PlanCard>
