@@ -54,5 +54,8 @@ public/uploads/avatars/*
 # Mas mantém a própria pasta (adiciona um arquivo .gitkeep vazio)
 !public/uploads/avatars/.gitkeep
 
+# ansible
+.vault_pass
+
 # custom
 *.old*

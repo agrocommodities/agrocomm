@@ -1,0 +1,53 @@
+- name: Install required packages
+  ansible.builtin.package:
+    name:
+      - nginx
+    state: present
+
+- name: Ensure group nginx exists
+  ansible.builtin.group:
+    name: nginx
+    state: present
+
+- name: Change nginx permissions
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: nginx
+    group: nginx
+  loop:
+    - /var/log/nginx
+    - /var/lib/nginx
+
+- name: Creates /etc/nginx/sites.d directory
+  ansible.builtin.file:
+    path: /etc/nginx/sites.d
+    state: directory
+    mode: "0755"
+
+- name: Copy nginx snippets
+  ansible.builtin.template:
+    src: "files/etc/nginx/conf.d/{{ item }}"
+    dest: "/etc/nginx/conf.d/{{ item }}"
+    mode: "0644"
+    force: true
+  with_items:
+    - ac-errors.conf
+    - cache.conf
+    - deny.conf
+    - errors.map
+
+- name: Configure /etc/nginx/sites.d/ files
+  ansible.builtin.template:
+    src: "files/etc/nginx/sites.d/{{ item }}"
+    dest: "/etc/nginx/sites.d/{{ item }}"
+    mode: "0644"
+    force: true
+  with_items:
+    - 20-cdn.agrocomm.com.br.conf
+    - 21-agrocomm.com.br.conf
+
+- name: Restart nginx
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+    enabled: true

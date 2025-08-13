@@ -1,0 +1,12 @@
+---
+- name: Executa múltiplas roles
+  hosts: all
+  gather_facts: true
+  become: yes
+  #vars_files:
+  #  - roles/postgres/vars/vault.yml  # Carrega a senha criptografada
+
+  roles:
+    - nginx
+    - systemd
+    #- postgres
