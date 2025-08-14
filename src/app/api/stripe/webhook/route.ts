@@ -4,6 +4,13 @@ import { stripe } from "@/lib/stripe";
 import { db } from "@/db";
 import { subscriptions, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import type { 
+  StripeWebhookEvent, 
+  StripeSubscriptionFromWebhook, 
+  StripeInvoice, 
+  StripeCustomer,
+  StripeProduct 
+} from "@/types";
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -11,9 +18,9 @@ export async function POST(request: NextRequest) {
   const body = await request.text();
   const signature = request.headers.get('stripe-signature')!;
 
-  let event;
+  let event: StripeWebhookEvent;
   try {
-    event = stripe.webhooks.constructEvent(body, signature, endpointSecret);
+    event = stripe.webhooks.constructEvent(body, signature, endpointSecret) as StripeWebhookEvent;
   } catch (err) {
     console.error('Webhook signature verification failed:', err);
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
@@ -23,13 +30,13 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
-        await handleSubscriptionChange(event.data.object);
+        await handleSubscriptionChange(event.data.object as StripeSubscriptionFromWebhook);
         break;
       case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object);
+        await handleSubscriptionDeleted(event.data.object as StripeSubscriptionFromWebhook);
         break;
       case 'invoice.payment_succeeded':
-        await handlePaymentSucceeded(event.data.object);
+        await handlePaymentSucceeded(event.data.object as StripeInvoice);
         break;
     }
 
@@ -40,23 +47,30 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// src/app/api/stripe/webhook/route.ts (atualizar a função handleSubscriptionChange)
-async function handleSubscriptionChange(subscription: any) {
+async function handleSubscriptionChange(subscription: StripeSubscriptionFromWebhook) {
   try {
     // Buscar customer do Stripe para pegar o email
-    const customer = await stripe.customers.retrieve(subscription.customer);
+    const customer = await stripe.customers.retrieve(subscription.customer) as StripeCustomer;
     if (!customer || customer.deleted) return;
 
     // Buscar usuário pelo email
     const user = await db.query.users.findFirst({
-      where: eq(users.email, (customer as any).email),
+      where: eq(users.email, customer.email),
     });
 
     if (!user) return;
 
     // Buscar informações do produto/preço
     const price = subscription.items.data[0].price;
-    const product = await stripe.products.retrieve(price.product);
+    let productId: string;
+    
+    if (typeof price.product === 'string') {
+      productId = price.product;
+    } else {
+      productId = price.product.id;
+    }
+    
+    const product = await stripe.products.retrieve(productId) as StripeProduct;
 
     // Converter timestamps do Stripe (segundos) para ISO strings
     const subscriptionData = {
@@ -106,72 +120,13 @@ async function handleSubscriptionChange(subscription: any) {
   }
 }
 
-// async function handleSubscriptionChange(subscription: any) {
-//   try {
-//     // Buscar customer do Stripe para pegar o email
-//     const customer = await stripe.customers.retrieve(subscription.customer);
-//     if (!customer || customer.deleted) return;
-
-//     // Buscar usuário pelo email
-//     const user = await db.query.users.findFirst({
-//       where: eq(users.email, (customer as any).email),
-//     });
-
-//     if (!user) return;
-
-//     // Buscar informações do produto/preço
-//     const price = subscription.items.data[0].price;
-//     const product = await stripe.products.retrieve(price.product);
-
-//     // CORREÇÃO: Converter timestamps do Stripe (segundos) para ISO strings
-//     const subscriptionData = {
-//       userId: user.id,
-//       stripeSubscriptionId: subscription.id,
-//       stripePriceId: price.id,
-//       stripeCustomerId: subscription.customer,
-//       status: subscription.status,
-//       planName: product.name,
-//       planPrice: price.unit_amount,
-//       planInterval: price.recurring.interval,
-//       // Converter segundos para milissegundos e depois para ISO string
-//       firstSubscriptionDate: new Date(subscription.created * 1000).toISOString(),
-//       currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-//       currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
-//       lastPaymentDate: new Date(subscription.current_period_start * 1000).toISOString(),
-//     };
-
-//     // Verificar se já existe
-//     const existing = await db.query.subscriptions.findFirst({
-//       where: eq(subscriptions.stripeSubscriptionId, subscription.id),
-//     });
-
-//     if (existing) {
-//       // Atualizar
-//       await db
-//         .update(subscriptions)
-//         .set({
-//           ...subscriptionData,
-//           updatedAt: new Date().toISOString(),
-//         })
-//         .where(eq(subscriptions.stripeSubscriptionId, subscription.id));
-//     } else {
-//       // Criar novo
-//       await db.insert(subscriptions).values({
-//         ...subscriptionData,
-//         createdAt: new Date().toISOString(),
-//       });
-//     }
-//   } catch (error) {
-//     console.error('Error handling subscription change:', error);
-//   }
-// }
-
-async function handleSubscriptionDeleted(subscription: any) {
+async function handleSubscriptionDeleted(subscription: StripeSubscriptionFromWebhook) {
   try {
     await db
       .update(subscriptions)
       .set({
         status: 'canceled',
+        canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
       .where(eq(subscriptions.stripeSubscriptionId, subscription.id));
@@ -180,7 +135,7 @@ async function handleSubscriptionDeleted(subscription: any) {
   }
 }
 
-async function handlePaymentSucceeded(invoice: any) {
+async function handlePaymentSucceeded(invoice: StripeInvoice) {
   try {
     if (invoice.subscription) {
       await db

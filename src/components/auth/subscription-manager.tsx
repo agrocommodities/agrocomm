@@ -7,23 +7,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { User, StripeSubscription, Subscription } from "@/types";
 
+interface SubscriptionManagerProps {
+  user: User;
+  isSubscribed: boolean;
+  subscription?: StripeSubscription;
+  localSubscription?: Subscription;
+}
+
 export function SubscriptionManager({
   user,
   isSubscribed,
   subscription,
-  localSubscription, // Adicionar esta prop
-}: {
-  user: User;
-  isSubscribed: boolean;
-  subscription?: StripeSubscription;
-  localSubscription?: Subscription; // Adicionar este tipo
-}) {
+  localSubscription,
+}: SubscriptionManagerProps) {
   const [loading, setLoading] = useState(false);
 
   const formatDate = (timestamp: number | string) => {
     try {
       let dateValue: number;
-
+      
       if (typeof timestamp === "string") {
         const date = new Date(timestamp);
         if (isNaN(date.getTime())) {
@@ -57,46 +59,6 @@ export function SubscriptionManager({
       return "Data não disponível";
     }
   };
-
-  // CORREÇÃO: Melhorar formatação de datas
-  // const formatDate = (timestamp: number | string) => {
-  //   try {
-  //     let dateValue: number;
-
-  //     // Se for string ISO, converter para timestamp
-  //     if (typeof timestamp === "string") {
-  //       const date = new Date(timestamp);
-  //       if (isNaN(date.getTime())) {
-  //         return "Data não disponível";
-  //       }
-  //       dateValue = Math.floor(date.getTime() / 1000); // Converter para segundos
-  //     } else {
-  //       dateValue = timestamp;
-  //     }
-
-  //     // Verificar se é um timestamp válido
-  //     if (!dateValue || isNaN(dateValue) || dateValue <= 0) {
-  //       return "Data não disponível";
-  //     }
-
-  //     // Stripe usa timestamps em segundos, JavaScript usa milissegundos
-  //     const date = new Date(dateValue * 1000);
-
-  //     // Verificar se a data é válida
-  //     if (isNaN(date.getTime())) {
-  //       return "Data não disponível";
-  //     }
-
-  //     return date.toLocaleDateString("pt-BR", {
-  //       day: "2-digit",
-  //       month: "long",
-  //       year: "numeric",
-  //     });
-  //   } catch (error) {
-  //     console.error("Erro ao formatar data:", error);
-  //     return "Data não disponível";
-  //   }
-  // };
 
   const formatPrice = (amount: number) => {
     return (amount / 100).toLocaleString("pt-BR", {
@@ -217,10 +179,12 @@ export function SubscriptionManager({
     );
   }
 
-  const currentPlan = subscription.items.data[0];
-  const planName = currentPlan.price.product.name || "Plano Premium";
-  const planAmount = currentPlan.price.unit_amount;
-  const planInterval = currentPlan.price.recurring.interval;
+  // Usar dados locais quando disponíveis, senão usar dados do Stripe
+  const planData = localSubscription || {
+    planName: subscription.items.data[0]?.price?.product?.name || "Plano Premium",
+    planPrice: subscription.items.data[0]?.price?.unit_amount || 0,
+    planInterval: subscription.items.data[0]?.price?.recurring?.interval || 'month',
+  };
 
   return (
     <Card id="assinatura">
@@ -248,11 +212,11 @@ export function SubscriptionManager({
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-medium text-green-900 dark:text-green-100">
-                {planName}
+                {planData.planName}
               </h3>
               <p className="text-sm text-green-700 dark:text-green-300">
-                {formatPrice(planAmount)} por{" "}
-                {planInterval === "month" ? "mês" : "ano"}
+                {formatPrice(planData.planPrice)} por{" "}
+                {planData.planInterval === "month" ? "mês" : "ano"}
               </p>
             </div>
             <div className="text-right">
@@ -306,7 +270,10 @@ export function SubscriptionManager({
                   Último pagamento:
                 </span>
                 <span className="font-medium">
-                  {formatDate(subscription.current_period_start)}
+                  {localSubscription?.lastPaymentDate 
+                    ? formatDate(localSubscription.lastPaymentDate)
+                    : formatDate(subscription.current_period_start)
+                  }
                 </span>
               </div>
 
@@ -333,6 +300,7 @@ export function SubscriptionManager({
           </div>
         </div>
 
+        {/* Resto do componente permanece igual... */}
         {/* Ações */}
         <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
           <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-4">
