@@ -1,3 +1,4 @@
+// src/components/prices.tsx
 "use client";
 
 import { useState } from "react";
@@ -128,6 +129,17 @@ export function QuotationClient({
     return titles[commodity.toLowerCase()] || commodity.charAt(0).toUpperCase() + commodity.slice(1);
   };
 
+  // Mapear dados para o formato esperado pelo PriceChart
+  const chartData = prices.map(price => ({
+    id: price.id,
+    price: price.price,
+    date: price.date,
+    variation: price.variation,
+    state: price.stateCode, // Mapear stateCode para state
+    city: price.cityName || "", // Mapear cityName para city com fallback
+    commodity: commodity
+  }));
+
   return (
     <div className="space-y-6">
       {/* Filtros - Layout Responsivo */}
@@ -169,8 +181,9 @@ export function QuotationClient({
         sortDirection={sortDirection}
       />
 
+      {/* Gráfico de Preços */}
       <PriceChart 
-        data={prices} 
+        data={chartData} // Usar dados mapeados
         commodity={commodity} 
         selectedState={selectedState}
       />

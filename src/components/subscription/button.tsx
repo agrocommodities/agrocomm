@@ -1,3 +1,4 @@
+// src/components/subscription/button.tsx
 "use client";
 
 import { useState, useCallback } from "react";
@@ -17,7 +18,7 @@ export function PaymentButton({ priceId }: { priceId: string }) {
     })
       .then(res => res.json())
       .then(data => data.client_secret)
-  }, [])
+  }, [priceId]) // Adicionar priceId como dependência
 
   const options = { fetchClientSecret };
 
@@ -29,8 +30,6 @@ export function PaymentButton({ priceId }: { priceId: string }) {
         disabled={loading}
         onClick={() => setOpen(true)}
       >
-        {/* {loading ? "Loading..." : "Subscribe"} */}
-        {/* {priceId} */}
         Assinar
       </button>
       <div
