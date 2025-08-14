@@ -12,19 +12,14 @@ cd "$TEMP_DIR" || exit 1
 
 git clean -fxd -e .env -e drizzle/local.db
 cp -f .env .env.production
-sudo /usr/bin/systemctl stop $SERVICE
 
 bun install
-#bun run db:reset
 bun run db:push
 bun run db:seed
 bun run db:scrape
-bun run build || {
-  sudo /usr/bin/systemctl start $SERVICE
-  exit 1
-}
+bun run build || exit 1
 
+sudo /usr/bin/systemctl stop $SERVICE
 rm -rf "$PROJECT_DIR"
 mv "$TEMP_DIR" "$PROJECT_DIR"
-
 sudo /usr/bin/systemctl start $SERVICE

@@ -3,6 +3,25 @@ import { db } from "@/db";
 import { eq, and } from "drizzle-orm";
 import { cities } from "@/db/schema";
 
+// export function convertStringToDate(dateString: string): string {
+//   const dateMatch = dateString.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+//   if (!dateMatch) return new Date().toISOString().split('T')[0];
+  
+//   const [_, day, month, year] = dateMatch;
+//   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+// }
+
+export function convertStringToDate(dateString: string): string {
+  const dateMatch = dateString.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!dateMatch) {
+    // Se não conseguir fazer parse, usar data atual
+    return new Date().toISOString().split('T')[0];
+  }
+  
+  const [_, day, month, year] = dateMatch;
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+}
+
 export function extractCityAndState(location: string) {
   if (!location) return { state: null, city: null };
   
@@ -73,14 +92,6 @@ export function extractCityAndState(location: string) {
   // Se chegou até aqui, pode ser apenas uma cidade sem estado especificado
   // Neste caso, retornamos state: null e city será a string completa
   return { state: null, city: location };
-}
-
-export function convertStringToDate(dateString: string): string {
-  const dateMatch = dateString.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-  if (!dateMatch) return new Date().toISOString().split('T')[0];
-  
-  const [_, day, month, year] = dateMatch;
-  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 }
 
 // Conversão correta de preço
