@@ -18,13 +18,13 @@ interface PlanCardProps {
 }
 
 export function PlanCard({ children, plan, formatPrice }: PlanCardProps) {
-  const isPopular = plan.name.toLowerCase().includes('popular') || plan.name.toLowerCase().includes('pro');
+  const isPopular = plan.name.toLowerCase().includes('popular') || plan.name.toLowerCase().includes('premium');
 
   return (
-    <div className={`px-4 md:px-6 py-4 transition-colors duration-200 transform rounded-lg border-2 ${
+    <div className={`px-4 md:px-6 py-3 transition-colors duration-200 transform rounded-lg border-2 ${
       isPopular 
-        ? 'bg-black/70 border-white/30 shadow-lg' 
-        : 'bg-black/50 border-black/50 hover:bg-black/60'
+        ? 'bg-black/20 border-black/30 shadow-lg' 
+        : 'bg-black/20 border-black/30 hover:bg-black/50'
     }`}>
       {isPopular && (
         <div className="text-center mb-4">
@@ -45,36 +45,57 @@ export function PlanCard({ children, plan, formatPrice }: PlanCardProps) {
       </p>
 
       <div className="mt-8 space-y-4">
+        
         <div className="flex items-center">
-          <Icon icon="check" />
+          {plan.name.toLowerCase().includes('premium') || plan.name.toLowerCase().includes('empresarial') ?
+            <Icon icon="check" />
+          :
+            <Icon icon="x" />
+          }
           <span className="mx-4 text-gray-300">
-            Acesso às cotações em tempo real
+            Cotações em tempo real
           </span>
         </div>
 
         <div className="flex items-center">
-          <Icon icon="check" />
+          {plan.name.toLowerCase().includes('premium') || plan.name.toLowerCase().includes('empresarial') ?
+            <Icon icon="check" />
+          :
+            <Icon icon="x" />
+          }
           <span className="mx-4 text-gray-300">
             Histórico de preços completo
           </span>
         </div>
 
         <div className="flex items-center">
-          <Icon icon="check" />
+          {plan.name.toLowerCase().includes('premium') || plan.name.toLowerCase().includes('empresarial') ?
+            <Icon icon="check" />
+          :
+            <Icon icon="x" />
+          }
           <span className="mx-4 text-gray-300">
             Alertas personalizados
           </span>
         </div>
 
         <div className="flex items-center">
-          <Icon icon="check" />
+          {plan.name.toLowerCase().includes('premium') || plan.name.toLowerCase().includes('empresarial') ?
+            <Icon icon="check" />
+          :
+            <Icon icon="x" />
+          }
           <span className="mx-4 text-gray-300">
             Análise de tendências
           </span>
         </div>
 
         <div className="flex items-center">
-          <Icon icon="check" />
+          {plan.name.toLowerCase().includes('premium') || plan.name.toLowerCase().includes('empresarial') ?
+            <Icon icon="check" />
+          :
+            <Icon icon="x" />
+          }
           <span className="mx-4 text-gray-300">
             Suporte prioritário
           </span>

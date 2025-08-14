@@ -10,8 +10,8 @@ PROJECT_DIR=/var/www/$NAME
 cp -a "$PROJECT_DIR" "$TEMP_DIR"
 cd "$TEMP_DIR" || exit 1
 
-git clean -fxd -e .env.production -e drizzle/local.db
-cp -f .env.production .env
+git clean -fxd -e .env -e drizzle/local.db
+cp -f .env .env.production
 sudo /usr/bin/systemctl stop $SERVICE
 
 bun install
