@@ -58,7 +58,7 @@ export async function saveData(data: PriceData[], source: string): Promise<void>
       state: item.state,
       city: item.city,
       price: item.price,
-      date: item.date,
+      date: item.date || new Date().toISOString().split('T')[0], // ✅ Tratar null
       variation: item.variation,
       source: item.source,
       createdAt: new Date().toISOString().split('T')[0],
@@ -74,3 +74,38 @@ export async function saveData(data: PriceData[], source: string): Promise<void>
     throw error;
   }
 }
+
+// export async function saveData(data: PriceData[], source: string): Promise<void> {
+//   if (data.length === 0) {
+//     console.log(`ℹ️ Nenhum dado para salvar (fonte: ${source})`);
+//     return;
+//   }
+
+//   try {
+//     console.log(`💾 Salvando ${data.length} registros (fonte: ${source})`);
+    
+//     // Adicionar variações
+//     const dataWithVariation = await addVariationToData(data);
+    
+//     // Preparar dados para inserção
+//     const insertData = dataWithVariation.map(item => ({
+//       commodity: item.commodity,
+//       state: item.state,
+//       city: item.city,
+//       price: item.price,
+//       date: item.date,
+//       variation: item.variation,
+//       source: item.source,
+//       createdAt: new Date().toISOString().split('T')[0],
+//     }));
+
+//     // Inserir dados (ignorar conflitos)
+//     await db.insert(prices).values(insertData).onConflictDoNothing();
+    
+//     console.log(`✅ ${source}: ${data.length} registros salvos com sucesso`);
+    
+//   } catch (error) {
+//     console.error(`❌ Erro ao salvar dados (fonte: ${source}):`, error);
+//     throw error;
+//   }
+// }
