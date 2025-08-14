@@ -1,5 +1,6 @@
 interface CardProps {
   children: React.ReactNode;
+  id?: string;
   className?: string;
 }
 
@@ -18,9 +19,9 @@ interface CardTitleProps {
   className?: string;
 }
 
-export function Card({ children, className = "" }: CardProps) {
+export function Card({ children, id, className = "" }: CardProps) {
   return (
-    <div className={`bg-background/80 border-2 border-black/40 rounded-lg shadow-sm ${className}`}>
+    <div id={id} className={`bg-background/80 border-2 border-black/40 rounded-lg shadow-sm ${className}`}>
       {children}
     </div>
   );

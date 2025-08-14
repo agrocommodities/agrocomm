@@ -14,6 +14,24 @@ export const users = sqliteTable("users", {
   updatedAt: text().notNull().$onUpdate(() => new Date().toISOString()),
 });
 
+export const subscriptions = sqliteTable("subscriptions", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int().notNull().references(() => users.id, { onDelete: 'cascade' }),
+  stripeSubscriptionId: text().notNull().unique(),
+  stripePriceId: text().notNull(),
+  stripeCustomerId: text().notNull(),
+  status: text().notNull(), // active, canceled, etc.
+  planName: text().notNull(),
+  planPrice: int().notNull(), // preço em centavos
+  planInterval: text().notNull(), // month, year
+  firstSubscriptionDate: text().notNull(), // ISO string
+  currentPeriodStart: text().notNull(), // ISO string
+  currentPeriodEnd: text().notNull(), // ISO string
+  lastPaymentDate: text().notNull(), // ISO string
+  createdAt: text().notNull().default(sql`(current_timestamp)`),
+  updatedAt: text().notNull().$onUpdate(() => new Date().toISOString()),
+});
+
 export const news = sqliteTable("news", {
   id: int().primaryKey({ autoIncrement: true }),
   title: text().notNull(),

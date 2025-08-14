@@ -1,4 +1,3 @@
-// src/components/prices.tsx
 "use client";
 
 import { useState } from "react";
@@ -8,38 +7,9 @@ import { QuotationTable } from "@/components/prices/table";
 import { DatePicker } from "@/components/ui/datepicker";
 import { StateSelect } from "@/components/ui/state-select";
 import { PriceChart } from "@/components/prices/chart";
+import type { QuotationClientProps } from "@/types";
 
-interface QuotationClientProps {
-  commodity: string;
-  states: Array<{
-    id: number;
-    code: string;
-    name: string;
-  }>;
-  prices: Array<{
-    id: number;
-    price: number;
-    date: string;
-    variation: number | null;
-    stateCode: string;
-    stateName: string;
-    cityName: string | null;
-  }>;
-  availableDates: string[];
-  selectedDate: string;
-  selectedState: string;
-  average: string;
-}
-
-export function QuotationClient({ 
-  commodity, 
-  states, 
-  prices, 
-  availableDates, 
-  selectedDate, 
-  selectedState, 
-  average 
-}: QuotationClientProps) {
+export function QuotationClient({ commodity, states, prices, availableDates, selectedDate, selectedState, average }: QuotationClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [sortField, setSortField] = useState<string>('state');

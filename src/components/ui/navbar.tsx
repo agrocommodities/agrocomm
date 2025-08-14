@@ -1,3 +1,4 @@
+// src/components/ui/navbar.tsx (atualizar a parte do dropdown)
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -25,12 +26,12 @@ export function Navbar({ user }: NavbarProps) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
   return (
     <div className="flex items-center justify-between w-full">
       {/* Espaço vazio à esquerda no mobile para balancear */}
       <div className="md:hidden w-8"></div>
 
-      {/* Desktop Navigation - Centralizado */}
       {/* Desktop Navigation */}
       <nav className="hidden md:flex items-center justify-center flex-1">
         <div className="flex items-center gap-2">
@@ -39,7 +40,7 @@ export function Navbar({ user }: NavbarProps) {
               {link.href ? (
                 <Link
                   href={link.href}
-                  className="text-lg font-bold px-3 py-2 text-white hover:bg-black/20 transition-colors rounded-md"
+                  className="text-lg font-bold px-3 py-2 text-white hover:bg-white/10 transition-colors rounded-md"
                 >
                   {link.name}
                 </Link>
@@ -49,7 +50,7 @@ export function Navbar({ user }: NavbarProps) {
                     onClick={() => setOpenDropdown(openDropdown === link.name ? null : link.name)}
                     className="
                       text-lg font-bold px-3 py-2 text-white 
-                      hover:bg-black/20 transition-colors 
+                      hover:bg-white/10 transition-colors 
                       rounded-md flex items-center gap-1 cursor-pointer
                     "
                   >
@@ -67,15 +68,22 @@ export function Navbar({ user }: NavbarProps) {
                   </button>
 
                   {openDropdown === link.name && link.subItems && (
-                    <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
-                      {link.subItems.map((subItem) => (
+                    <div className="absolute top-full left-0 mt-2 w-56 bg-background/95 backdrop-blur-sm rounded-lg shadow-xl border-2 border-white/20 z-50 overflow-hidden">
+                      {link.subItems.map((subItem, index) => (
                         <Link
                           key={subItem.name}
                           href={subItem.href}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:!text-black transition-colors"
+                          className={`
+                            block px-4 py-3 text-sm font-medium text-white 
+                            hover:bg-white/10 transition-colors
+                            ${index !== link.subItems!.length - 1 ? 'border-b border-white/10' : ''}
+                          `}
                           onClick={() => setOpenDropdown(null)}
                         >
-                          {subItem.name}
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                            {subItem.name}
+                          </div>
                         </Link>
                       ))}
                     </div>

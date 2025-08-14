@@ -8,7 +8,7 @@ export interface PriceData {
   state: string;
   city: string;
   price: number;
-  date: string;
+  date: string | null;
   variation: number;
   source: string;
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { PaymentModal } from "@/components/subscription/modal";
 import { PlanCard } from "@/components/subscription/card";
+import type { User, StripeSubscription } from "@/types";
 
 interface Plan {
   id: string;
@@ -13,6 +14,18 @@ interface Plan {
   price_id: string;
 }
 
+// Palavras-chave para filtrar planos indesejados
+const EXCLUDED_KEYWORDS = [
+  'light', 'demo', 'development', 'dev', 'staging', 
+  'sandbox', 'trial', 'example', 'sample', 'old', 'antigo',
+  'descontinuado', 'discontinued', 'hidden', 'oculto'
+];
+
+function shouldExcludePlan(planName: string): boolean {
+  const lowerName = planName.toLowerCase();
+  return EXCLUDED_KEYWORDS.some(keyword => lowerName.includes(keyword));
+}
+
 export function Plans() {
   const [allPlans, setAllPlans] = useState<Plan[]>([]);
   const [filteredPlans, setFilteredPlans] = useState<Plan[]>([]);
@@ -21,13 +34,34 @@ export function Plans() {
   const [loading, setLoading] = useState(true);
   const [stripeConfigured, setStripeConfigured] = useState(false);
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month');
+  const [user, setUser] = useState<User | null>(null);
+  const [subscription, setSubscription] = useState<StripeSubscription | undefined>(undefined); // Usar undefined
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+
+  // Verificar usuário e assinatura
+  useEffect(() => {
+    const checkUserStatus = async () => {
+      try {
+        const result = await fetch('/api/user/subscription-status');
+        if (result.ok) {
+          const data = await result.json();
+          setUser(data.user);
+          setSubscription(data.subscription);
+          setIsSubscribed(data.isSubscribed);
+        }
+      } catch (error) {
+        console.error("Erro ao verificar status do usuário:", error);
+      }
+    };
+
+    checkUserStatus();
+  }, []);
 
   useEffect(() => {
-    // Verificar se as chaves do Stripe estão configuradas
     const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
     
     if (!stripePublishableKey || stripePublishableKey.trim() === '') {
-      console.warn('Stripe não configurado: chave pública não encontrada');
       setStripeConfigured(false);
       setLoading(false);
       return;
@@ -35,19 +69,21 @@ export function Plans() {
 
     setStripeConfigured(true);
 
-    // Carregar planos apenas se o Stripe estiver configurado
     fetch("/api/plans")
       .then(res => res.json())
       .then(data => {
-        console.log("Planos carregados:", data);
         if (!Array.isArray(data)) {
           setStripeConfigured(false);
           return;
         }
-        data.reverse();
-        setAllPlans(data);
-        // Filtrar planos mensais por padrão
-        const monthlyPlans = data.filter((plan: Plan) => plan.interval === 'month');
+        
+        // Filtrar planos com palavras-chave indesejadas
+        const validPlans = data.filter(plan => !shouldExcludePlan(plan.name));
+        
+        validPlans.reverse();
+        setAllPlans(validPlans);
+        
+        const monthlyPlans = validPlans.filter((plan: Plan) => plan.interval === 'month');
         setFilteredPlans(monthlyPlans);
         setLoading(false);
       })
@@ -59,14 +95,62 @@ export function Plans() {
   }, []);
 
   useEffect(() => {
-    // Filtrar planos baseado no intervalo selecionado
     const filtered = allPlans.filter(plan => plan.interval === billingInterval);
     setFilteredPlans(filtered);
   }, [billingInterval, allPlans]);
 
   const handleSelectPlan = (plan: Plan) => {
+    // Se não estiver logado, redirecionar para login
+    if (!user) {
+      const loginUrl = `/entrar?redirect=${encodeURIComponent('/#planos')}`;
+      window.location.href = loginUrl;
+      return;
+    }
+
+    // Se já for assinante, mostrar opções diferentes
+    if (isSubscribed && subscription) {
+      // Lógica para determinar se é upgrade, downgrade ou cancelamento
+      const currentPlanPrice = subscription.items.data[0].price.unit_amount;
+      const selectedPlanPrice = plan.price;
+
+      if (subscription.items.data[0].price.id === plan.price_id) {
+        // Mesmo plano - opção de cancelar
+        handleCancelSubscription();
+        return;
+      } else if (selectedPlanPrice > currentPlanPrice) {
+        // Upgrade
+        handleUpgrade(plan);
+        return;
+      } else {
+        // Downgrade
+        handleDowngrade(plan);
+        return;
+      }
+    }
+
+    // Usuário logado mas sem assinatura - processo normal
     setSelectedPlan(plan);
     setIsModalOpen(true);
+  };
+
+  const handleCancelSubscription = () => {
+    if (confirm('Tem certeza que deseja cancelar sua assinatura?')) {
+      window.location.href = '/ajustes#assinatura';
+    }
+  };
+
+  const handleUpgrade = (plan: Plan) => {
+    if (confirm(`Fazer upgrade para ${plan.name}?`)) {
+      setSelectedPlan(plan);
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleDowngrade = (plan: Plan) => {
+    if (confirm(`Fazer downgrade para ${plan.name}?`)) {
+      setSelectedPlan(plan);
+      setIsModalOpen(true);
+    }
   };
 
   const handleCloseModal = () => {
@@ -74,8 +158,44 @@ export function Plans() {
     setTimeout(() => setSelectedPlan(null), 300);
   };
 
-  const handleBillingChange = (interval: 'month' | 'year') => {
-    setBillingInterval(interval);
+  const getButtonText = (plan: Plan): string => {
+    if (!user) return "Assinar";
+    
+    if (isSubscribed && subscription) {
+      const currentPlanId = subscription.items.data[0].price.id;
+      const currentPlanPrice = subscription.items.data[0].price.unit_amount;
+      const selectedPlanPrice = plan.price;
+
+      if (currentPlanId === plan.price_id) {
+        return "Cancelar";
+      } else if (selectedPlanPrice > currentPlanPrice) {
+        return "Upgrade";
+      } else {
+        return "Downgrade";
+      }
+    }
+    
+    return "Assinar";
+  };
+
+  const getButtonStyle = (plan: Plan): string => {
+    if (!user) return "bg-black/60 border-2 border-black/80 hover:bg-black/75";
+    
+    if (isSubscribed && subscription) {
+      const currentPlanId = subscription.items.data[0].price.id;
+      const currentPlanPrice = subscription.items.data[0].price.unit_amount;
+      const selectedPlanPrice = plan.price;
+
+      if (currentPlanId === plan.price_id) {
+        return "bg-red-600/60 border-2 border-red-600/80 hover:bg-red-600/75";
+      } else if (selectedPlanPrice > currentPlanPrice) {
+        return "bg-green-600/60 border-2 border-green-600/80 hover:bg-green-600/75";
+      } else {
+        return "bg-orange-600/60 border-2 border-orange-600/80 hover:bg-orange-600/75";
+      }
+    }
+    
+    return "bg-black/60 border-2 border-black/80 hover:bg-black/75";
   };
 
   const formatPrice = (price: number, interval: string) => {
@@ -86,7 +206,6 @@ export function Plans() {
     return `${formattedPrice}/${interval === 'month' ? 'mês' : 'ano'}`;
   };
 
-  // Se o Stripe não estiver configurado, não renderizar nada
   if (!stripeConfigured) {
     return null;
   }
@@ -103,8 +222,8 @@ export function Plans() {
   }
   
   return (
-    <div className="w-full px-6 py-8">
-      {allPlans.length > 0 && (
+    <div className="w-full px-6 py-8" id="planos">
+      {filteredPlans.length > 0 && (
         <>
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-white mb-4">
@@ -113,6 +232,13 @@ export function Plans() {
             <p className="text-gray-300 mb-4">
               Selecione o plano que melhor atende às suas necessidades.
             </p>
+            {isSubscribed && (
+              <div className="mt-4 p-4 bg-green-500/20 border border-green-500/50 rounded-lg max-w-md mx-auto">
+                <p className="text-green-300 text-sm">
+                  ✅ Você já é um assinante ativo!
+                </p>
+              </div>
+            )}
           </div>
           
           <div className="flex flex-wrap justify-center gap-8 max-w-7xl mx-auto">
@@ -121,16 +247,16 @@ export function Plans() {
                 <PlanCard plan={plan} formatPrice={formatPrice}>
                   <button
                     onClick={() => handleSelectPlan(plan)}
-                    className="
+                    className={`
                       w-full px-4 py-2 mt-10 font-medium 
                       tracking-wide text-white capitalize 
                       transition-colors duration-200 transform 
-                      bg-black/60 border-2 border-black/80 
-                      rounded-md hover:bg-black/75 focus:outline-none focus:bg-black/75
+                      rounded-md focus:outline-none focus:ring-2 focus:ring-white/50
                       cursor-pointer
-                    "
+                      ${getButtonStyle(plan)}
+                    `}
                   >
-                    Assinar
+                    {getButtonText(plan)}
                   </button>
                 </PlanCard>
               </div>

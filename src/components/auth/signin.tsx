@@ -1,7 +1,9 @@
+// src/components/auth/signin.tsx (atualizar)
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { signIn } from "@/actions/auth";
 import { z } from "zod";
 import { signInSchema } from "@/schemas/auth";
@@ -11,6 +13,9 @@ import { Button } from "@/components/ui/button";
 type FormData = z.infer<typeof signInSchema>;
 
 export function SignInForm() {
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
+  
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: "",
@@ -75,14 +80,34 @@ export function SignInForm() {
     }
 
     setLoading(true);
-    const error = await signIn(result.data);
-    setLoading(false);
-
-    if (error) setSubmitError(error);
+    
+    try {
+      const error = await signIn(result.data);
+      if (error) {
+        setSubmitError(error);
+      } else {
+        // Login bem-sucedido, redirecionar se necessário
+        if (redirectUrl) {
+          window.location.href = redirectUrl;
+        }
+      }
+    } catch (error) {
+      setSubmitError("Erro inesperado. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <div>
+      {redirectUrl && (
+        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            Faça login para continuar
+          </p>
+        </div>
+      )}
+      
       <form onSubmit={onSubmit} className="space-y-8">
         {submitError && (
           <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-md text-sm">
@@ -128,7 +153,10 @@ export function SignInForm() {
         <div className="md:flex items-center justify-between">
           <div className="mb-5 md:mb-0 mr-0 md:mr-6">
             Ainda não tem uma conta?{" "}
-            <Link href="/cadastro" className="underline">
+            <Link 
+              href={`/cadastro${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ''}`} 
+              className="underline"
+            >
               Cadastre-se
             </Link>
           </div>

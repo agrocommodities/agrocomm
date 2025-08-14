@@ -1,3 +1,4 @@
+// src/components/ui/carousel.tsx (atualizar)
 "use client";
 
 import { useState, useEffect } from "react";
@@ -29,6 +30,8 @@ export function Carousel({
 }) {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [fade, setFade] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -42,7 +45,30 @@ export function Carousel({
     return () => clearInterval(interval)
   }, [slides.length])
 
-  // Classes dinâmicas para posicionamento da marca d'água
+  // Precarregar imagens
+  useEffect(() => {
+    const preloadImages = async () => {
+      const promises = slides.map((slide, index) => {
+        return new Promise<number>((resolve) => {
+          const img = new window.Image()
+          img.onload = () => resolve(index)
+          img.onerror = () => resolve(index) // Resolver mesmo com erro
+          img.src = slide.image
+        })
+      })
+
+      const loadedIndexes = await Promise.all(promises)
+      setLoadedImages(new Set(loadedIndexes))
+      
+      // Aguardar um pouco mais para garantir que tudo está pronto
+      setTimeout(() => {
+        setIsLoading(false)
+      }, 500)
+    }
+
+    preloadImages()
+  }, [slides])
+
   const getWatermarkPosition = () => {
     switch (watermark.position) {
       case 'top-left':
@@ -60,7 +86,6 @@ export function Carousel({
     }
   }
 
-  // Tamanho da marca d'água
   const getWatermarkSize = () => {
     switch (watermark.size) {
       case 'sm':
@@ -72,6 +97,28 @@ export function Carousel({
       default:
         return 'w-24 h-24'
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="relative w-full h-48 md:h-96 overflow-hidden rounded-xl bg-black/20 animate-pulse">
+        {/* Skeleton do background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-white/5 to-black/10"></div>
+        
+        {/* Skeleton do logo */}
+        <div className={`absolute ${getWatermarkPosition()} ${getWatermarkSize()} z-10`}>
+          <div className="w-full h-full bg-white/20 rounded-full animate-pulse"></div>
+        </div>
+        
+        {/* Skeleton de loading */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            <span className="text-white/70 text-sm font-medium">Carregando...</span>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -88,7 +135,10 @@ export function Carousel({
             alt={slide.alt}
             fill
             className="object-cover"
-            priority={index === currentSlide}
+            priority={index === 0}
+            onLoad={() => {
+              setLoadedImages(prev => new Set([...prev, index]))
+            }}
           />
         </div>
       ))}

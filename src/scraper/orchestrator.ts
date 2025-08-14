@@ -1,118 +1,115 @@
-// src/scraper/orchestrator.ts
-import { scrapeBoi, scrapeVaca, scrapeMilho, scrapeSoja } from './scot';
-import { scrapeNoticiasAgricolas } from './noticias-agricolas';
-import { 
-  extractReferenceDate, 
-  getExistingLocations, 
-  filterComplementaryData, 
-  validateTemporalConsistency,
-  type PriceData 
-} from './temporal-consistency';
-import { saveData } from './persistence';
+import { scrapeBoi, scrapeVaca, scrapeMilho, scrapeSoja } from "./scot";
+import { scrapeNoticiasAgricolasAuto } from "./noticias-agricolas";
+import { extractReferenceDate, getExistingLocations, filterComplementaryData, validateTemporalConsistency, type PriceData } from "./temporal-consistency";
+import { saveData } from "./persistence";
 
 export async function executePrimarySource(): Promise<PriceData[]> {
-  console.log('🎯 Executando scrapers primários (ScotConsultoria)');
-  
-  const allData: PriceData[] = [];
+  console.log("🎯 Executando scrapers primários (ScotConsultoria)");
   
   try {
-    // Executar todos os scrapers do Scot
     await scrapeBoi();
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    
     await scrapeVaca(); 
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    
     await scrapeMilho();
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    
     await scrapeSoja();
     
-    // Buscar dados recém inseridos para retornar
-    // (aqui você pode buscar do banco se necessário, 
-    // ou modificar os scrapers para retornar os dados)
-    
-    console.log('✅ Scrapers primários executados com sucesso');
-    return allData;
+    console.log("✅ Scrapers primários executados com sucesso");
+    return [];
     
   } catch (error) {
-    console.error('❌ Erro nos scrapers primários:', error);
+    console.error("❌ Erro nos scrapers primários:", error);
     throw error;
   }
 }
 
 export async function executeComplementarySource(primaryData: PriceData[]): Promise<void> {
-  console.log('🔄 Executando scraper complementar (Notícias Agrícolas)');
+  console.log("🤖 Executando scraper complementar AUTOMÁTICO (Notícias Agrícolas)");
   
   try {
-    // 1. Extrair data de referência dos dados primários
-    const referenceDate = extractReferenceDate(primaryData);
-    if (!referenceDate) {
-      // Se não temos dados primários, usar data atual
-      const today = new Date().toISOString().split('T')[0];
-      console.warn(`⚠️ Usando data atual como referência: ${today}`);
-      console.log('ℹ️ Executando scraper complementar sem filtros temporais');
-    } else {
-      console.log(`📅 Data de referência extraída: ${referenceDate}`);
-    }
-
-    // 2. Buscar dados do Notícias Agrícolas
-    const complementaryData = await scrapeNoticiasAgricolas();
+    // Buscar dados automaticamente de TODOS os estados disponíveis
+    const complementaryData = await scrapeNoticiasAgricolasAuto();
     
     if (complementaryData.length === 0) {
-      console.log('ℹ️ Nenhum dado encontrado no Notícias Agrícolas');
+      console.log("ℹ️ Nenhum dado encontrado automaticamente");
       return;
     }
 
-    console.log(`📊 Dados brutos do Notícias Agrícolas: ${complementaryData.length}`);
+    const detectedStates = [...new Set(complementaryData.map(item => item.state))].sort();
+    console.log(`🗺️ Estados detectados automaticamente: ${detectedStates.join(", ")}`);
+    console.log(`📊 Total de cotações descobertas: ${complementaryData.length}`);
 
-    // 3. Se temos data de referência, filtrar dados
+    // Extrair data de referência dos dados primários
+    const referenceDate = extractReferenceDate(primaryData);
     let validData = complementaryData;
     
     if (referenceDate) {
-      // Buscar localizações já existentes
-      const existingLocations = await getExistingLocations(referenceDate);
-      console.log(`📍 Localizações existentes na data ${referenceDate}: ${existingLocations.size}`);
+      console.log(`📅 Filtrando por data de referência: ${referenceDate}`);
       
-      // Filtrar dados complementares
+      const existingLocations = await getExistingLocations(referenceDate);
+      console.log(`📍 Localizações já existentes: ${existingLocations.size}`);
+      
       validData = filterComplementaryData(
         complementaryData,
         referenceDate,
         existingLocations
       );
+    } else {
+      console.log("⚠️ Usando todos os dados descobertos (sem filtro temporal)");
     }
 
     if (validData.length === 0) {
-      console.log('ℹ️ Nenhuma cotação complementar válida encontrada');
+      console.log("ℹ️ Nenhuma cotação complementar válida após filtros");
       return;
     }
 
-    // 4. Validar consistência temporal
+    // Validar consistência temporal
     const validation = validateTemporalConsistency(validData);
     if (!validation.isValid) {
-      console.error('❌ Inconsistência temporal detectada:', validation.errors);
-      return;
+      console.warn("⚠️ Inconsistência temporal detectada:", validation.errors);
     }
 
-    // 5. Salvar dados complementares
-    await saveData(validData, 'noticias_agricolas');
+    // Salvar dados complementares
+    await saveData(validData, "noticias_agricolas");
     
-    console.log(`✅ Notícias Agrícolas: ${validData.length} cotações complementares salvas`);
+    // Estatísticas finais
+    const finalStates = [...new Set(validData.map(item => item.state))].sort();
+    const finalByState = validData.reduce((acc, item) => {
+      acc[item.state] = (acc[item.state] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    console.log(`🎉 Estados salvos: ${finalStates.join(", ")}`);
+    console.log("📊 Cotações salvas por estado:", finalByState);
+    console.log(`✅ Total: ${validData.length} cotações complementares salvas automaticamente`);
     
   } catch (error) {
-    console.error('❌ Erro no scraper complementar:', error);
+    console.error("❌ Erro no scraper complementar automático:", error);
     throw error;
   }
 }
 
 export async function executeDaily(): Promise<void> {
-  console.log('🚀 === Iniciando coleta diária de cotações ===');
+  console.log("🚀 === Iniciando coleta AUTOMÁTICA de cotações ===");
   
   try {
     // 1. Executar scrapers primários
     const primaryData = await executePrimarySource();
     
-    // 2. Executar scraper complementar
+    // Delay antes do scraper complementar
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    
+    // 2. Executar scraper complementar automático
     await executeComplementarySource(primaryData);
     
-    console.log('🎉 === Coleta diária concluída com sucesso ===');
+    console.log("🎉 === Coleta automática concluída com sucesso ===");
     
   } catch (error) {
-    console.error('💥 === Erro na execução diária ===', error);
+    console.error("💥 === Erro na execução automática ===", error);
     throw error;
   }
 }

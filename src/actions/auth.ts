@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -43,6 +43,19 @@ export async function signIn(unsafeData: z.infer<typeof signInSchema>) {
 
   if (!isCorrectPassword) return "E-mail e/ou senha inválidos";
   await createUserSession(user, await cookies());
+  
+  // Verificar se há redirect nos headers
+  const headersList = await headers();
+  const referer = headersList.get('referer');
+  
+  if (referer && referer.includes('redirect=')) {
+    const url = new URL(referer);
+    const redirectTo = url.searchParams.get('redirect');
+    if (redirectTo) {
+      redirect(redirectTo);
+    }
+  }
+  
   redirect("/");
 }
 
@@ -77,7 +90,8 @@ export async function signUp(unsafeData: z.infer<typeof signUpSchema>) {
   redirect("/");
 }
 
+// src/actions/auth.ts (continuação)
 export async function logOut() {
-  await removeUserFromSession(await cookies());
-  redirect("/");
+ await removeUserFromSession(await cookies());
+ redirect("/");
 }

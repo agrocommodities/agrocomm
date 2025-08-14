@@ -1,8 +1,10 @@
+// src/components/auth/signup.tsx (atualizar para lidar com redirect)
 "use client";
 
 import { z } from "zod";
 import Link from "next/link";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { signUp } from "@/actions/auth";
 import { signUpSchema } from "@/schemas/auth";
 import { Input, Password } from "@/components/ui/input";
@@ -11,6 +13,9 @@ import { Button } from "@/components/ui/button";
 type FormData = z.infer<typeof signUpSchema>;
 
 export function SignUpForm() {
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
+  
   const [formData, setFormData] = useState<FormData>({ name: "", email: "", password: "" });
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [submitError, setSubmitError] = useState<string>();
@@ -20,7 +25,7 @@ export function SignUpForm() {
 
   function validateName(name: string): string | undefined {
     if (!name) return "Nome é obrigatório";
-    if (!/^[a-zA-Z]+$/.test(name)) return "Nome inválido. Exemplo: usuario";
+    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(name)) return "Nome deve conter apenas letras";
     if (name.length < 3 || name.length > 100) return "O nome deve ter entre 3 e 100 caracteres.";
     return undefined;
   }
@@ -38,6 +43,9 @@ export function SignUpForm() {
     if (name === "email" && emailTouched) {
       const emailError = validateEmail(value);
       setErrors({ ...errors, email: emailError });
+    } else if (name === "name" && nameTouched) {
+      const nameError = validateName(value);
+      setErrors({ ...errors, name: nameError });
     } else {
       setErrors({ ...errors, [name]: undefined });
     }
@@ -61,8 +69,10 @@ export function SignUpForm() {
     e.preventDefault();
 
     const emailError = validateEmail(formData.email);
-    if (emailError) {
-      setErrors({ ...errors, email: emailError });
+    const nameError = validateName(formData.name);
+    
+    if (emailError || nameError) {
+      setErrors({ ...errors, email: emailError, name: nameError });
       return;
     }
 
@@ -79,14 +89,34 @@ export function SignUpForm() {
     }
 
     setLoading(true);
-    const serverError = await signUp(result.data);
-    setLoading(false);
-
-    if (serverError) setSubmitError(serverError);
+    
+    try {
+      const serverError = await signUp(result.data);
+      if (serverError) {
+        setSubmitError(serverError);
+      } else {
+        // Cadastro bem-sucedido, redirecionar se necessário
+        if (redirectUrl) {
+          window.location.href = redirectUrl;
+        }
+      }
+    } catch (error) {
+      setSubmitError("Erro inesperado. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <div>
+      {redirectUrl && (
+        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            Cadastre-se para continuar
+          </p>
+        </div>
+      )}
+      
       <form onSubmit={onSubmit} className="space-y-8" autoComplete="nope">
         {submitError && (
           <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-md text-sm">
@@ -157,7 +187,10 @@ export function SignUpForm() {
           </p>
         </div>
         <div className="flex justify-between">
-          <Link href="/entrar" className="underline">
+          <Link 
+            href={`/entrar${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ''}`} 
+            className="underline"
+          >
             Já tem conta?
           </Link>
           <Button type="submit" disabled={loading || !!errors.email || !!errors.password}>

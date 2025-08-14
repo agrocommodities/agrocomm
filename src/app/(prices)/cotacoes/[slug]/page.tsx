@@ -1,8 +1,11 @@
+// src/app/(prices)/cotacoes/[slug]/page.tsx (atualizar)
 import Link from "next/link";
 import { db } from "@/db";
 import { prices } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { QuotationClient } from "@/components/prices";
+import { checkUserSubscription } from "@/lib/subscription";
+import { redirect } from "next/navigation";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -12,6 +15,9 @@ interface PageProps {
 export default async function CommodityPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const { state, date } = await searchParams;
+
+  // Verificar assinatura do usuário
+  const { isSubscribed } = await checkUserSubscription();
 
   const stateList = await db.query.states.findMany({ orderBy: (states, { asc }) => [asc(states.name)] });
 
@@ -52,16 +58,33 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
     );
   }
 
-  // Usar a data selecionada ou a mais recente disponível
-  const selectedDate = date || availableDates[0].date;
-  const isValidDate = availableDates.some(d => d.date === selectedDate);
-  const finalDate = isValidDate ? selectedDate : availableDates[0].date;
+  // Verificar se está tentando acessar dados históricos
+  const mostRecentDate = availableDates[0].date;
+  const requestedDate = date || mostRecentDate;
+  const isHistoricalData = requestedDate !== mostRecentDate;
+
+  // Se não é assinante e está tentando acessar dados históricos, redirecionar
+  if (isHistoricalData && !isSubscribed) {
+    // Redirecionar para a data mais recente
+    const params = new URLSearchParams();
+    if (state && state !== "all") {
+      params.set("state", state);
+    }
+    const redirectUrl = `/cotacoes/${slug}${params.toString() ? `?${params.toString()}` : ''}`;
+    redirect(redirectUrl);
+  }
+
+  // Filtrar datas disponíveis para não assinantes (apenas a mais recente)
+  const filteredDates = isSubscribed ? availableDates : [availableDates[0]];
+  
+  const selectedDate = date || mostRecentDate;
+  const isValidDate = filteredDates.some(d => d.date === selectedDate);
+  const finalDate = isValidDate ? selectedDate : mostRecentDate;
   
   try {
     const conditions = [eq(prices.commodity, slug), eq(prices.date, finalDate)];
     if (state && state !== "all") conditions.push(eq(prices.state, state));
 
-    // Query para preços
     const priceList = await db
       .select({
         id: prices.id,
@@ -76,24 +99,18 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
       .where(and(...conditions))
       .orderBy(prices.state, prices.city);
 
-    // **NOVA QUERY: Buscar estados que têm cotações para este commodity**
     const statesWithPrices = await db
-      .select({ 
-        state: prices.state 
-      })
+      .select({ state: prices.state })
       .from(prices)
       .where(eq(prices.commodity, slug))
       .groupBy(prices.state);
 
-    // Filtrar apenas estados que têm cotações
     const availableStates = stateList.filter(state => 
       statesWithPrices.some(sp => sp.state === state.code)
     );
 
-    // Mapear códigos de estado para nomes completos
     const priceListWithStateNames = priceList.map(price => ({ ...price, stateName: price.stateCode }));
 
-    // Calcular média corretamente (preços em centavos)
     const average = priceListWithStateNames.length > 0
       ? (priceListWithStateNames.reduce((sum, q) => sum + q.price, 0) / priceListWithStateNames.length / 100).toFixed(2)
       : "0.00";
@@ -102,16 +119,27 @@ export default async function CommodityPage({ params, searchParams }: PageProps)
       <div className="container mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">{slug.toUpperCase()}</h1>
+          {!isSubscribed && (
+            <div className="mt-4 p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg">
+              <p className="text-blue-300 text-sm">
+                📊 Você está visualizando apenas as cotações mais recentes. 
+                <Link href="/#planos" className="underline font-medium ml-1">
+                  Assine um plano
+                </Link> para acessar o histórico completo.
+              </p>
+            </div>
+          )}
         </div>
 
         <QuotationClient
           commodity={slug}
-          states={availableStates} // Passando apenas estados com cotações
+          states={availableStates}
           prices={priceListWithStateNames}
-          availableDates={availableDates.map(d => d.date)}
+          availableDates={filteredDates.map(d => d.date)}
           selectedDate={finalDate}
           selectedState={state || "all"}
           average={average}
+          isSubscribed={isSubscribed}
         />
       </div>
     );
