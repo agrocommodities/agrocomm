@@ -1,8 +1,7 @@
 // src/app/page.tsx
 import { Plans } from "@/components/plans";
 import { Carousel } from "@/components/ui/carousel";
-import { LatestNews } from "@/components/news/latest";
-import { LatestPrices } from "@/components/prices/latest";
+import { Sidebar } from "@/components/ui/sidebar";
 
 const watermark = {
   logo: '/images/logo.svg',
@@ -32,26 +31,25 @@ const slides = [
 
 export default async function Home() {
   return (
-    <div className="w-full flex flex-col items-center justify-center">
-      <div className="w-full max-w-7xl space-y-8">
-        <div className="flex h-full items-center justify-center">
-          <Carousel slides={slides} watermark={watermark} />
-        </div>
+    <div className="container mx-auto px-4 py-6">
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Main Content */}
+        <main className="flex-1 space-y-6">
+          {/* Carousel */}
+          <div className="w-full">
+            <Carousel slides={slides} watermark={watermark} />
+          </div>
+          
+          {/* Plans */}
+          <section className="w-full">
+            <Plans />
+          </section>
+        </main>
         
-        {/* Resumo de Cotações */}
-        <section className="w-full">
-          <LatestPrices variant="main" limit={20} />
-        </section>
-        
-        {/* Últimas Notícias */}
-        <section className="w-full">
-          <LatestNews variant="main" limit={12} />
-        </section>
-        
-        {/* Planos */}
-        <section className="w-full">
-          <Plans />
-        </section>
+        {/* Sidebar */}
+        <aside className="w-full lg:w-80 lg:flex-shrink-0">
+          <Sidebar />
+        </aside>
       </div>
     </div>
   );

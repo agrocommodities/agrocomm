@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import { Toaster } from "sonner";
 import { Nunito } from "next/font/google";
 import { Header } from "@/components/header";
-import { Sidebar } from "@/components/ui/sidebar";
 import { Footer } from "@/components/footer";
 import type { Metadata } from "next";
 import "@/styles/globals.css";
@@ -35,14 +34,9 @@ export const metadata: Metadata = {
   },
 };
 
-// Páginas que devem ter sidebar
-const sidebarPaths = ["/cotacoes"];
-
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
   const pathname = (await headers()).get('next-url')
-
-  // Verificar se deve mostrar sidebar
-  const showSidebar = pathname && sidebarPaths.some(path => pathname.startsWith(path));
+  const isHomePage = pathname === '/';
 
   return (
     <html lang="pt-BR">
@@ -55,16 +49,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           <Header />
           
           {/* Main content com padding para header e footer fixos */}
-          <div className={`container mx-auto flex flex-col ${showSidebar ? 'lg:flex-row' : ''} flex-grow pt-20 pb-16 ${pathname === '/' ? 'items-center justify-center' : ''}`}>
-            <main className={`flex-grow p-3 ${showSidebar ? 'lg:pr-6' : ''}`}>
-              {children}
-            </main>
-            
-            {showSidebar && (
-              <aside className="w-full lg:w-80 p-3">
-                <Sidebar />
-              </aside>
-            )}
+          <div className={`flex-grow pt-20 pb-16 ${!isHomePage ? 'container mx-auto p-3' : ''}`}>
+            {children}
           </div>
           
           <Footer />
