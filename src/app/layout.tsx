@@ -1,5 +1,5 @@
-// src/app/layout.tsx
 import { headers } from "next/headers";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { Toaster } from "sonner";
 import { Nunito } from "next/font/google";
 import { Header } from "@/components/header";
@@ -55,6 +55,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           
           <Footer />
         </div>
+        <GoogleAnalytics gaId="G-DZ9009HLES" />
       </body>
     </html>
   );
