@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get("state");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const limit = parseInt(searchParams.get("limit") || "365");
 
     if (!commodity) {
       return NextResponse.json(
@@ -40,11 +41,12 @@ export async function GET(request: NextRequest) {
         variation: prices.variation,
         state: prices.state,
         city: prices.city,
+        commodity: prices.commodity,
       })
       .from(prices)
       .where(and(...conditions))
       .orderBy(desc(prices.date))
-      .limit(365); // Limitar a 1 ano de dados
+      .limit(limit);
 
     return NextResponse.json(historicalPrices);
   } catch (error) {

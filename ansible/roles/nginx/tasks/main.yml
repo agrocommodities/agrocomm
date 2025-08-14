@@ -24,6 +24,14 @@
     state: directory
     mode: "0755"
 
+- name: Creates /var/www/cdn.agrocomm.com.br directory
+  ansible.builtin.file:
+    path: /var/www/cdn.agrocomm.com.br
+    state: directory
+    owner: nginx
+    group: nginx
+    mode: "0755"
+
 - name: Copy nginx snippets
   ansible.builtin.template:
     src: "files/etc/nginx/conf.d/{{ item }}"

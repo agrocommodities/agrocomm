@@ -19,14 +19,31 @@ export function Plans() {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [stripeConfigured, setStripeConfigured] = useState(false);
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month');
 
   useEffect(() => {
+    // Verificar se as chaves do Stripe estão configuradas
+    const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+    
+    if (!stripePublishableKey || stripePublishableKey.trim() === '') {
+      console.warn('Stripe não configurado: chave pública não encontrada');
+      setStripeConfigured(false);
+      setLoading(false);
+      return;
+    }
+
+    setStripeConfigured(true);
+
+    // Carregar planos apenas se o Stripe estiver configurado
     fetch("/api/plans")
       .then(res => res.json())
       .then(data => {
         console.log("Planos carregados:", data);
-        if (!Array.isArray(data)) return;
+        if (!Array.isArray(data)) {
+          setStripeConfigured(false);
+          return;
+        }
         data.reverse();
         setAllPlans(data);
         // Filtrar planos mensais por padrão
@@ -36,6 +53,7 @@ export function Plans() {
       })
       .catch(err => {
         console.error("Erro ao carregar planos:", err);
+        setStripeConfigured(false);
         setLoading(false);
       });
   }, []);
@@ -68,6 +86,11 @@ export function Plans() {
     return `${formattedPrice}/${interval === 'month' ? 'mês' : 'ano'}`;
   };
 
+  // Se o Stripe não estiver configurado, não renderizar nada
+  if (!stripeConfigured) {
+    return null;
+  }
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -90,28 +113,6 @@ export function Plans() {
             <p className="text-gray-300 mb-4">
               Selecione o plano que melhor atende às suas necessidades.
             </p>
-            {/* <div className="inline-flex overflow-hidden p-0.5 border-2 border-black/50 rounded-lg bg-black/20">
-              <button 
-                onClick={() => handleBillingChange('month')}
-                className={`focus:outline-none px-4 py-2 rounded-lg transition-colors font-medium ${
-                  billingInterval === 'month'
-                    ? 'text-white bg-black/60 border-2 border-black/80'
-                    : 'text-gray-300 hover:text-white hover:bg-black/30'
-                }`}
-              >
-                Mensal
-              </button>
-              <button 
-                onClick={() => handleBillingChange('year')}
-                className={`focus:outline-none px-4 py-2 rounded-lg transition-colors font-medium ${
-                  billingInterval === 'year'
-                    ? 'text-white bg-black/60 border-2 border-black/80'
-                    : 'text-gray-300 hover:text-white hover:bg-black/30'
-                }`}
-              >
-                Anual
-              </button>
-            </div> */}
           </div>
           
           <div className="flex flex-wrap justify-center gap-8 max-w-7xl mx-auto">

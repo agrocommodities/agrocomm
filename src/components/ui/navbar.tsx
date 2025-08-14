@@ -47,7 +47,11 @@ export function Navbar({ user }: NavbarProps) {
                 <div>
                   <button
                     onClick={() => setOpenDropdown(openDropdown === link.name ? null : link.name)}
-                    className="text-lg font-bold px-3 py-2 text-white hover:bg-black/20 transition-colors rounded-md flex items-center gap-1"
+                    className="
+                      text-lg font-bold px-3 py-2 text-white 
+                      hover:bg-black/20 transition-colors 
+                      rounded-md flex items-center gap-1 cursor-pointer
+                    "
                   >
                     {link.name}
                     <svg
