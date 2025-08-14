@@ -1,8 +1,11 @@
+// src/components/subscription/modal.tsx
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
+import { getCurrentUser } from "@/lib/user";
+import type { User } from "@/types";
 
 interface Plan {
   id: string;
@@ -21,6 +24,17 @@ interface PaymentModalProps {
 
 export function PaymentModal({ plan, isOpen, onClose }: PaymentModalProps) {
   const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+  const [user, setUser] = useState<User | null>(null);
+
+  // Buscar dados do usuário quando o modal abrir
+  useEffect(() => {
+    if (isOpen) {
+      fetch('/api/user/current')
+        .then(res => res.json())
+        .then(userData => setUser(userData))
+        .catch(console.error);
+    }
+  }, [isOpen]);
 
   const fetchClientSecret = useCallback(async () => {
     console.log("Fetching client secret for plan:", plan.price_id);
@@ -28,11 +42,18 @@ export function PaymentModal({ plan, isOpen, onClose }: PaymentModalProps) {
     const response = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ priceId: plan.price_id }),
+      body: JSON.stringify({ 
+        priceId: plan.price_id,
+        // Enviar dados do usuário para auto-preenchimento
+        customerData: user ? {
+          name: user.name,
+          email: user.email,
+        } : undefined
+      }),
     });
     const data = await response.json();
     return data.client_secret;
-  }, [plan.price_id]);
+  }, [plan.price_id, user]);
 
   // Fechar modal com ESC
   useEffect(() => {
@@ -90,6 +111,15 @@ export function PaymentModal({ plan, isOpen, onClose }: PaymentModalProps) {
                   currency: 'BRL'
                 })} / {plan.interval === 'month' ? 'mês' : 'ano'}
               </p>
+              
+              {/* Informações do usuário logado */}
+              {user && (
+                <div className="mb-4 p-3 bg-green-500/20 border border-green-500/50 rounded-lg">
+                  <p className="text-green-300 text-sm">
+                    ✅ Logado como: <strong>{user.name}</strong> ({user.email})
+                  </p>
+                </div>
+              )}
               
               <div className="stripe-checkout-container bg-white rounded-lg p-4 border-2 border-black/20">
                 <EmbeddedCheckoutProvider 

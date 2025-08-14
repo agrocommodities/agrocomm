@@ -5,7 +5,7 @@ import { fetchSubscriptionByEmail } from "@/lib/stripe";
 import { db } from "@/db";
 import { subscriptions } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import type { StripeSubscription, UserSubscriptionStatus } from "@/types";
+import type { StripeSubscription, UserSubscriptionStatus, Subscription } from "@/types";
 
 export async function checkUserSubscription(): Promise<UserSubscriptionStatus> {
   const user = await getCurrentUser();
@@ -83,11 +83,18 @@ export function canAccessHistoricalData(isSubscribed: boolean): boolean {
 }
 
 // Função para obter dados detalhados da assinatura
-export async function getUserSubscriptionDetails(userId: number) {
-  return await db.query.subscriptions.findFirst({
-    where: and(
-      eq(subscriptions.userId, userId),
-      eq(subscriptions.status, 'active')
-    ),
-  });
+export async function getUserSubscriptionDetails(userId: number): Promise<Subscription | undefined> {
+  try {
+    const subscription = await db.query.subscriptions.findFirst({
+      where: and(
+        eq(subscriptions.userId, userId),
+        eq(subscriptions.status, 'active')
+      ),
+    });
+    
+    return subscription as Subscription | undefined;
+  } catch (error) {
+    console.error("Erro ao buscar detalhes da assinatura:", error);
+    return undefined;
+  }
 }

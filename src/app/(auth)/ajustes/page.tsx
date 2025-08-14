@@ -1,4 +1,4 @@
-// src/app/(auth)/ajustes/page.tsx (versão final)
+// src/app/(auth)/ajustes/page.tsx
 import { SettingsForm } from "@/components/auth/settings";
 import { SubscriptionManager } from "@/components/auth/subscription-manager";
 import { getCurrentUser } from "@/lib/user";
@@ -6,7 +6,7 @@ import { checkUserSubscription } from "@/lib/subscription";
 
 export default async function ProfilePage() {
   const user = await getCurrentUser();
-  const { isSubscribed, subscription } = await checkUserSubscription();
+  const { isSubscribed, subscription, localSubscription } = await checkUserSubscription();
 
   return (
     <>
@@ -22,6 +22,7 @@ export default async function ProfilePage() {
             user={user} 
             isSubscribed={isSubscribed}
             subscription={subscription}
+            localSubscription={localSubscription}
           />
         </div>
       )}

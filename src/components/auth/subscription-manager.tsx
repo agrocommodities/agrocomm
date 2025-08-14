@@ -1,39 +1,48 @@
+// src/components/auth/subscription-manager.tsx
 "use client";
 
 import Link from "next/link";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import type { User, StripeSubscription } from "@/types";
-
-interface SubscriptionManagerProps {
-  user: User;
-  isSubscribed: boolean;
-  subscription?: StripeSubscription; // Mudar para optional
-}
+import type { User, StripeSubscription, Subscription } from "@/types";
 
 export function SubscriptionManager({
   user,
   isSubscribed,
   subscription,
-}: SubscriptionManagerProps) {
+  localSubscription, // Adicionar esta prop
+}: {
+  user: User;
+  isSubscribed: boolean;
+  subscription?: StripeSubscription;
+  localSubscription?: Subscription; // Adicionar este tipo
+}) {
   const [loading, setLoading] = useState(false);
 
   const formatDate = (timestamp: number | string) => {
     try {
-      // Se for string, tentar converter para número
-      const dateValue =
-        typeof timestamp === "string" ? parseInt(timestamp) : timestamp;
+      let dateValue: number;
 
-      // Verificar se é um timestamp válido (em segundos do Stripe)
-      if (!dateValue || isNaN(dateValue)) {
+      if (typeof timestamp === "string") {
+        const date = new Date(timestamp);
+        if (isNaN(date.getTime())) {
+          return "Data não disponível";
+        }
+        return date.toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        });
+      } else {
+        dateValue = timestamp;
+      }
+
+      if (!dateValue || isNaN(dateValue) || dateValue <= 0) {
         return "Data não disponível";
       }
 
-      // Stripe usa timestamps em segundos, JavaScript usa milissegundos
       const date = new Date(dateValue * 1000);
-
-      // Verificar se a data é válida
       if (isNaN(date.getTime())) {
         return "Data não disponível";
       }
@@ -48,6 +57,46 @@ export function SubscriptionManager({
       return "Data não disponível";
     }
   };
+
+  // CORREÇÃO: Melhorar formatação de datas
+  // const formatDate = (timestamp: number | string) => {
+  //   try {
+  //     let dateValue: number;
+
+  //     // Se for string ISO, converter para timestamp
+  //     if (typeof timestamp === "string") {
+  //       const date = new Date(timestamp);
+  //       if (isNaN(date.getTime())) {
+  //         return "Data não disponível";
+  //       }
+  //       dateValue = Math.floor(date.getTime() / 1000); // Converter para segundos
+  //     } else {
+  //       dateValue = timestamp;
+  //     }
+
+  //     // Verificar se é um timestamp válido
+  //     if (!dateValue || isNaN(dateValue) || dateValue <= 0) {
+  //       return "Data não disponível";
+  //     }
+
+  //     // Stripe usa timestamps em segundos, JavaScript usa milissegundos
+  //     const date = new Date(dateValue * 1000);
+
+  //     // Verificar se a data é válida
+  //     if (isNaN(date.getTime())) {
+  //       return "Data não disponível";
+  //     }
+
+  //     return date.toLocaleDateString("pt-BR", {
+  //       day: "2-digit",
+  //       month: "long",
+  //       year: "numeric",
+  //     });
+  //   } catch (error) {
+  //     console.error("Erro ao formatar data:", error);
+  //     return "Data não disponível";
+  //   }
+  // };
 
   const formatPrice = (amount: number) => {
     return (amount / 100).toLocaleString("pt-BR", {

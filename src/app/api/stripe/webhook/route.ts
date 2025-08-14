@@ -1,4 +1,4 @@
-// src/app/api/stripe/webhook/route.ts (novo arquivo)
+// src/app/api/stripe/webhook/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/db";
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// src/app/api/stripe/webhook/route.ts (atualizar a função handleSubscriptionChange)
 async function handleSubscriptionChange(subscription: any) {
   try {
     // Buscar customer do Stripe para pegar o email
@@ -57,6 +58,7 @@ async function handleSubscriptionChange(subscription: any) {
     const price = subscription.items.data[0].price;
     const product = await stripe.products.retrieve(price.product);
 
+    // Converter timestamps do Stripe (segundos) para ISO strings
     const subscriptionData = {
       userId: user.id,
       stripeSubscriptionId: subscription.id,
@@ -70,6 +72,12 @@ async function handleSubscriptionChange(subscription: any) {
       currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
       currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
       lastPaymentDate: new Date(subscription.current_period_start * 1000).toISOString(),
+      
+      // Novos campos
+      cancelAtPeriodEnd: subscription.cancel_at_period_end ? 1 : 0,
+      canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
+      trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000).toISOString() : null,
+      trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
     };
 
     // Verificar se já existe
@@ -97,6 +105,66 @@ async function handleSubscriptionChange(subscription: any) {
     console.error('Error handling subscription change:', error);
   }
 }
+
+// async function handleSubscriptionChange(subscription: any) {
+//   try {
+//     // Buscar customer do Stripe para pegar o email
+//     const customer = await stripe.customers.retrieve(subscription.customer);
+//     if (!customer || customer.deleted) return;
+
+//     // Buscar usuário pelo email
+//     const user = await db.query.users.findFirst({
+//       where: eq(users.email, (customer as any).email),
+//     });
+
+//     if (!user) return;
+
+//     // Buscar informações do produto/preço
+//     const price = subscription.items.data[0].price;
+//     const product = await stripe.products.retrieve(price.product);
+
+//     // CORREÇÃO: Converter timestamps do Stripe (segundos) para ISO strings
+//     const subscriptionData = {
+//       userId: user.id,
+//       stripeSubscriptionId: subscription.id,
+//       stripePriceId: price.id,
+//       stripeCustomerId: subscription.customer,
+//       status: subscription.status,
+//       planName: product.name,
+//       planPrice: price.unit_amount,
+//       planInterval: price.recurring.interval,
+//       // Converter segundos para milissegundos e depois para ISO string
+//       firstSubscriptionDate: new Date(subscription.created * 1000).toISOString(),
+//       currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
+//       currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+//       lastPaymentDate: new Date(subscription.current_period_start * 1000).toISOString(),
+//     };
+
+//     // Verificar se já existe
+//     const existing = await db.query.subscriptions.findFirst({
+//       where: eq(subscriptions.stripeSubscriptionId, subscription.id),
+//     });
+
+//     if (existing) {
+//       // Atualizar
+//       await db
+//         .update(subscriptions)
+//         .set({
+//           ...subscriptionData,
+//           updatedAt: new Date().toISOString(),
+//         })
+//         .where(eq(subscriptions.stripeSubscriptionId, subscription.id));
+//     } else {
+//       // Criar novo
+//       await db.insert(subscriptions).values({
+//         ...subscriptionData,
+//         createdAt: new Date().toISOString(),
+//       });
+//     }
+//   } catch (error) {
+//     console.error('Error handling subscription change:', error);
+//   }
+// }
 
 async function handleSubscriptionDeleted(subscription: any) {
   try {

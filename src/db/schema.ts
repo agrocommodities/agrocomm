@@ -14,20 +14,72 @@ export const users = sqliteTable("users", {
   updatedAt: text().notNull().$onUpdate(() => new Date().toISOString()),
 });
 
+// export const subscriptions = sqliteTable("subscriptions", {
+//   id: int().primaryKey({ autoIncrement: true }),
+//   userId: int().notNull().references(() => users.id, { onDelete: 'cascade' }),
+//   stripeSubscriptionId: text().notNull().unique(),
+//   stripePriceId: text().notNull(),
+//   stripeCustomerId: text().notNull(),
+//   status: text().notNull(), // active, canceled, etc.
+//   planName: text().notNull(),
+//   planPrice: int().notNull(), // preço em centavos
+//   planInterval: text().notNull(), // month, year
+//   firstSubscriptionDate: text().notNull(), // ISO string
+//   currentPeriodStart: text().notNull(), // ISO string
+//   currentPeriodEnd: text().notNull(), // ISO string
+//   lastPaymentDate: text().notNull(), // ISO string
+//   createdAt: text().notNull().default(sql`(current_timestamp)`),
+//   updatedAt: text().notNull().$onUpdate(() => new Date().toISOString()),
+// });
+
+// src/db/schema.ts (adicionar na tabela subscriptions)
+// export const subscriptions = sqliteTable("subscriptions", {
+//   id: int().primaryKey({ autoIncrement: true }),
+//   userId: int().notNull().references(() => users.id, { onDelete: 'cascade' }),
+//   stripeSubscriptionId: text().notNull().unique(),
+//   stripePriceId: text().notNull(),
+//   stripeCustomerId: text().notNull(),
+//   status: text().notNull(), // active, canceled, etc.
+//   planName: text().notNull(),
+//   planPrice: int().notNull(), // preço em centavos
+//   planInterval: text().notNull(), // month, year
+//   firstSubscriptionDate: text().notNull(), // ISO string
+//   currentPeriodStart: text().notNull(), // ISO string
+//   currentPeriodEnd: text().notNull(), // ISO string
+//   lastPaymentDate: text().notNull(), // ISO string
+  
+//   // Novos campos úteis
+//   cancelAtPeriodEnd: int().default(0), // boolean (0/1)
+//   canceledAt: text(), // ISO string quando cancelado
+//   trialStart: text(), // ISO string se teve trial
+//   trialEnd: text(), // ISO string se teve trial
+  
+//   createdAt: text().notNull().default(sql`(current_timestamp)`),
+//   updatedAt: text().notNull().$onUpdate(() => new Date().toISOString()),
+// });
+
+// src/db/schema.ts (atualizar a tabela subscriptions)
 export const subscriptions = sqliteTable("subscriptions", {
   id: int().primaryKey({ autoIncrement: true }),
   userId: int().notNull().references(() => users.id, { onDelete: 'cascade' }),
   stripeSubscriptionId: text().notNull().unique(),
   stripePriceId: text().notNull(),
   stripeCustomerId: text().notNull(),
-  status: text().notNull(), // active, canceled, etc.
+  status: text().notNull(),
   planName: text().notNull(),
-  planPrice: int().notNull(), // preço em centavos
-  planInterval: text().notNull(), // month, year
-  firstSubscriptionDate: text().notNull(), // ISO string
-  currentPeriodStart: text().notNull(), // ISO string
-  currentPeriodEnd: text().notNull(), // ISO string
-  lastPaymentDate: text().notNull(), // ISO string
+  planPrice: int().notNull(),
+  planInterval: text().notNull(),
+  firstSubscriptionDate: text().notNull(),
+  currentPeriodStart: text().notNull(),
+  currentPeriodEnd: text().notNull(),
+  lastPaymentDate: text().notNull(),
+  
+  // Novos campos
+  cancelAtPeriodEnd: int().default(0),
+  canceledAt: text(),
+  trialStart: text(),
+  trialEnd: text(),
+  
   createdAt: text().notNull().default(sql`(current_timestamp)`),
   updatedAt: text().notNull().$onUpdate(() => new Date().toISOString()),
 });
