@@ -34,9 +34,38 @@ export const metadata: Metadata = {
   },
 };
 
+// export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
+//   const pathname = (await headers()).get('next-url')
+//   const isHomePage = pathname === '/';
+
+//   return (
+//     <html lang="pt-BR">
+//       <head>
+//         <link rel="icon" href="/images/favicon.svg" sizes="any" type="image/svg+xml" />
+//       </head>
+//       <body className={`${nunito.variable} antialiased`}>
+//         <Toaster />
+//         <div className="flex flex-col min-h-screen">
+//           <Header />
+          
+//           {/* Main content com padding para header e footer fixos */}
+//           <div className={`flex-grow pt-20 pb-16 ${!isHomePage ? 'container mx-auto p-3' : ''}`}>
+//             {children}
+//           </div>
+          
+//           <Footer />
+//         </div>
+//         <GoogleAnalytics gaId="G-DZ9009HLES" />
+//       </body>
+//     </html>
+//   );
+// }
+
+// src/app/layout.tsx
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
   const pathname = (await headers()).get('next-url')
   const isHomePage = pathname === '/';
+  const isAuthPage = pathname?.includes('/entrar') || pathname?.includes('/cadastro');
 
   return (
     <html lang="pt-BR">
@@ -46,13 +75,14 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       <body className={`${nunito.variable} antialiased`}>
         <Toaster />
         <div className="flex flex-col min-h-screen">
-          <Header />
-          
-          {/* Main content com padding para header e footer fixos */}
-          <div className={`flex-grow pt-20 pb-16 ${!isHomePage ? 'container mx-auto p-3' : ''}`}>
+          <Header />          
+          <div className={`
+            flex-grow pt-20 pb-16 
+            ${isHomePage ? '' : isAuthPage ? 'flex' : 'container mx-auto p-3'}
+            `}
+          >
             {children}
-          </div>
-          
+          </div>          
           <Footer />
         </div>
         <GoogleAnalytics gaId="G-DZ9009HLES" />
