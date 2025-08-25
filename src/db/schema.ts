@@ -1,6 +1,18 @@
 import { sql, relations } from "drizzle-orm";
 import { int, sqliteTable, text, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 
+export const usersRelations = relations(users, ({ many }) => ({
+  subscriptions: many(subscriptions),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [subscriptions.userId],
+    references: [users.id],
+  }),
+}));
+import { int, sqliteTable, text, uniqueIndex, index } from "drizzle-orm/sqlite-core";
+
 export const users = sqliteTable("users", {
   id: int().primaryKey({ autoIncrement: true }),
   name: text().notNull(),
