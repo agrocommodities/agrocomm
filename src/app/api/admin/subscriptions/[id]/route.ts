@@ -1,15 +1,14 @@
-
 // src/app/api/admin/subscriptions/[id]/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { subscriptions } from '@/db/schema';
 import { getCurrentUser } from '@/lib/user';
 import { eq } from 'drizzle-orm';
 
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
-) {
+): Promise<NextResponse> {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser || currentUser.role !== 'admin') {
@@ -46,7 +45,7 @@ export async function PATCH(
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
-) {
+): Promise<NextResponse> {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser || currentUser.role !== 'admin') {
