@@ -73,9 +73,6 @@ export async function scrapeBoi() {
       const el = tr[idx]
       const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ').trim()
       
-      // Se a linha estiver vazia ou só tiver espaços, pular
-      if (!location && !currentState) continue
-
       let { state, city } = extractCityAndState(location)
       
       // Se não encontrou estado na linha atual, usar o estado anterior
@@ -204,12 +201,12 @@ export async function scrapeSoja() {
       const el = tr[idx]      
       let state = $(el).children().eq(0).text().replace(/(\s+)/g, ' ').trim()
       let city = $(el).children().eq(1).text().replace(/(\s+)/g, ' ').trim()
-      if (!state && !city) continue
+      const rawPrice = $(el).children().eq(2).text().replace(/(\s+)/g, ' ').trim()
+      if (!rawPrice) continue
+      
       if (!state && oldState) state = oldState
       else if (state) oldState = state
       if (!city) city = "N/A"      
-      const rawPrice = $(el).children().eq(2).text().replace(/(\s+)/g, ' ').trim()
-      if (!rawPrice) continue
 
       try {
         const price = stringToNumber(rawPrice)
@@ -219,7 +216,7 @@ export async function scrapeSoja() {
           data.push({ commodity: 'soja', state, city, price, date: createdAt.toString(), createdAt: createdAt.toString(), variation: 0 })
         }
       } catch (error) {
-        console.warn(`Erro ao processar preço da soja: ${location} - ${rawPrice}`, error)
+        console.warn(`Erro ao processar preço da soja: ${state}/${city} - ${rawPrice}`, error)
       }
     }
   }
@@ -252,17 +249,17 @@ export async function scrapeMilho() {
       // const location = $(el).children().eq(0).text().replace(/(\s+)/g, ' ').trim()
       let state = $(el).children().eq(0).text().replace(/(\s+)/g, ' ').trim()
       let city = $(el).children().eq(1).text().replace(/(\s+)/g, ' ').trim()
-      if (!state && !city) continue
+      const rawPrice = $(el).children().eq(2).text().replace(/(\s+)/g, ' ').trim()
+      if (!rawPrice) continue
+      
       if (!state && oldState) state = oldState
       else if (state) oldState = state
       if (!city) city = "N/A"      
-      const rawPrice = $(el).children().eq(2).text().replace(/(\s+)/g, ' ').trim()
-      if (!rawPrice) continue
 
       try {
         const price = stringToNumber(rawPrice)
 
-        if (typeof price === 'number' && !isNaN(price) && state) {
+        if (typeof price === 'number' && !Number.isNaN(price) && state) {
           // Validação de preço para milho (evitar valores absurdos)
           if (price < 1000 || price > 500000) {
             console.warn(`Preço suspeito de milho ignorado: ${city}/${state} - R$ ${price/100}`);
@@ -273,7 +270,7 @@ export async function scrapeMilho() {
           data.push({ commodity: 'milho', state, city, price, date: createdAt.toString(), createdAt: createdAt.toString(), variation: 0 })
         }
       } catch (error) {
-        console.warn(`Erro ao processar preço do milho: ${location} - ${rawPrice}`, error)
+        console.warn(`Erro ao processar preço do milho: ${state}/${city} - ${rawPrice}`, error)
       }
     }
   }
