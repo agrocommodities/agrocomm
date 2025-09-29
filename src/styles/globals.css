@@ -49,6 +49,107 @@ a:hover {
   border-radius: 4px;
 }
 
+/* Estilos específicos para planos de assinatura em MacBook Air 13" */
+@media (min-width: 1280px) and (max-width: 1440px) {
+  .plans-grid-macbook {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 0.75rem;
+    max-width: 1360px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+  
+  .plans-grid-macbook > div {
+    max-width: 280px;
+    width: 100%;
+  }
+
+  /* Para 4 planos em MacBook Air, forçar layout específico */
+  .plans-grid-macbook[data-plan-count="4"] {
+    grid-template-columns: repeat(4, minmax(250px, 1fr));
+    gap: 0.5rem;
+    padding: 0 1rem;
+  }
+
+  .plans-grid-macbook[data-plan-count="4"] > div {
+    max-width: 270px;
+  }
+
+  /* Para 3 planos em MacBook Air */
+  .plans-grid-macbook[data-plan-count="3"] {
+    grid-template-columns: repeat(3, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .plans-grid-macbook[data-plan-count="3"] > div {
+    max-width: 320px;
+  }
+
+  /* Para 2 planos em MacBook Air */
+  .plans-grid-macbook[data-plan-count="2"] {
+    grid-template-columns: repeat(2, minmax(350px, 1fr));
+    gap: 2rem;
+    justify-content: center;
+  }
+
+  .plans-grid-macbook[data-plan-count="2"] > div {
+    max-width: 400px;
+  }
+}
+
+/* Para MacBook Air 13" especificamente (1440x900) */
+@media (min-width: 1440px) and (max-width: 1440px) {
+  .plans-grid-macbook {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.5rem;
+    max-width: 1400px;
+    padding: 0 1rem;
+  }
+  
+  .plans-grid-macbook > div {
+    max-width: 270px;
+  }
+
+  .plans-grid-macbook[data-plan-count="4"] {
+    grid-template-columns: repeat(4, minmax(240px, 1fr));
+    gap: 0.25rem;
+  }
+
+  .plans-grid-macbook[data-plan-count="4"] > div {
+    max-width: 260px;
+  }
+}
+
+/* Para telas grandes (1440px+), usar o número exato de colunas baseado na quantidade de planos */
+@media (min-width: 1441px) {
+  .plans-grid-desktop {
+    display: grid;
+    gap: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  
+  .plans-grid-desktop[data-plan-count="1"] { 
+    grid-template-columns: repeat(1, minmax(0, 400px)); 
+    justify-content: center; 
+  }
+  .plans-grid-desktop[data-plan-count="2"] { 
+    grid-template-columns: repeat(2, minmax(0, 400px)); 
+    justify-content: center; 
+  }
+  .plans-grid-desktop[data-plan-count="3"] { 
+    grid-template-columns: repeat(3, minmax(0, 400px)); 
+    justify-content: center; 
+  }
+  .plans-grid-desktop[data-plan-count="4"] { 
+    grid-template-columns: repeat(4, minmax(0, 320px)); 
+  }
+  .plans-grid-desktop[data-plan-count="5"] { 
+    grid-template-columns: repeat(5, minmax(0, 280px)); 
+  }
+}
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.5);
 }
