@@ -38,14 +38,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="shortcut icon" href="/images/logo.svg" type="image/svg+xml" sizes="any" />
+        <link
+          rel="shortcut icon"
+          href="/images/logo.svg"
+          type="image/svg+xml"
+          sizes="any"
+        />
       </head>
       <body className={nunito.variable}>
         <div className="flex flex-col min-h-screen">
           <Header />
-          <main className="grow p-4">
-            {children}
-          </main>
+          <main className="grow p-4">{children}</main>
           <Footer />
         </div>
       </body>
