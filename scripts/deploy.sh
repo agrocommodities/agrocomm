@@ -14,9 +14,9 @@ git clean -fxd -e .env -e drizzle/agrocomm.db
 cp -f .env .env.production
 
 pnpm install
-pnpm run db:push
-pnpm run db:seed
-pnpm run db:scrape
+#pnpm run db:push
+#pnpm run db:seed
+#pnpm run db:scrape
 pnpm run build || exit 1
 
 sudo /usr/bin/systemctl stop $SERVICE
