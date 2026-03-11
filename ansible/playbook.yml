@@ -1,0 +1,120 @@
+---
+- name: Provisionar servidor AgroComm (Rocky Linux 9)
+  hosts: agrocomm
+  become: true
+
+  vars:
+    app_user: nginx
+    app_dir: /var/www/agrocomm
+    node_version: "24.14.0"
+
+  tasks:
+    # ── Dependências do sistema ──────────────────────────────────────────
+    - name: Instalar pacotes essenciais
+      dnf:
+        name:
+          - git
+          - curl
+          - nginx
+          - certbot
+          - python3-certbot-nginx
+        state: present
+
+    # ── Node.js via fnm ──────────────────────────────────────────────────
+    - name: Instalar fnm para o usuário {{ app_user }}
+      become_user: "{{ app_user }}"
+      shell: |
+        curl -fsSL https://fnm.vercel.app/install | bash
+      args:
+        creates: "/home/{{ app_user }}/.local/share/fnm"
+
+    - name: Instalar Node.js {{ node_version }}
+      become_user: "{{ app_user }}"
+      shell: |
+        export PATH="$HOME/.local/share/fnm:$PATH"
+        eval "$(fnm env)"
+        fnm install {{ node_version }}
+        fnm default {{ node_version }}
+      args:
+        creates: "/home/{{ app_user }}/.local/share/fnm/node-versions/v{{ node_version }}"
+
+    - name: Instalar pnpm via corepack
+      become_user: "{{ app_user }}"
+      shell: |
+        export PATH="$HOME/.local/share/fnm:$PATH"
+        eval "$(fnm env)"
+        corepack enable
+        corepack prepare pnpm@latest --activate
+      args:
+        creates: "/home/{{ app_user }}/.local/share/pnpm/pnpm"
+
+    # ── Diretório da aplicação ───────────────────────────────────────────
+    - name: Criar diretório da aplicação
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0755"
+
+    # ── Nginx ────────────────────────────────────────────────────────────
+    - name: Copiar configuração do Nginx
+      copy:
+        src: files/nginx/agrocomm.conf
+        dest: /etc/nginx/conf.d/agrocomm.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reiniciar nginx
+
+    - name: Habilitar e iniciar nginx
+      systemd:
+        name: nginx
+        enabled: true
+        state: started
+
+    # ── Systemd: serviço principal ───────────────────────────────────────
+    - name: Copiar agrocomm.service
+      copy:
+        src: files/systemd/agrocomm.service
+        dest: /etc/systemd/system/agrocomm.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Recarregar systemd
+
+    # ── Systemd: scraper ─────────────────────────────────────────────────
+    - name: Copiar agrocomm-scraper.service
+      copy:
+        src: files/systemd/agrocomm-scraper.service
+        dest: /etc/systemd/system/agrocomm-scraper.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Recarregar systemd
+
+    - name: Copiar agrocomm-scraper.timer
+      copy:
+        src: files/systemd/agrocomm-scraper.timer
+        dest: /etc/systemd/system/agrocomm-scraper.timer
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Recarregar systemd
+
+    - name: Habilitar timer do scraper
+      systemd:
+        name: agrocomm-scraper.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+
+  handlers:
+    - name: Reiniciar nginx
+      systemd:
+        name: nginx
+        state: restarted
+
+    - name: Recarregar systemd
+      systemd:
+        daemon_reload: true
