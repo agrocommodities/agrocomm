@@ -1,15 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
-import HeaderInner from "./HeaderInner";
 import { getSession } from "@/lib/auth";
 import { navLinks } from "@/config";
+import { logoutAction } from "@/actions/auth";
 
 export default async function Header() {
   const session = await getSession();
-  const links = navLinks.map((l) => ({ name: l.name, href: l.href }));
 
   return (
     <header className="sticky z-50 top-0 bg-alt-background border-b border-white/10">
+      {/* Top row: logo + user actions */}
       <div className="flex items-center justify-between gap-4 px-4 py-3 max-w-7xl mx-auto">
         <Link
           href="/"
@@ -19,14 +19,63 @@ export default async function Header() {
           AgroComm
         </Link>
 
-        {session && (
-          <span className="hidden md:block text-xs text-white/50 truncate">
-            Olá, {session.name.split(" ")[0]}
-          </span>
-        )}
+        {/* Desktop: nav links inline */}
+        <nav className="hidden md:flex items-center gap-6 flex-1">
+          {navLinks.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="text-sm font-medium hover:text-green-300 transition-colors"
+            >
+              {l.name}
+            </Link>
+          ))}
+        </nav>
 
-        <HeaderInner session={session} links={links} />
+        {/* User actions (desktop + mobile) */}
+        <div className="flex items-center gap-4 shrink-0">
+          {session ? (
+            <>
+              <Link
+                href="/ajustes"
+                className="text-sm font-medium hover:text-green-300 transition-colors"
+              >
+                Ajustes
+              </Link>
+              <form action={logoutAction}>
+                <button
+                  type="submit"
+                  className="text-sm font-medium hover:text-green-300 transition-colors cursor-pointer"
+                >
+                  Sair
+                </button>
+              </form>
+            </>
+          ) : (
+            <Link
+              href="/auth/login"
+              className="text-sm font-medium hover:text-green-300 transition-colors"
+            >
+              Entrar
+            </Link>
+          )}
+        </div>
       </div>
+
+      {/* Mobile: horizontal scrollable nav (hidden scrollbar) */}
+      <nav className="md:hidden overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-6 px-4 pb-3 min-w-max">
+          {navLinks.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="text-sm font-medium whitespace-nowrap hover:text-green-300 transition-colors"
+            >
+              {l.name}
+            </Link>
+          ))}
+        </div>
+      </nav>
     </header>
   );
 }

@@ -52,99 +52,125 @@ interface RawQuote {
   variation?: number;
 }
 
+// Mapa de nomes de região do Scot Consultoria → slugs do banco de dados.
+// Só inclui entradas com correspondência geográfica clara.
+const SCOT_REGION_MAP: Record<string, string> = {
+  "ms c. grande": "ms-campo-grande",
+  "ms dourados": "ms-dourados",
+  "mt cuiabá": "mt-cuiaba",
+  "mt cuiabá*": "mt-cuiaba",
+  "mt sudeste": "mt-rondonopolis",
+  "go goiânia": "go-goiania",
+  "mg triângulo": "mg-uberlandia",
+  "pr noroeste": "pr-maringa",
+};
+
 async function scrapeScotConsultoria(): Promise<RawQuote[]> {
-  const html = await fetchHtml(
-    "https://www.scotconsultoria.com.br/cotacoes/?ref=mnp",
-  );
-  const $ = cheerio.load(html);
-  const rows: RawQuote[] = [];
+  const results: RawQuote[] = [];
 
-  $("table.tabela-cotacao tbody tr").each((_, tr) => {
-    const cells = $(tr).find("td");
-    if (cells.length < 3) return;
-    const name = $(cells[0]).text().trim().toLowerCase();
-    const priceText = $(cells[1])
-      .text()
-      .replace(",", ".")
-      .replace(/[^\d.]/g, "");
-    const variationText = $(cells[2])
-      .text()
-      .replace(",", ".")
-      .replace(/[^\d.-]/g, "");
-    const price = parseFloat(priceText);
-    if (Number.isNaN(price)) return;
-    rows.push({
-      productSlug: name.includes("boi") ? "boi-gordo" : "vaca-gorda",
-      regionSlug: "sp",
-      price,
-      variation: parseFloat(variationText) || undefined,
+  for (const productSlug of ["boi-gordo", "vaca-gorda"]) {
+    const html = await fetchHtml(
+      `https://www.scotconsultoria.com.br/cotacoes/${productSlug}/`,
+    );
+    const $ = cheerio.load(html);
+
+    // Localiza a tabela "Mercado Físico" procurando pelo texto no thead
+    let targetTable: ReturnType<typeof $> | null = null;
+    $("table").each((_, table) => {
+      if ($(table).find("thead th").text().includes("Mercado F")) {
+        targetTable = $(table);
+        return false; // break
+      }
     });
-  });
+    if (!targetTable) continue;
 
-  return rows;
+    // biome-ignore lint/suspicious/noExplicitAny: cheerio type workaround
+    (targetTable as any).find("tr.conteudo").each((_: number, tr: any) => {
+      const cells = $(tr).find("td");
+      if (cells.length < 2) return;
+      const regionText = $(cells.eq(0)).text().trim().toLowerCase();
+      const priceText = $(cells.eq(1))
+        .text()
+        .replace(/,/g, ".")
+        .replace(/[^\d.]/g, "");
+      const price = parseFloat(priceText);
+      if (Number.isNaN(price)) return;
+      const regionSlug = SCOT_REGION_MAP[regionText];
+      if (!regionSlug) return;
+      results.push({ productSlug, regionSlug, price });
+    });
+  }
+
+  return results;
 }
+
+// Mapa cidade → slug do banco para o Notícias Agrícolas
+const NA_REGION_MAP: Record<string, string> = {
+  "campo grande": "ms-campo-grande",
+  dourados: "ms-dourados",
+  maringá: "pr-maringa",
+};
 
 async function scrapeNoticiasAgricolas(): Promise<RawQuote[]> {
-  const html = await fetchHtml(
-    "https://www.noticiasagricolas.com.br/cotacoes/soja/soja-mercado-fisico-ms",
-  );
-  const $ = cheerio.load(html);
-  const rows: RawQuote[] = [];
+  const results: RawQuote[] = [];
 
-  $("table.cot-fisicos tbody tr").each((_, tr) => {
-    const cells = $(tr).find("td");
-    if (cells.length < 2) return;
-    const regionText = $(cells[0]).text().trim().toLowerCase();
-    const priceText = $(cells[1])
-      .text()
-      .replace(",", ".")
-      .replace(/[^\d.]/g, "");
-    const price = parseFloat(priceText);
-    if (Number.isNaN(price)) return;
-    rows.push({ productSlug: "soja", regionSlug: slugify(regionText), price });
-  });
+  const pages = [
+    {
+      productSlug: "soja",
+      url: "https://www.noticiasagricolas.com.br/cotacoes/soja/soja-mercado-fisico-ms",
+    },
+    {
+      productSlug: "milho",
+      url: "https://www.noticiasagricolas.com.br/cotacoes/milho/milho-mercado-fisico-ms",
+    },
+  ];
 
-  return rows;
+  for (const { productSlug, url } of pages) {
+    const html = await fetchHtml(url);
+    const $ = cheerio.load(html);
+
+    // O site exibe várias tabelas (uma por dia); a primeira é a mais recente.
+    // Classe correta: "cot-fisicas" (e não "cot-fisicos")
+    const firstTable = $("table.cot-fisicas").first();
+    if (!firstTable.length) continue;
+
+    firstTable.find("tbody tr").each((_, tr) => {
+      const cells = $(tr).find("td");
+      if (cells.length < 2) return;
+      const regionText = $(cells.eq(0)).text().trim().toLowerCase();
+      const priceText = $(cells.eq(1))
+        .text()
+        .replace(/,/g, ".")
+        .replace(/[^\d.]/g, "");
+      const price = parseFloat(priceText);
+      if (Number.isNaN(price)) return;
+      const regionSlug = NA_REGION_MAP[regionText];
+      if (!regionSlug) return;
+
+      let variation: number | undefined;
+      if (cells.length > 2) {
+        const varText = $(cells.eq(2))
+          .text()
+          .replace(/,/g, ".")
+          .replace(/[^\d.+-]/g, "");
+        const parsed = parseFloat(varText);
+        if (!Number.isNaN(parsed)) variation = parsed;
+      }
+
+      results.push({ productSlug, regionSlug, price, variation });
+    });
+  }
+
+  return results;
 }
 
-async function scrapeAgrolink(): Promise<RawQuote[]> {
-  const html = await fetchHtml(
-    "https://www.agrolink.com.br/cotacoes/graos/soja",
-  );
-  const $ = cheerio.load(html);
-  const rows: RawQuote[] = [];
+// ── Orquestração ────────────────────────────────────────────────────
 
-  $("table tbody tr").each((_, tr) => {
-    const cells = $(tr).find("td");
-    if (cells.length < 2) return;
-    const regionText = $(cells[0]).text().trim();
-    const priceText = $(cells[1])
-      .text()
-      .replace(",", ".")
-      .replace(/[^\d.]/g, "");
-    const price = parseFloat(priceText);
-    if (Number.isNaN(price)) return;
-    rows.push({ productSlug: "soja", regionSlug: slugify(regionText), price });
-  });
-
-  return rows;
-}
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-// ── Orquestração ──────────────────────────────────────────────────────────────
-
+// Agrolink exibe preços via sprites CSS — não scrapeable com HTML parser.
+// A fonte deve estar marcada como inativa (active = 0) no banco de dados.
 const SCRAPERS: Record<string, () => Promise<RawQuote[]>> = {
   scotconsultoria: scrapeScotConsultoria,
   noticiasagricolas: scrapeNoticiasAgricolas,
-  agrolink: scrapeAgrolink,
 };
 
 async function persistQuotes(
@@ -169,9 +195,10 @@ async function persistQuotes(
       .limit(1);
     if (!region) continue;
 
-    // Evitar duplicatas para o mesmo produto/região/fonte/data
+    // Evitar duplicatas para o mesmo produto/região/fonte/data.
+    // Se já existir (ex.: dado antigo do seed), atualiza com o preço real.
     const [existing] = await db
-      .select()
+      .select({ id: quotes.id })
       .from(quotes)
       .where(
         and(
@@ -183,16 +210,21 @@ async function persistQuotes(
       )
       .limit(1);
 
-    if (existing) continue;
-
-    await db.insert(quotes).values({
-      productId: product.id,
-      regionId: region.id,
-      sourceId,
-      price: row.price,
-      variation: row.variation,
-      quoteDate: dateStr,
-    });
+    if (existing) {
+      await db
+        .update(quotes)
+        .set({ price: row.price, variation: row.variation ?? null })
+        .where(eq(quotes.id, existing.id));
+    } else {
+      await db.insert(quotes).values({
+        productId: product.id,
+        regionId: region.id,
+        sourceId,
+        price: row.price,
+        variation: row.variation,
+        quoteDate: dateStr,
+      });
+    }
     inserted++;
   }
 
@@ -224,7 +256,7 @@ async function main() {
       console.log(`[${source.slug}] Iniciando scraping…`);
       const rows = await scraper();
       const inserted = await persistQuotes(rows, source.id, dateStr);
-      console.log(`[${source.slug}] ${inserted} cotações inseridas.`);
+      console.log(`[${source.slug}] ${inserted} cotações processadas.`);
 
       await db.insert(scraperLogs).values({
         sourceId: source.id,
