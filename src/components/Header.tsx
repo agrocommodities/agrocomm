@@ -36,6 +36,14 @@ export default async function Header() {
         <div className="flex items-center gap-4 shrink-0">
           {session ? (
             <>
+              {session.role === "admin" && (
+                <Link
+                  href="/admin"
+                  className="text-sm font-medium text-green-400 hover:text-green-300 transition-colors"
+                >
+                  Admin
+                </Link>
+              )}
               <Link
                 href="/ajustes"
                 className="text-sm font-medium hover:text-green-300 transition-colors"

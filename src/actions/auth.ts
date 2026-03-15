@@ -48,6 +48,7 @@ export async function loginAction(
     userId: user.id,
     email: user.email,
     name: user.name,
+    role: user.role,
   });
   await setSessionCookie(token);
   redirect("/");
@@ -83,7 +84,12 @@ export async function registerAction(
     .values({ name, email, passwordHash })
     .returning({ id: users.id });
 
-  const token = await signSession({ userId: newUser.id, email, name });
+  const token = await signSession({
+    userId: newUser.id,
+    email,
+    name,
+    role: "user",
+  });
   await setSessionCookie(token);
   redirect("/");
 }
@@ -147,7 +153,12 @@ export async function updateProfileAction(
 
   await db.update(users).set(updates).where(eq(users.id, session.userId));
 
-  const token = await signSession({ userId: session.userId, email, name });
+  const token = await signSession({
+    userId: session.userId,
+    email,
+    name,
+    role: user.role,
+  });
   await setSessionCookie(token);
 
   return { success: true };

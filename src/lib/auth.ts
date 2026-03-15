@@ -9,6 +9,7 @@ export interface SessionPayload {
   userId: number;
   email: string;
   name: string;
+  role: string;
 }
 
 export async function signSession(payload: SessionPayload): Promise<string> {

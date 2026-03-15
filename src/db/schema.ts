@@ -8,6 +8,7 @@ export const users = sqliteTable("users", {
   name: text().notNull(),
   email: text().notNull().unique(),
   passwordHash: text("password_hash").notNull(),
+  role: text().notNull().default("user"), // "user" | "admin"
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 
@@ -87,4 +88,14 @@ export const scraperLogs = sqliteTable("scraper_logs", {
   quotesInserted: int("quotes_inserted").default(0),
   errorMessage: text("error_message"),
   executedAt: text("executed_at").notNull().default(sql`(datetime('now'))`),
+});
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+
+export const pageViews = sqliteTable("page_views", {
+  id: int().primaryKey({ autoIncrement: true }),
+  path: text().notNull(),
+  referrer: text(),
+  sessionId: text("session_id"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });

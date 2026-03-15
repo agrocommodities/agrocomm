@@ -1,8 +1,12 @@
 import { Nunito } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import PageTracker from "@/components/PageTracker";
 import type { Metadata } from "next";
 import "./globals.css";
+
+const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 const nunito = Nunito({
   subsets: ["latin"],
@@ -47,12 +51,14 @@ export default function RootLayout({
         />
       </head>
       <body className={nunito.variable}>
+        <PageTracker />
         <div className="flex flex-col min-h-screen">
           <Header />
           <main className="grow p-4">{children}</main>
           <Footer />
         </div>
       </body>
+      {gaId && <GoogleAnalytics gaId={gaId} />}
     </html>
   );
 }
