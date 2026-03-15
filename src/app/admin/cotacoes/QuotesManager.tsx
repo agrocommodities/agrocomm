@@ -2,14 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { deleteQuoteAction, createQuoteAction } from "@/actions/admin";
+import { Plus, Trash2, X, ChevronLeft, ChevronRight, Scissors } from "lucide-react";
+import { deleteQuoteAction, createQuoteAction, pruneQuotesAction, pruneAllQuotesAction } from "@/actions/admin";
 
 interface QuoteRow {
   id: number;
   productName: string;
   productSlug: string;
-  regionName: string;
+  cityName: string;
   state: string;
   sourceName: string;
   price: number;
@@ -19,7 +19,7 @@ interface QuoteRow {
 
 interface FormOptions {
   allProducts: { id: number; name: string; slug: string }[];
-  allRegions: { id: number; name: string; state: string }[];
+  allCities: { id: number; name: string; state: string }[];
   allSources: { id: number; name: string }[];
 }
 
@@ -46,6 +46,9 @@ export default function QuotesManager({
   currentProduct,
 }: Props) {
   const [showForm, setShowForm] = useState(false);
+  const [showPrune, setShowPrune] = useState(false);
+  const [pruneDate, setPruneDate] = useState(new Date().toISOString().slice(0, 10));
+  const [pruneResult, setPruneResult] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -68,6 +71,27 @@ export default function QuotesManager({
         setError(result.error);
       } else {
         setShowForm(false);
+        router.refresh();
+      }
+    });
+  }
+
+  function handlePruneAll() {
+    if (!confirm("Tem certeza? Isso vai apagar TODAS as cotações de TODAS as datas. Esta ação é irreversível.")) return;
+    startTransition(async () => {
+      const result = await pruneAllQuotesAction();
+      setPruneResult(`${result.deleted ?? 0} cotações removidas (total).`);
+      router.refresh();
+    });
+  }
+
+  function handlePrune() {
+    startTransition(async () => {
+      const result = await pruneQuotesAction(pruneDate);
+      if (result.error) {
+        setPruneResult(`Erro: ${result.error}`);
+      } else {
+        setPruneResult(`${result.deleted ?? 0} cotações removidas.`);
         router.refresh();
       }
     });
@@ -104,15 +128,75 @@ export default function QuotesManager({
             ))}
           </select>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
-        >
-          {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-          {showForm ? "Cancelar" : "Nova Cotação"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => { setShowPrune(!showPrune); setShowForm(false); setPruneResult(null); }}
+            className="flex items-center gap-2 bg-red-700 hover:bg-red-600 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+          >
+            <Scissors className="w-4 h-4" />
+            Prune
+          </button>
+          <button
+            type="button"
+            onClick={() => { setShowForm(!showForm); setShowPrune(false); }}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+          >
+            {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            {showForm ? "Cancelar" : "Nova Cotação"}
+          </button>
+        </div>
       </div>
+
+      {/* Prune panel */}
+      {showPrune && (
+        <div className="bg-red-950/40 border border-red-500/20 rounded-2xl p-5 flex flex-col gap-4">
+          <div>
+            <h3 className="font-semibold text-red-300">Remover cotações por data</h3>
+            <p className="text-xs text-white/50 mt-1">
+              Apaga todas as cotações da data selecionada. Use para limpar um dia com dados incompletos antes de re-executar o scraping.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="pruneDate" className="text-xs text-white/60">Data</label>
+              <input
+                id="pruneDate"
+                type="date"
+                value={pruneDate}
+                onChange={(e) => { setPruneDate(e.target.value); setPruneResult(null); }}
+                className={inputClass}
+              />
+            </div>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={handlePrune}
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-500 disabled:opacity-60 text-white font-semibold text-sm px-5 py-2 rounded-lg transition-colors"
+            >
+              <Scissors className="w-4 h-4" />
+              {isPending ? "Removendo…" : "Confirmar Prune"}
+            </button>
+          </div>
+          <div className="border-t border-red-500/20 pt-4">
+            <p className="text-xs text-white/50 mb-3">Ou apague o banco de cotações inteiro:</p>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={handlePruneAll}
+              className="flex items-center gap-2 bg-red-900 hover:bg-red-800 disabled:opacity-60 text-red-300 font-semibold text-sm px-5 py-2 rounded-lg border border-red-500/30 transition-colors"
+            >
+              <Scissors className="w-4 h-4" />
+              {isPending ? "Removendo…" : "Prune Total (todas as datas)"}
+            </button>
+          </div>
+          {pruneResult && (
+            <p className="text-sm text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5">
+              {pruneResult}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Create form */}
       {showForm && (
@@ -141,19 +225,19 @@ export default function QuotesManager({
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="regionId" className="text-xs text-white/60">
-                Região *
+              <label htmlFor="cityId" className="text-xs text-white/60">
+                Cidade *
               </label>
               <select
-                id="regionId"
-                name="regionId"
+                id="cityId"
+                name="cityId"
                 required
                 className={inputClass}
               >
                 <option value="">Selecione</option>
-                {formOptions.allRegions.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.state} — {r.name}
+                {formOptions.allCities.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.state} — {c.name}
                   </option>
                 ))}
               </select>
@@ -259,7 +343,7 @@ export default function QuotesManager({
                   >
                     <td className="px-5 py-3 font-medium">{row.productName}</td>
                     <td className="px-5 py-3 text-white/60 hidden sm:table-cell">
-                      {row.state} — {row.regionName}
+                      {row.state} — {row.cityName}
                     </td>
                     <td className="px-5 py-3 text-white/60 hidden md:table-cell">
                       {row.sourceName}

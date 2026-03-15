@@ -1,5 +1,5 @@
 import { int, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { sql } from "drizzle-orm";
+import { sql, relations } from "drizzle-orm";
 
 // ── Autenticação ──────────────────────────────────────────────────────────────
 
@@ -22,6 +22,32 @@ export const refreshTokens = sqliteTable("refresh_tokens", {
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 
+// ── Localização ───────────────────────────────────────────────────────────────
+
+export const states = sqliteTable("states", {
+  id: int().primaryKey({ autoIncrement: true }),
+  code: text().notNull().unique(), // ex: "MS", "MT"
+  name: text().notNull(),          // ex: "Mato Grosso do Sul"
+});
+
+export const cities = sqliteTable("cities", {
+  id: int().primaryKey({ autoIncrement: true }),
+  stateId: int("state_id")
+    .notNull()
+    .references(() => states.id, { onDelete: "cascade" }),
+  name: text().notNull(), // ex: "Campo Grande"
+  slug: text().notNull().unique(), // ex: "ms-campo-grande"
+});
+
+export const statesRelations = relations(states, ({ many }) => ({
+  cities: many(cities),
+}));
+
+export const citiesRelations = relations(cities, ({ one, many }) => ({
+  state: one(states, { fields: [cities.stateId], references: [states.id] }),
+  quotes: many(quotes),
+}));
+
 // ── Cotações ──────────────────────────────────────────────────────────────────
 
 /**
@@ -33,17 +59,6 @@ export const products = sqliteTable("products", {
   name: text().notNull(), // ex: "Soja", "Boi Gordo"
   category: text().notNull(), // ex: "graos", "pecuaria"
   unit: text().notNull(), // ex: "R$/saca 60kg", "R$/arroba"
-});
-
-/**
- * Regiões de referência das cotações (Estado + Cidade de referência)
- */
-export const regions = sqliteTable("regions", {
-  id: int().primaryKey({ autoIncrement: true }),
-  slug: text().notNull().unique(), // ex: "ms-campo-grande"
-  name: text().notNull(), // ex: "Campo Grande"
-  state: text().notNull(), // ex: "MS"
-  city: text().notNull(), // ex: "Campo Grande"
 });
 
 /**
@@ -66,9 +81,9 @@ export const quotes = sqliteTable("quotes", {
   productId: int("product_id")
     .notNull()
     .references(() => products.id),
-  regionId: int("region_id")
+  cityId: int("city_id")
     .notNull()
-    .references(() => regions.id),
+    .references(() => cities.id),
   sourceId: int("source_id")
     .notNull()
     .references(() => sources.id),
@@ -77,6 +92,12 @@ export const quotes = sqliteTable("quotes", {
   quoteDate: text("quote_date").notNull(), // "YYYY-MM-DD"
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
+
+export const quotesRelations = relations(quotes, ({ one }) => ({
+  product: one(products, { fields: [quotes.productId], references: [products.id] }),
+  city: one(cities, { fields: [quotes.cityId], references: [cities.id] }),
+  source: one(sources, { fields: [quotes.sourceId], references: [sources.id] }),
+}));
 
 /**
  * Log de execuções do scraper (para monitoramento)
@@ -88,6 +109,24 @@ export const scraperLogs = sqliteTable("scraper_logs", {
   quotesInserted: int("quotes_inserted").default(0),
   errorMessage: text("error_message"),
   executedAt: text("executed_at").notNull().default(sql`(datetime('now'))`),
+});
+
+// ── Notícias ──────────────────────────────────────────────────────────────────
+
+/**
+ * Artigos de notícias agropecuárias coletados via scraping
+ */
+export const newsArticles = sqliteTable("news_articles", {
+  id: int().primaryKey({ autoIncrement: true }),
+  title: text().notNull(),
+  slug: text().notNull().unique(),
+  excerpt: text().notNull(),
+  imageUrl: text("image_url"),
+  sourceUrl: text("source_url").notNull(),
+  sourceName: text("source_name").notNull(),
+  category: text().notNull().default("geral"), // "geral" | "pecuaria" | "graos" | "clima"
+  publishedAt: text("published_at").notNull(),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 
 // ── Analytics ─────────────────────────────────────────────────────────────────

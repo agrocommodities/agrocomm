@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProductQuotes } from "@/actions/quotes";
+import { getProductQuotes, getStatesForProduct, getCitiesForProduct } from "@/actions/quotes";
 import QuoteChart from "@/components/QuoteChart";
+import LocationPriceSelector from "@/components/LocationPriceSelector";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
 export const revalidate = 300;
@@ -73,7 +74,19 @@ export default async function ProdutoPage({
   const meta = PRODUCT_META[produto];
   if (!meta) notFound();
 
-  const { today, history } = await getProductQuotes(produto);
+  const [{ today, cityHistories }, allStates] = await Promise.all([
+    getProductQuotes(produto),
+    getStatesForProduct(produto),
+  ]);
+
+  // Build citiesByState map for the selector (only fetch for each distinct state)
+  const citiesByState: Record<string, { id: number; name: string; slug: string }[]> = {};
+  await Promise.all(
+    allStates.map(async (s) => {
+      citiesByState[s.code] = await getCitiesForProduct(produto, s.code);
+    }),
+  );
+
   const unit = today[0]?.unit ?? "";
 
   const avgPrice = today.length
@@ -88,7 +101,7 @@ export default async function ProdutoPage({
     : null;
 
   return (
-    <main className="max-w-7xl mx-auto px-4 py-10 flex flex-col gap-8">
+    <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col gap-6">
       {/* Breadcrumb + header */}
       <div>
         <p className="text-sm text-white/40 mb-1">
@@ -110,6 +123,15 @@ export default async function ProdutoPage({
         </h1>
         {unit && <p className="text-white/50 text-sm mt-0.5">{unit}</p>}
       </div>
+
+      {/* Location + price selector */}
+      <LocationPriceSelector
+        todayQuotes={today}
+        cityHistories={cityHistories}
+        allStates={allStates}
+        citiesByState={citiesByState}
+        unit={unit}
+      />
 
       {/* Summary cards */}
       {avgPrice !== null && (
@@ -146,9 +168,9 @@ export default async function ProdutoPage({
       {/* Historical chart */}
       <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
         <h2 className="font-semibold text-sm text-white/70 mb-4">
-          Evolução — últimos 30 dias (média nacional)
+          Evolução — últimos 30 dias por praça
         </h2>
-        <QuoteChart data={history} unit={unit} />
+        <QuoteChart lines={cityHistories} unit={unit} />
       </div>
 
       {/* Today's table */}

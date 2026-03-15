@@ -8,7 +8,7 @@ import { users } from "@/db/schema";
 import { signSession } from "@/lib/auth";
 import { hashPassword, verifyPassword } from "@/lib/password";
 
-type AuthState = { error: string } | null;
+type AuthState = { error: string; fields?: Record<string, string> } | null;
 type ProfileState = { error?: string; success?: boolean } | null;
 
 async function setSessionCookie(token: string) {
@@ -30,8 +30,9 @@ export async function loginAction(
     .trim()
     .toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const fields = { email };
 
-  if (!email || !password) return { error: "Preencha todos os campos." };
+  if (!email || !password) return { error: "Preencha todos os campos.", fields };
 
   const [user] = await db
     .select()
@@ -39,10 +40,10 @@ export async function loginAction(
     .where(eq(users.email, email))
     .limit(1);
 
-  if (!user) return { error: "E-mail ou senha inválidos." };
+  if (!user) return { error: "E-mail ou senha inválidos.", fields };
 
   const valid = await verifyPassword(user.passwordHash, password);
-  if (!valid) return { error: "E-mail ou senha inválidos." };
+  if (!valid) return { error: "E-mail ou senha inválidos.", fields };
 
   const token = await signSession({
     userId: user.id,
@@ -64,19 +65,20 @@ export async function registerAction(
     .toLowerCase();
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
+  const fields = { name, email };
 
   if (!name || !email || !password)
-    return { error: "Preencha todos os campos." };
+    return { error: "Preencha todos os campos.", fields };
   if (password.length < 8)
-    return { error: "A senha deve ter no mínimo 8 caracteres." };
-  if (password !== confirm) return { error: "As senhas não coincidem." };
+    return { error: "A senha deve ter no mínimo 8 caracteres.", fields };
+  if (password !== confirm) return { error: "As senhas não coincidem.", fields };
 
   const [existing] = await db
     .select({ id: users.id })
     .from(users)
     .where(eq(users.email, email))
     .limit(1);
-  if (existing) return { error: "Este e-mail já está cadastrado." };
+  if (existing) return { error: "Este e-mail já está cadastrado.", fields };
 
   const passwordHash = await hashPassword(password);
   const [newUser] = await db

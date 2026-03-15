@@ -1,7 +1,8 @@
 import "dotenv/config";
 import { drizzle } from "drizzle-orm/libsql";
+import { eq } from "drizzle-orm";
 import { hashPassword } from "../lib/password";
-import { products, regions, sources, users } from "./schema";
+import { products, states, cities, sources, users } from "./schema";
 
 const db = drizzle(process.env.DB_FILE_NAME!);
 
@@ -23,37 +24,89 @@ const PRODUCTS = [
   { slug: "feijao", name: "Feijão", category: "graos", unit: "R$/saca 60kg" },
 ];
 
-const REGIONS = [
-  {
-    slug: "ms-campo-grande",
-    name: "Campo Grande",
-    state: "MS",
-    city: "Campo Grande",
-  },
-  { slug: "ms-dourados", name: "Dourados", state: "MS", city: "Dourados" },
-  { slug: "mt-cuiaba", name: "Cuiabá", state: "MT", city: "Cuiabá" },
-  {
-    slug: "mt-rondonopolis",
-    name: "Rondonópolis",
-    state: "MT",
-    city: "Rondonópolis",
-  },
-  { slug: "pr-curitiba", name: "Curitiba", state: "PR", city: "Curitiba" },
-  { slug: "pr-maringa", name: "Maringá", state: "PR", city: "Maringá" },
-  { slug: "sp-sao-paulo", name: "São Paulo", state: "SP", city: "São Paulo" },
-  {
-    slug: "sp-ribeirao-preto",
-    name: "Ribeirão Preto",
-    state: "SP",
-    city: "Ribeirão Preto",
-  },
-  { slug: "go-goiania", name: "Goiânia", state: "GO", city: "Goiânia" },
-  {
-    slug: "mg-uberlandia",
-    name: "Uberlândia",
-    state: "MG",
-    city: "Uberlândia",
-  },
+const STATES = [
+  { code: "MS", name: "Mato Grosso do Sul" },
+  { code: "MT", name: "Mato Grosso" },
+  { code: "GO", name: "Goiás" },
+  { code: "MG", name: "Minas Gerais" },
+  { code: "SP", name: "São Paulo" },
+  { code: "PR", name: "Paraná" },
+  { code: "RS", name: "Rio Grande do Sul" },
+  { code: "SC", name: "Santa Catarina" },
+  { code: "TO", name: "Tocantins" },
+  { code: "PA", name: "Pará" },
+  { code: "BA", name: "Bahia" },
+  { code: "MA", name: "Maranhão" },
+  { code: "RO", name: "Rondônia" },
+];
+
+// Cities: [stateCode, cityName, slug]
+const CITIES: [string, string, string][] = [
+  // Mato Grosso do Sul
+  ["MS", "Campo Grande",  "ms-campo-grande"],
+  ["MS", "Dourados",      "ms-dourados"],
+  ["MS", "Três Lagoas",   "ms-tres-lagoas"],
+  ["MS", "Maracaju",      "ms-maracaju"],
+  ["MS", "Rio Brilhante", "ms-rio-brilhante"],
+  // Mato Grosso
+  ["MT", "Cuiabá",             "mt-cuiaba"],
+  ["MT", "Rondonópolis",       "mt-rondonopolis"],
+  ["MT", "Sorriso",            "mt-sorriso"],
+  ["MT", "Sinop",              "mt-sinop"],
+  ["MT", "Lucas do Rio Verde", "mt-lucas-rio-verde"],
+  ["MT", "Campo Verde",        "mt-campo-verde"],
+  ["MT", "Nova Mutum",         "mt-nova-mutum"],
+  // Goiás
+  ["GO", "Goiânia",   "go-goiania"],
+  ["GO", "Rio Verde", "go-rio-verde"],
+  ["GO", "Jataí",     "go-jatai"],
+  // Minas Gerais
+  ["MG", "Uberlândia",     "mg-uberlandia"],
+  ["MG", "Uberaba",        "mg-uberaba"],
+  ["MG", "Patos de Minas", "mg-patos-de-minas"],
+  ["MG", "Sete Lagoas",    "mg-sete-lagoas"],
+  // São Paulo
+  ["SP", "São Paulo",             "sp-sao-paulo"],
+  ["SP", "Ribeirão Preto",        "sp-ribeirao-preto"],
+  ["SP", "Barretos",              "sp-barretos"],
+  ["SP", "Araçatuba",             "sp-aracatuba"],
+  ["SP", "Presidente Prudente",   "sp-presidente-prudente"],
+  ["SP", "São José do Rio Preto", "sp-sao-jose-rio-preto"],
+  ["SP", "Campinas",              "sp-campinas"],
+  // Paraná
+  ["PR", "Curitiba",     "pr-curitiba"],
+  ["PR", "Maringá",      "pr-maringa"],
+  ["PR", "Cascavel",     "pr-cascavel"],
+  ["PR", "Londrina",     "pr-londrina"],
+  ["PR", "Ponta Grossa", "pr-ponta-grossa"],
+  ["PR", "Paranaguá",    "pr-paranagua"],
+  // Rio Grande do Sul
+  ["RS", "Porto Alegre", "rs-porto-alegre"],
+  ["RS", "Passo Fundo",  "rs-passo-fundo"],
+  ["RS", "Cruz Alta",    "rs-cruz-alta"],
+  ["RS", "Santa Rosa",   "rs-santa-rosa"],
+  ["RS", "Ijuí",         "rs-ijui"],
+  // Santa Catarina
+  ["SC", "Chapecó", "sc-chapeco"],
+  ["SC", "Xanxerê", "sc-xanxere"],
+  ["SC", "Lages",   "sc-lages"],
+  // Tocantins
+  ["TO", "Araguaína",    "to-araguaina"],
+  ["TO", "Palmas",       "to-palmas"],
+  ["TO", "Gurupi",       "to-gurupi"],
+  ["TO", "Pedro Afonso", "to-pedro-afonso"],
+  // Pará
+  ["PA", "Santarém",    "pa-santarem"],
+  ["PA", "Paragominas", "pa-paragominas"],
+  ["PA", "Marabá",      "pa-maraba"],
+  // Bahia
+  ["BA", "Barreiras",              "ba-barreiras"],
+  ["BA", "Luís Eduardo Magalhães", "ba-luiz-eduardo"],
+  // Maranhão
+  ["MA", "Balsas", "ma-balsas"],
+  // Rondônia
+  ["RO", "Vilhena",   "ro-vilhena"],
+  ["RO", "Ji-Paraná", "ro-ji-parana"],
 ];
 
 const SOURCES = [
@@ -103,9 +156,23 @@ async function main() {
     await db.insert(products).values(p).onConflictDoNothing();
   }
 
-  console.log("Seeding regions…");
-  for (const r of REGIONS) {
-    await db.insert(regions).values(r).onConflictDoNothing();
+  console.log("Seeding states…");
+  for (const s of STATES) {
+    await db.insert(states).values(s).onConflictDoNothing();
+  }
+
+  console.log("Seeding cities…");
+  for (const [stateCode, cityName, slug] of CITIES) {
+    const [stateRow] = await db
+      .select({ id: states.id })
+      .from(states)
+      .where(eq(states.code, stateCode))
+      .limit(1);
+    if (!stateRow) continue;
+    await db
+      .insert(cities)
+      .values({ stateId: stateRow.id, name: cityName, slug })
+      .onConflictDoNothing();
   }
 
   console.log("Seeding sources…");

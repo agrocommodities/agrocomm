@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { X, TrendingUp, TrendingDown } from "lucide-react";
 import QuoteChart from "./QuoteChart";
-import { getQuoteHistory } from "@/actions/quotes";
-import type { QuoteRow, HistoryPoint } from "@/actions/quotes";
+import { getProductCityHistories } from "@/actions/quotes";
+import type { QuoteRow, CityLine } from "@/actions/quotes";
 
 interface Props {
   quotes: QuoteRow[];
@@ -35,20 +35,20 @@ function VariationBadge({ value }: { value: number | null }) {
 
 export default function CommoditiesTableClient({ quotes, title }: Props) {
   const [selected, setSelected] = useState<QuoteRow | null>(null);
-  const [history, setHistory] = useState<HistoryPoint[]>([]);
+  const [cityLines, setCityLines] = useState<CityLine[]>([]);
   const [isPending, startTransition] = useTransition();
 
   function handleRowClick(row: QuoteRow) {
     setSelected(row);
     startTransition(async () => {
-      const data = await getQuoteHistory(row.productSlug, row.state);
-      setHistory(data);
+      const data = await getProductCityHistories(row.productSlug);
+      setCityLines(data);
     });
   }
 
   function closeModal() {
     setSelected(null);
-    setHistory([]);
+    setCityLines([]);
   }
 
   return (
@@ -118,7 +118,7 @@ export default function CommoditiesTableClient({ quotes, title }: Props) {
             role="dialog"
             aria-modal="true"
             aria-label={selected.productName}
-            className="relative z-10 w-full max-w-xl bg-[#1a2218] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            className="relative z-10 w-full max-w-2xl bg-[#1a2218] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
           >
             {/* Modal header */}
             <div className="flex items-start justify-between px-6 py-5 border-b border-white/10">
@@ -127,7 +127,11 @@ export default function CommoditiesTableClient({ quotes, title }: Props) {
                   {selected.productName}
                 </h3>
                 <p className="text-sm text-white/50 mt-0.5">
-                  {selected.city} — {selected.state} · {selected.unit}
+                  <span className="text-green-400 font-medium">
+                    {selected.city} — {selected.state}
+                  </span>
+                  {" · "}
+                  {selected.unit}
                 </p>
               </div>
               <button
@@ -152,13 +156,24 @@ export default function CommoditiesTableClient({ quotes, title }: Props) {
 
             {/* Chart */}
             <div className="px-4 pt-4 pb-6">
-              <p className="text-xs text-white/40 px-2 mb-3">Últimos 30 dias</p>
+              <p className="text-xs text-white/40 px-2 mb-3">
+                Últimos 30 dias — todas as praças
+                {cityLines.length > 1 && (
+                  <span className="ml-1 text-green-400/70">
+                    (cidade em destaque: {selected.city}/{selected.state})
+                  </span>
+                )}
+              </p>
               {isPending ? (
                 <div className="flex items-center justify-center h-48 text-white/30 text-sm">
                   Carregando…
                 </div>
               ) : (
-                <QuoteChart data={history} unit={selected.unit} />
+                <QuoteChart
+                  lines={cityLines}
+                  unit={selected.unit}
+                  highlightCityId={selected.cityId}
+                />
               )}
             </div>
           </div>
@@ -167,3 +182,4 @@ export default function CommoditiesTableClient({ quotes, title }: Props) {
     </>
   );
 }
+

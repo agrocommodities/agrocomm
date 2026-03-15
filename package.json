@@ -6,9 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -p 4000",
-    "db:push": "drizzle-kit push",
-    "db:seed": "tsx src/db/seed.ts",
-    "db:scrape": "tsx src/db/scrape.ts",
+    "push": "drizzle-kit push",
+    "seed": "tsx src/db/seed.ts",
+    "reset": "rm -f drizzle/agrocomm.db && pnpm run push && pnpm run seed && pnpm run scrape",
+    "scrape": "tsx src/db/scrape.ts",
     "check": "tsc --noEmit",
     "lint": "biome check",
     "format": "biome format --write"

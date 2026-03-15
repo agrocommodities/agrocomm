@@ -5,7 +5,8 @@ import {
   users,
   quotes,
   products,
-  regions,
+  cities,
+  states,
   sources,
   scraperLogs,
   pageViews,
@@ -79,8 +80,8 @@ export async function getAdminQuotes(page = 1, productFilter?: string) {
       id: quotes.id,
       productName: products.name,
       productSlug: products.slug,
-      regionName: regions.name,
-      state: regions.state,
+      cityName: cities.name,
+      state: states.code,
       sourceName: sources.name,
       price: quotes.price,
       variation: quotes.variation,
@@ -88,10 +89,11 @@ export async function getAdminQuotes(page = 1, productFilter?: string) {
     })
     .from(quotes)
     .innerJoin(products, eq(quotes.productId, products.id))
-    .innerJoin(regions, eq(quotes.regionId, regions.id))
+    .innerJoin(cities, eq(quotes.cityId, cities.id))
+    .innerJoin(states, eq(cities.stateId, states.id))
     .innerJoin(sources, eq(quotes.sourceId, sources.id))
     .where(conditions)
-    .orderBy(desc(quotes.quoteDate), products.name, regions.state)
+    .orderBy(desc(quotes.quoteDate), products.name, states.code)
     .limit(limit)
     .offset(offset);
 
@@ -115,11 +117,31 @@ export async function deleteQuoteAction(id: number) {
   return { success: true };
 }
 
+export async function pruneAllQuotesAction() {
+  await requireAdmin();
+  const result = await db.delete(quotes);
+  return { success: true, deleted: result.rowsAffected ?? 0 };
+}
+
+export async function pruneQuotesAction(date: string) {
+  await requireAdmin();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return { error: "Data inválida." };
+  }
+
+  const result = await db
+    .delete(quotes)
+    .where(eq(quotes.quoteDate, date));
+
+  return { success: true, deleted: result.rowsAffected ?? 0 };
+}
+
 export async function createQuoteAction(formData: FormData) {
   await requireAdmin();
 
   const productId = Number(formData.get("productId"));
-  const regionId = Number(formData.get("regionId"));
+  const cityId = Number(formData.get("cityId"));
   const sourceId = Number(formData.get("sourceId"));
   const price = Number(formData.get("price"));
   const variation = formData.get("variation")
@@ -127,13 +149,13 @@ export async function createQuoteAction(formData: FormData) {
     : null;
   const quoteDate = String(formData.get("quoteDate") ?? "");
 
-  if (!productId || !regionId || !sourceId || !price || !quoteDate) {
+  if (!productId || !cityId || !sourceId || !price || !quoteDate) {
     return { error: "Preencha todos os campos obrigatórios." };
   }
 
   await db.insert(quotes).values({
     productId,
-    regionId,
+    cityId,
     sourceId,
     price,
     variation,
@@ -150,20 +172,21 @@ export async function getQuoteFormData() {
     .select({ id: products.id, name: products.name, slug: products.slug })
     .from(products)
     .orderBy(products.name);
-  const allRegions = await db
+  const allCities = await db
     .select({
-      id: regions.id,
-      name: regions.name,
-      state: regions.state,
+      id: cities.id,
+      name: cities.name,
+      state: states.code,
     })
-    .from(regions)
-    .orderBy(regions.state, regions.name);
+    .from(cities)
+    .innerJoin(states, eq(cities.stateId, states.id))
+    .orderBy(states.code, cities.name);
   const allSources = await db
     .select({ id: sources.id, name: sources.name })
     .from(sources)
     .orderBy(sources.name);
 
-  return { allProducts, allRegions, allSources };
+  return { allProducts, allCities, allSources };
 }
 
 // ── Users management ──────────────────────────────────────────────────────────
