@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { drizzle } from "drizzle-orm/libsql";
-import { products, regions, sources } from "./schema";
+import { hashPassword } from "../lib/password";
+import { products, regions, sources, users } from "./schema";
 
 const db = drizzle(process.env.DB_FILE_NAME!);
 
@@ -80,6 +81,23 @@ const SOURCES = [
 ];
 
 async function main() {
+  console.log("Seeding admin user…");
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminEmail || !adminPassword) {
+    throw new Error(
+      "ADMIN_EMAIL e ADMIN_PASSWORD devem estar definidos no .env",
+    );
+  }
+  const passwordHash = await hashPassword(adminPassword);
+  await db
+    .insert(users)
+    .values({ name: "Admin", email: adminEmail, passwordHash, role: "admin" })
+    .onConflictDoUpdate({
+      target: users.email,
+      set: { passwordHash, role: "admin" },
+    });
+
   console.log("Seeding products…");
   for (const p of PRODUCTS) {
     await db.insert(products).values(p).onConflictDoNothing();

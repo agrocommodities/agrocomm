@@ -12,8 +12,9 @@ import {
 } from "@/db/schema";
 import { eq, desc, sql, and, gte, count } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
+import { hashPassword } from "@/lib/password";
 import { redirect } from "next/navigation";
-import bcrypt from "bcryptjs";
+
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
 
@@ -229,7 +230,7 @@ export async function createUserAction(formData: FormData) {
     .limit(1);
   if (existing) return { error: "Este e-mail já está cadastrado." };
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = await hashPassword(password);
   await db.insert(users).values({ name, email, passwordHash, role });
   return { success: true };
 }

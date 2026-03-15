@@ -2,11 +2,11 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { signSession } from "@/lib/auth";
+import { hashPassword, verifyPassword } from "@/lib/password";
 
 type AuthState = { error: string } | null;
 type ProfileState = { error?: string; success?: boolean } | null;
@@ -41,7 +41,7 @@ export async function loginAction(
 
   if (!user) return { error: "E-mail ou senha inválidos." };
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
+  const valid = await verifyPassword(user.passwordHash, password);
   if (!valid) return { error: "E-mail ou senha inválidos." };
 
   const token = await signSession({
@@ -78,7 +78,7 @@ export async function registerAction(
     .limit(1);
   if (existing) return { error: "Este e-mail já está cadastrado." };
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = await hashPassword(password);
   const [newUser] = await db
     .insert(users)
     .values({ name, email, passwordHash })
@@ -142,13 +142,13 @@ export async function updateProfileAction(
   if (newPassword) {
     if (!currentPassword)
       return { error: "Informe a senha atual para alterá-la." };
-    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    const valid = await verifyPassword(user.passwordHash, currentPassword);
     if (!valid) return { error: "Senha atual incorreta." };
     if (newPassword.length < 8)
       return { error: "A nova senha deve ter no mínimo 8 caracteres." };
     if (newPassword !== confirmPassword)
       return { error: "As novas senhas não coincidem." };
-    updates.passwordHash = await bcrypt.hash(newPassword, 12);
+    updates.passwordHash = await hashPassword(newPassword);
   }
 
   await db.update(users).set(updates).where(eq(users.id, session.userId));
