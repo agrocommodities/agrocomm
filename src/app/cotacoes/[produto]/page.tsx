@@ -5,7 +5,6 @@ import {
   getStatesForProduct,
   getCitiesForProduct,
 } from "@/actions/quotes";
-import QuoteChart from "@/components/QuoteChart";
 import LocationPriceSelector from "@/components/LocationPriceSelector";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
@@ -71,10 +70,13 @@ export async function generateMetadata({
 
 export default async function ProdutoPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ produto: string }>;
+  searchParams: Promise<{ estado?: string; cidade?: string }>;
 }) {
   const { produto } = await params;
+  const { estado, cidade } = await searchParams;
   const meta = PRODUCT_META[produto];
   if (!meta) notFound();
 
@@ -138,6 +140,8 @@ export default async function ProdutoPage({
         allStates={allStates}
         citiesByState={citiesByState}
         unit={unit}
+        initialState={estado}
+        initialCitySlug={cidade}
       />
 
       {/* Summary cards */}
@@ -171,14 +175,6 @@ export default async function ProdutoPage({
           </div>
         </div>
       )}
-
-      {/* Historical chart */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-        <h2 className="font-semibold text-sm text-white/70 mb-4">
-          Evolução — últimos 30 dias por praça
-        </h2>
-        <QuoteChart lines={cityHistories} unit={unit} />
-      </div>
 
       {/* Today's table */}
       <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
