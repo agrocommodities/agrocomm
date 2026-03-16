@@ -68,7 +68,12 @@ export async function getRelatedNews(
   return db
     .select(NEWS_SELECT)
     .from(newsArticles)
-    .where(and(eq(newsArticles.category, category), ne(newsArticles.slug, currentSlug)))
+    .where(
+      and(
+        eq(newsArticles.category, category),
+        ne(newsArticles.slug, currentSlug),
+      ),
+    )
     .orderBy(desc(newsArticles.publishedAt))
     .limit(limit);
 }

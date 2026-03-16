@@ -80,9 +80,7 @@ export default function ConflictsManager({
           <p className="text-xs text-white/40 uppercase tracking-wider">
             Total
           </p>
-          <p className="text-2xl font-bold mt-1">
-            {initialConflicts.length}
-          </p>
+          <p className="text-2xl font-bold mt-1">{initialConflicts.length}</p>
         </div>
         <div className="bg-yellow-500/10 rounded-xl border border-yellow-500/20 p-4">
           <p className="text-xs text-yellow-400/70 uppercase tracking-wider">
@@ -168,9 +166,7 @@ export default function ConflictsManager({
                       <td className="px-4 py-3 text-white/60">
                         {formatDate(c.quoteDate)}
                       </td>
-                      <td className="px-4 py-3 font-medium">
-                        {c.productName}
-                      </td>
+                      <td className="px-4 py-3 font-medium">{c.productName}</td>
                       <td className="px-4 py-3">
                         {c.cityName}{" "}
                         <span className="text-white/40">- {c.stateCode}</span>

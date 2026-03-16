@@ -29,8 +29,19 @@ const categoryLabels: Record<string, string> = {
 function formatDate(dateStr: string) {
   const [year, month, day] = dateStr.split("-");
   const months = [
-    "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+    "",
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
   ];
   return `${day} de ${months[Number(month)]} de ${year}`;
 }
@@ -38,8 +49,19 @@ function formatDate(dateStr: string) {
 function formatDateShort(dateStr: string) {
   const [year, month, day] = dateStr.split("-");
   const months = [
-    "", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-    "Jul", "Ago", "Set", "Out", "Nov", "Dez",
+    "",
+    "Jan",
+    "Fev",
+    "Mar",
+    "Abr",
+    "Mai",
+    "Jun",
+    "Jul",
+    "Ago",
+    "Set",
+    "Out",
+    "Nov",
+    "Dez",
   ];
   return `${day} ${months[Number(month)]} ${year}`;
 }

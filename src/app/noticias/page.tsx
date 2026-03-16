@@ -38,8 +38,19 @@ const categoryLabels: Record<string, string> = {
 function formatDate(dateStr: string) {
   const [year, month, day] = dateStr.split("-");
   const months = [
-    "", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-    "Jul", "Ago", "Set", "Out", "Nov", "Dez",
+    "",
+    "Jan",
+    "Fev",
+    "Mar",
+    "Abr",
+    "Mai",
+    "Jun",
+    "Jul",
+    "Ago",
+    "Set",
+    "Out",
+    "Nov",
+    "Dez",
   ];
   return `${day} ${months[Number(month)]} ${year}`;
 }
@@ -155,7 +166,9 @@ function NewsCard({ article }: { article: NewsArticle }) {
         )}
 
         <div className="mt-auto pt-1 flex items-center justify-between">
-          <span className="text-[11px] text-white/25">{article.sourceName}</span>
+          <span className="text-[11px] text-white/25">
+            {article.sourceName}
+          </span>
           <span className="text-xs font-medium text-green-400/70 group-hover:text-green-400 transition-colors flex items-center gap-1">
             Ler
             <ArrowRight className="w-3 h-3" />

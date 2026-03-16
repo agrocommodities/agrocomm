@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProductQuotes, getStatesForProduct, getCitiesForProduct } from "@/actions/quotes";
+import {
+  getProductQuotes,
+  getStatesForProduct,
+  getCitiesForProduct,
+} from "@/actions/quotes";
 import QuoteChart from "@/components/QuoteChart";
 import LocationPriceSelector from "@/components/LocationPriceSelector";
 import { TrendingUp, TrendingDown } from "lucide-react";
@@ -80,7 +84,10 @@ export default async function ProdutoPage({
   ]);
 
   // Build citiesByState map for the selector (only fetch for each distinct state)
-  const citiesByState: Record<string, { id: number; name: string; slug: string }[]> = {};
+  const citiesByState: Record<
+    string,
+    { id: number; name: string; slug: string }[]
+  > = {};
   await Promise.all(
     allStates.map(async (s) => {
       citiesByState[s.code] = await getCitiesForProduct(produto, s.code);

@@ -12,7 +12,7 @@ export type QuoteRow = {
   unit: string;
   category: string;
   city: string;
-  state: string;  // state code, e.g. "MS"
+  state: string; // state code, e.g. "MS"
   stateName: string;
   price: number;
   variation: number | null;
@@ -110,9 +110,7 @@ export async function getProductCityHistories(
     .innerJoin(products, eq(quotes.productId, products.id))
     .innerJoin(cities, eq(quotes.cityId, cities.id))
     .innerJoin(states, eq(cities.stateId, states.id))
-    .where(
-      and(eq(products.slug, productSlug), gte(quotes.quoteDate, sinceStr)),
-    )
+    .where(and(eq(products.slug, productSlug), gte(quotes.quoteDate, sinceStr)))
     .orderBy(quotes.quoteDate, states.code, cities.name);
 
   const cityMap = new Map<number, CityLine>();
@@ -125,7 +123,9 @@ export async function getProductCityHistories(
         points: [],
       });
     }
-    cityMap.get(row.cityId)!.points.push({ date: row.quoteDate, price: row.price });
+    cityMap
+      .get(row.cityId)!
+      .points.push({ date: row.quoteDate, price: row.price });
   }
 
   return Array.from(cityMap.values()).filter((l) => l.points.length > 0);
@@ -174,7 +174,9 @@ export async function getProductQuotes(
 }
 
 /** Returns distinct states that have quotes for the given product */
-export async function getStatesForProduct(productSlug: string): Promise<StateOption[]> {
+export async function getStatesForProduct(
+  productSlug: string,
+): Promise<StateOption[]> {
   const rows = await db
     .selectDistinct({ code: states.code, name: states.name })
     .from(quotes)
@@ -201,4 +203,3 @@ export async function getCitiesForProduct(
     .orderBy(cities.name);
   return rows;
 }
-

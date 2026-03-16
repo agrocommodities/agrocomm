@@ -2,8 +2,20 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, X, ChevronLeft, ChevronRight, Scissors } from "lucide-react";
-import { deleteQuoteAction, createQuoteAction, pruneQuotesAction, pruneAllQuotesAction } from "@/actions/admin";
+import {
+  Plus,
+  Trash2,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Scissors,
+} from "lucide-react";
+import {
+  deleteQuoteAction,
+  createQuoteAction,
+  pruneQuotesAction,
+  pruneAllQuotesAction,
+} from "@/actions/admin";
 
 interface QuoteRow {
   id: number;
@@ -47,7 +59,9 @@ export default function QuotesManager({
 }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [showPrune, setShowPrune] = useState(false);
-  const [pruneDate, setPruneDate] = useState(new Date().toISOString().slice(0, 10));
+  const [pruneDate, setPruneDate] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
   const [pruneResult, setPruneResult] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -77,7 +91,12 @@ export default function QuotesManager({
   }
 
   function handlePruneAll() {
-    if (!confirm("Tem certeza? Isso vai apagar TODAS as cotações de TODAS as datas. Esta ação é irreversível.")) return;
+    if (
+      !confirm(
+        "Tem certeza? Isso vai apagar TODAS as cotações de TODAS as datas. Esta ação é irreversível.",
+      )
+    )
+      return;
     startTransition(async () => {
       const result = await pruneAllQuotesAction();
       setPruneResult(`${result.deleted ?? 0} cotações removidas (total).`);
@@ -131,7 +150,11 @@ export default function QuotesManager({
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => { setShowPrune(!showPrune); setShowForm(false); setPruneResult(null); }}
+            onClick={() => {
+              setShowPrune(!showPrune);
+              setShowForm(false);
+              setPruneResult(null);
+            }}
             className="flex items-center gap-2 bg-red-700 hover:bg-red-600 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
           >
             <Scissors className="w-4 h-4" />
@@ -139,10 +162,17 @@ export default function QuotesManager({
           </button>
           <button
             type="button"
-            onClick={() => { setShowForm(!showForm); setShowPrune(false); }}
+            onClick={() => {
+              setShowForm(!showForm);
+              setShowPrune(false);
+            }}
             className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
           >
-            {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            {showForm ? (
+              <X className="w-4 h-4" />
+            ) : (
+              <Plus className="w-4 h-4" />
+            )}
             {showForm ? "Cancelar" : "Nova Cotação"}
           </button>
         </div>
@@ -152,19 +182,27 @@ export default function QuotesManager({
       {showPrune && (
         <div className="bg-red-950/40 border border-red-500/20 rounded-2xl p-5 flex flex-col gap-4">
           <div>
-            <h3 className="font-semibold text-red-300">Remover cotações por data</h3>
+            <h3 className="font-semibold text-red-300">
+              Remover cotações por data
+            </h3>
             <p className="text-xs text-white/50 mt-1">
-              Apaga todas as cotações da data selecionada. Use para limpar um dia com dados incompletos antes de re-executar o scraping.
+              Apaga todas as cotações da data selecionada. Use para limpar um
+              dia com dados incompletos antes de re-executar o scraping.
             </p>
           </div>
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="pruneDate" className="text-xs text-white/60">Data</label>
+              <label htmlFor="pruneDate" className="text-xs text-white/60">
+                Data
+              </label>
               <input
                 id="pruneDate"
                 type="date"
                 value={pruneDate}
-                onChange={(e) => { setPruneDate(e.target.value); setPruneResult(null); }}
+                onChange={(e) => {
+                  setPruneDate(e.target.value);
+                  setPruneResult(null);
+                }}
                 className={inputClass}
               />
             </div>
@@ -179,7 +217,9 @@ export default function QuotesManager({
             </button>
           </div>
           <div className="border-t border-red-500/20 pt-4">
-            <p className="text-xs text-white/50 mb-3">Ou apague o banco de cotações inteiro:</p>
+            <p className="text-xs text-white/50 mb-3">
+              Ou apague o banco de cotações inteiro:
+            </p>
             <button
               type="button"
               disabled={isPending}
@@ -228,12 +268,7 @@ export default function QuotesManager({
               <label htmlFor="cityId" className="text-xs text-white/60">
                 Cidade *
               </label>
-              <select
-                id="cityId"
-                name="cityId"
-                required
-                className={inputClass}
-              >
+              <select id="cityId" name="cityId" required className={inputClass}>
                 <option value="">Selecione</option>
                 {formOptions.allCities.map((c) => (
                   <option key={c.id} value={c.id}>

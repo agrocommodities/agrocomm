@@ -3,7 +3,12 @@
 import { useState, useEffect } from "react";
 import { MapPin, TrendingUp, TrendingDown, ChevronDown } from "lucide-react";
 import QuoteChart from "@/components/QuoteChart";
-import type { QuoteRow, CityLine, StateOption, CityOption } from "@/actions/quotes";
+import type {
+  QuoteRow,
+  CityLine,
+  StateOption,
+  CityOption,
+} from "@/actions/quotes";
 
 interface Props {
   todayQuotes: QuoteRow[];
@@ -48,7 +53,9 @@ export default function LocationPriceSelector({
     localStorage.setItem("agrocomm_city", String(id));
   }
 
-  const availableCities = selectedState ? (citiesByState[selectedState] ?? []) : [];
+  const availableCities = selectedState
+    ? (citiesByState[selectedState] ?? [])
+    : [];
 
   const todayRow = selectedCityId
     ? todayQuotes.find((q) => q.cityId === selectedCityId)

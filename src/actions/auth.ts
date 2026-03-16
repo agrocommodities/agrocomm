@@ -32,7 +32,8 @@ export async function loginAction(
   const password = String(formData.get("password") ?? "");
   const fields = { email };
 
-  if (!email || !password) return { error: "Preencha todos os campos.", fields };
+  if (!email || !password)
+    return { error: "Preencha todos os campos.", fields };
 
   const [user] = await db
     .select()
@@ -71,7 +72,8 @@ export async function registerAction(
     return { error: "Preencha todos os campos.", fields };
   if (password.length < 8)
     return { error: "A senha deve ter no mínimo 8 caracteres.", fields };
-  if (password !== confirm) return { error: "As senhas não coincidem.", fields };
+  if (password !== confirm)
+    return { error: "As senhas não coincidem.", fields };
 
   const [existing] = await db
     .select({ id: users.id })
