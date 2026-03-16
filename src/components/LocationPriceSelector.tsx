@@ -68,7 +68,7 @@ export default function LocationPriceSelector({
   const hasTodayPrice = todayRow !== null && todayRow !== undefined;
 
   return (
-    <section className="bg-gradient-to-br from-green-900/30 to-emerald-900/20 border border-green-500/20 rounded-2xl p-5 flex flex-col gap-5">
+    <section className="bg-linear-to-br from-green-900/30 to-emerald-900/20 border border-green-500/20 rounded-2xl p-5 flex flex-col gap-5">
       {/* Header */}
       <div className="flex items-center gap-2">
         <MapPin className="w-5 h-5 text-green-400 shrink-0" />

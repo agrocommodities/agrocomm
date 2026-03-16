@@ -18,6 +18,8 @@ import { eq, desc, sql, and, gte, count } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
 import { redirect } from "next/navigation";
+import { rm } from "node:fs/promises";
+import path from "node:path";
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
 
@@ -517,12 +519,23 @@ export async function getAdminNews(page = 1, categoryFilter?: string) {
 export async function deleteNewsAction(id: number) {
   await requireAdmin();
   await db.delete(newsArticles).where(eq(newsArticles.id, id));
+  const imageDir = path.join(process.cwd(), "public", "images", "posts", String(id));
+  await rm(imageDir, { recursive: true, force: true });
   return { success: true };
 }
 
 export async function pruneAllNewsAction() {
   await requireAdmin();
+  const articles = await db.select({ id: newsArticles.id }).from(newsArticles);
   const result = await db.delete(newsArticles);
+  await Promise.all(
+    articles.map(({ id }) =>
+      rm(path.join(process.cwd(), "public", "images", "posts", String(id)), {
+        recursive: true,
+        force: true,
+      }),
+    ),
+  );
   return { success: true, deleted: result.rowsAffected ?? 0 };
 }
 
