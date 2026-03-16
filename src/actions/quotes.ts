@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { quotes, products, cities, states, sources } from "@/db/schema";
-import { eq, and, gte, desc } from "drizzle-orm";
+import { eq, and, gte, desc, sql } from "drizzle-orm";
 
 export type QuoteRow = {
   id: number;
@@ -43,6 +43,18 @@ async function latestQuoteDate(): Promise<string> {
   return row?.d ?? new Date().toISOString().slice(0, 10);
 }
 
+/** Retorna a data mais recente para uma categoria específica */
+async function latestQuoteDateForCategory(category: string): Promise<string> {
+  const [row] = await db
+    .select({ d: quotes.quoteDate })
+    .from(quotes)
+    .innerJoin(products, eq(quotes.productId, products.id))
+    .where(eq(products.category, category))
+    .orderBy(desc(quotes.quoteDate))
+    .limit(1);
+  return row?.d ?? new Date().toISOString().slice(0, 10);
+}
+
 const BASE_SELECT = {
   id: quotes.id,
   cityId: cities.id,
@@ -61,7 +73,15 @@ const BASE_SELECT = {
 // ── Queries ───────────────────────────────────────────────────────────────────
 
 export async function getTodayQuotes(): Promise<QuoteRow[]> {
-  const date = await latestQuoteDate();
+  // Cada categoria pode ter uma data mais recente diferente
+  // (ex: grãos atualiza em dia diferente de pecuária)
+  const [graosDate, pecuariaDate] = await Promise.all([
+    latestQuoteDateForCategory("graos"),
+    latestQuoteDateForCategory("pecuaria"),
+  ]);
+
+  const dates = [...new Set([graosDate, pecuariaDate])];
+
   return db
     .select(BASE_SELECT)
     .from(quotes)
@@ -69,14 +89,19 @@ export async function getTodayQuotes(): Promise<QuoteRow[]> {
     .innerJoin(cities, eq(quotes.cityId, cities.id))
     .innerJoin(states, eq(cities.stateId, states.id))
     .innerJoin(sources, eq(quotes.sourceId, sources.id))
-    .where(eq(quotes.quoteDate, date))
+    .where(
+      dates.length === 1
+        ? eq(quotes.quoteDate, dates[0])
+        : sql`(${products.category} = 'graos' AND ${quotes.quoteDate} = ${graosDate})
+           OR (${products.category} = 'pecuaria' AND ${quotes.quoteDate} = ${pecuariaDate})`,
+    )
     .orderBy(products.category, products.name, states.code, cities.name);
 }
 
 export async function getQuotesByCategory(
   category: string,
 ): Promise<QuoteRow[]> {
-  const date = await latestQuoteDate();
+  const date = await latestQuoteDateForCategory(category);
   return db
     .select(BASE_SELECT)
     .from(quotes)

@@ -1,5 +1,7 @@
 import "dotenv/config";
 import * as cheerio from "cheerio";
+import type { Cheerio, CheerioAPI } from "cheerio";
+import type { Element as DomElement } from "domhandler";
 import { drizzle } from "drizzle-orm/libsql";
 import { eq, and } from "drizzle-orm";
 import {
@@ -81,8 +83,8 @@ function parseBrazilianDate(text: string): string | undefined {
 
 /** Extrai a data de uma tabela buscando nas células de cabeçalho e corpo */
 function extractTableDate(
-  $: ReturnType<typeof cheerio.load>,
-  table: ReturnType<ReturnType<typeof cheerio.load>>,
+  $: CheerioAPI,
+  table: Cheerio<DomElement>,
 ): string | undefined {
   for (const sel of ["caption", "thead th", "thead td", "tbody td"]) {
     let found: string | undefined;
@@ -217,7 +219,7 @@ async function scrapeScotConsultoria(): Promise<RawQuote[]> {
     }
     const $ = cheerio.load(html);
 
-    let targetTable: ReturnType<typeof $> | null = null;
+    let targetTable: Cheerio<DomElement> | null = null;
     $("table").each((_, table) => {
       if ($(table).find("thead th").text().includes("Mercado F")) {
         targetTable = $(table);
@@ -225,12 +227,11 @@ async function scrapeScotConsultoria(): Promise<RawQuote[]> {
       }
     });
     if (!targetTable) continue;
+    const foundTable: Cheerio<DomElement> = targetTable;
 
-    // biome-ignore lint/suspicious/noExplicitAny: cheerio type workaround
-    const tableDate = extractTableDate($, targetTable as any);
+    const tableDate = extractTableDate($, foundTable);
 
-    // biome-ignore lint/suspicious/noExplicitAny: cheerio type workaround
-    (targetTable as any).find("tr.conteudo").each((_: number, tr: any) => {
+    foundTable.find("tr.conteudo").each((_, tr) => {
       const cells = $(tr).find("td");
       if (cells.length < 2) return;
       const regionText = $(cells.eq(0)).text().trim();

@@ -50,6 +50,7 @@ const STATES = [
   { code: "ES", name: "Espírito Santo" },
   { code: "RJ", name: "Rio de Janeiro" },
   { code: "RR", name: "Roraima" },
+  { code: "DF", name: "Distrito Federal" },
 ];
 
 // Cities: [stateCode, cityName, slug]

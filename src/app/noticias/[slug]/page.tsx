@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   ExternalLink,
   ArrowRight,
+  Tag,
 } from "lucide-react";
 import type { Metadata } from "next";
 
@@ -183,22 +184,68 @@ export default async function NewsArticlePage({
 
           {/* Content */}
           <div className="bg-white/3 border border-white/10 rounded-xl p-6 sm:p-8 mb-6">
-            <p className="text-base sm:text-lg leading-relaxed text-white/70">
-              {article.excerpt}
-            </p>
+            {article.content ? (
+              <div
+                className="prose prose-invert prose-green max-w-none text-white/70
+                  [&_p]:text-base [&_p]:leading-relaxed [&_p]:mb-4
+                  [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-white/90 [&_h2]:mt-8 [&_h2]:mb-4
+                  [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:text-white/80 [&_h3]:mt-6 [&_h3]:mb-3
+                  [&_a]:text-green-400 [&_a]:underline [&_a]:hover:text-green-300
+                  [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4
+                  [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4
+                  [&_li]:mb-1 [&_li]:text-white/60
+                  [&_blockquote]:border-l-4 [&_blockquote]:border-green-500/40 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-white/50
+                  [&_img]:rounded-lg [&_img]:my-4
+                  [&_strong]:text-white/90 [&_strong]:font-semibold
+                  [&_table]:w-full [&_th]:text-left [&_th]:py-2 [&_td]:py-2 [&_td]:border-b [&_td]:border-white/10"
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized server-side scraped content
+                dangerouslySetInnerHTML={{ __html: article.content }}
+              />
+            ) : (
+              <p className="text-base sm:text-lg leading-relaxed text-white/70">
+                {article.excerpt}
+              </p>
+            )}
 
-            <div className="mt-6 pt-6 border-t border-white/10">
+            <div className="mt-6 pt-6 border-t border-white/10 flex flex-col gap-3">
+              <div className="flex items-center gap-2 text-xs text-white/30">
+                <span>Fonte original:</span>
+                <span className="font-medium text-white/50">
+                  {article.sourceName}
+                </span>
+              </div>
               <a
                 href={article.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-green-400 hover:text-green-300 transition-colors"
               >
-                Ler artigo completo na fonte
+                Ler artigo na fonte original
                 <ExternalLink className="w-4 h-4" />
               </a>
             </div>
           </div>
+
+          {/* Tags */}
+          {article.tags && article.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              {article.tags.map((tag) => (
+                <Link
+                  key={tag}
+                  href={`/noticias?tag=${tag
+                    .toLowerCase()
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[^a-z0-9\s-]/g, "")
+                    .replace(/\s+/g, "-")}`}
+                  className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 hover:border-green-500/30 hover:text-green-300 transition-colors"
+                >
+                  <Tag className="w-3 h-3" />
+                  {tag}
+                </Link>
+              ))}
+            </div>
+          )}
 
           {/* Share */}
           <div className="bg-white/3 border border-white/10 rounded-xl p-5">

@@ -37,11 +37,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+  modal,
 }: Readonly<{
   children: React.ReactNode;
+  modal: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <head>
         <link
           rel="shortcut icon"
@@ -57,6 +59,7 @@ export default function RootLayout({
           <main className="grow p-4">{children}</main>
           <Footer />
         </div>
+        {modal}
       </body>
       {gaId && <GoogleAnalytics gaId={gaId} />}
     </html>

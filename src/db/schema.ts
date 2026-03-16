@@ -184,6 +184,7 @@ export const newsArticles = sqliteTable("news_articles", {
   title: text().notNull(),
   slug: text().notNull().unique(),
   excerpt: text().notNull(),
+  content: text(), // full article content (HTML)
   imageUrl: text("image_url"),
   sourceUrl: text("source_url").notNull().unique(),
   sourceName: text("source_name").notNull(),
@@ -192,6 +193,46 @@ export const newsArticles = sqliteTable("news_articles", {
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 
+// ── Tags de Notícias ──────────────────────────────────────────────────────────
+
+export const tags = sqliteTable("tags", {
+  id: int().primaryKey({ autoIncrement: true }),
+  name: text().notNull().unique(),
+  slug: text().notNull().unique(),
+});
+
+export const newsArticleTags = sqliteTable("news_article_tags", {
+  id: int().primaryKey({ autoIncrement: true }),
+  articleId: int("article_id")
+    .notNull()
+    .references(() => newsArticles.id, { onDelete: "cascade" }),
+  tagId: int("tag_id")
+    .notNull()
+    .references(() => tags.id, { onDelete: "cascade" }),
+});
+
+export const newsArticleTagsRelations = relations(
+  newsArticleTags,
+  ({ one }) => ({
+    article: one(newsArticles, {
+      fields: [newsArticleTags.articleId],
+      references: [newsArticles.id],
+    }),
+    tag: one(tags, {
+      fields: [newsArticleTags.tagId],
+      references: [tags.id],
+    }),
+  }),
+);
+
+export const newsArticlesRelations = relations(newsArticles, ({ many }) => ({
+  articleTags: many(newsArticleTags),
+}));
+
+export const tagsRelations = relations(tags, ({ many }) => ({
+  articleTags: many(newsArticleTags),
+}));
+
 // ── Analytics ─────────────────────────────────────────────────────────────────
 
 export const pageViews = sqliteTable("page_views", {
@@ -199,5 +240,26 @@ export const pageViews = sqliteTable("page_views", {
   path: text().notNull(),
   referrer: text(),
   sessionId: text("session_id"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+// ── Mensagens de Contato ──────────────────────────────────────────────────────
+
+export const contactMessages = sqliteTable("contact_messages", {
+  id: int().primaryKey({ autoIncrement: true }),
+  name: text().notNull(),
+  email: text().notNull(),
+  subject: text().notNull(),
+  message: text().notNull(),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+// ── Cotação do Dólar ──────────────────────────────────────────────────────────
+
+export const exchangeRates = sqliteTable("exchange_rates", {
+  id: int().primaryKey({ autoIncrement: true }),
+  pair: text().notNull(), // ex: "USD/BRL"
+  rate: real().notNull(),
+  rateDate: text("rate_date").notNull(), // "YYYY-MM-DD"
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });

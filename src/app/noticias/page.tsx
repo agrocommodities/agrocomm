@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { getLatestNews } from "@/actions/news";
+import { getLatestNews, getTagCloud, getNewsByTag } from "@/actions/news";
 import type { NewsArticle } from "@/actions/news";
-import { Newspaper, Clock, ArrowRight } from "lucide-react";
+import { Newspaper, Clock, ArrowRight, Tag } from "lucide-react";
 import type { Metadata } from "next";
 
 export const revalidate = 600;
@@ -230,99 +230,172 @@ function EmptyState() {
 export default async function NoticiasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ categoria?: string }>;
+  searchParams: Promise<{ categoria?: string; tag?: string }>;
 }) {
-  const { categoria } = await searchParams;
+  const { categoria, tag: tagSlug } = await searchParams;
   const activeCategory = (categoria as Category) ?? "geral";
 
-  const articles = await getLatestNews(40);
+  const [tagCloud] = await Promise.all([getTagCloud()]);
+
+  let articles: NewsArticle[];
+  if (tagSlug) {
+    articles = await getNewsByTag(tagSlug, 40);
+  } else {
+    articles = await getLatestNews(40);
+  }
 
   const filtered =
-    activeCategory === "geral"
-      ? articles
-      : articles.filter((a) => a.category === activeCategory);
+    !tagSlug && activeCategory !== "geral"
+      ? articles.filter((a) => a.category === activeCategory)
+      : articles;
 
   const featured = filtered[0];
   const secondary = filtered.slice(1, 4);
   const rest = filtered.slice(4);
 
+  // Find the current tag name
+  const currentTag = tagSlug
+    ? (tagCloud.find((t) => t.slug === tagSlug)?.name ?? tagSlug)
+    : null;
+
   return (
-    <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col gap-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold flex items-center gap-3">
-            <Newspaper className="w-8 h-8 text-green-400" />
-            Notícias
-          </h1>
-          <p className="text-white/40 text-sm mt-1.5">
-            Acompanhe as últimas notícias do agronegócio brasileiro
+    <main className="max-w-7xl mx-auto px-4 py-8">
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Main content */}
+        <div className="flex-1 min-w-0 flex flex-col gap-8">
+          {/* Header */}
+          <div className="flex flex-col gap-4">
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold flex items-center gap-3">
+                <Newspaper className="w-8 h-8 text-green-400" />
+                {currentTag ? `Notícias: ${currentTag}` : "Notícias"}
+              </h1>
+              <p className="text-white/40 text-sm mt-1.5">
+                {currentTag
+                  ? `${filtered.length} notícias com a tag "${currentTag}"`
+                  : "Acompanhe as últimas notícias do agronegócio brasileiro"}
+              </p>
+            </div>
+
+            {/* Category filter */}
+            <nav className="flex gap-2 flex-wrap">
+              {currentTag && (
+                <Link
+                  href="/noticias"
+                  className="text-xs font-semibold px-4 py-2 rounded-full border bg-red-500/10 border-red-500/30 text-red-300 hover:bg-red-500/20 transition-all"
+                >
+                  ✕ Limpar filtro
+                </Link>
+              )}
+              {!currentTag &&
+                CATEGORIES.map((c) => (
+                  <Link
+                    key={c.slug}
+                    href={
+                      c.slug === "geral"
+                        ? "/noticias"
+                        : `/noticias?categoria=${c.slug}`
+                    }
+                    className={`text-xs font-semibold px-4 py-2 rounded-full border transition-all duration-200 ${
+                      activeCategory === c.slug
+                        ? "bg-green-500/20 border-green-500/40 text-green-300 shadow-sm shadow-green-500/10"
+                        : "bg-white/5 border-white/10 text-white/50 hover:border-white/20 hover:text-white/70"
+                    }`}
+                  >
+                    {c.label}
+                  </Link>
+                ))}
+            </nav>
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-white/10" />
+
+          {filtered.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <>
+              {/* Featured */}
+              {featured && <FeaturedCard article={featured} />}
+
+              {/* Secondary grid */}
+              {secondary.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {secondary.map((article) => (
+                    <NewsCard key={article.id} article={article} />
+                  ))}
+                </div>
+              )}
+
+              {/* Divider */}
+              {rest.length > 0 && <div className="h-px bg-white/10" />}
+
+              {/* Remaining articles */}
+              {rest.length > 0 && (
+                <section>
+                  <h2 className="text-lg font-bold mb-4 text-white/70">
+                    Mais notícias
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                    {rest.map((article) => (
+                      <CompactCard key={article.id} article={article} />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
+
+          <p className="text-center text-xs text-white/20 pt-4">
+            Notícias coletadas automaticamente de fontes do agronegócio.
           </p>
         </div>
 
-        {/* Category filter */}
-        <nav className="flex gap-2 flex-wrap">
-          {CATEGORIES.map((c) => (
-            <Link
-              key={c.slug}
-              href={
-                c.slug === "geral"
-                  ? "/noticias"
-                  : `/noticias?categoria=${c.slug}`
-              }
-              className={`text-xs font-semibold px-4 py-2 rounded-full border transition-all duration-200 ${
-                activeCategory === c.slug
-                  ? "bg-green-500/20 border-green-500/40 text-green-300 shadow-sm shadow-green-500/10"
-                  : "bg-white/5 border-white/10 text-white/50 hover:border-white/20 hover:text-white/70"
-              }`}
-            >
-              {c.label}
-            </Link>
-          ))}
-        </nav>
-      </div>
+        {/* Tag Cloud Sidebar */}
+        {tagCloud.length > 0 && (
+          <aside className="lg:w-72 shrink-0">
+            <div className="bg-white/3 border border-white/10 rounded-xl p-5 lg:sticky lg:top-20">
+              <h3 className="font-bold text-sm uppercase tracking-wider text-white/50 mb-4 flex items-center gap-2">
+                <Tag className="w-4 h-4" />
+                Tags
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {tagCloud.map((t) => {
+                  const maxCount = Math.max(...tagCloud.map((tc) => tc.count));
+                  const ratio = t.count / maxCount;
+                  const size =
+                    ratio > 0.7
+                      ? "text-sm"
+                      : ratio > 0.4
+                        ? "text-xs"
+                        : "text-[11px]";
+                  const opacity =
+                    ratio > 0.7
+                      ? "text-white/80"
+                      : ratio > 0.4
+                        ? "text-white/60"
+                        : "text-white/40";
 
-      {/* Divider */}
-      <div className="h-px bg-white/10" />
-
-      {filtered.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <>
-          {/* Featured */}
-          {featured && <FeaturedCard article={featured} />}
-
-          {/* Secondary grid */}
-          {secondary.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {secondary.map((article) => (
-                <NewsCard key={article.id} article={article} />
-              ))}
-            </div>
-          )}
-
-          {/* Divider */}
-          {rest.length > 0 && <div className="h-px bg-white/10" />}
-
-          {/* Remaining articles */}
-          {rest.length > 0 && (
-            <section>
-              <h2 className="text-lg font-bold mb-4 text-white/70">
-                Mais notícias
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                {rest.map((article) => (
-                  <CompactCard key={article.id} article={article} />
-                ))}
+                  return (
+                    <Link
+                      key={t.slug}
+                      href={`/noticias?tag=${t.slug}`}
+                      className={`inline-block px-2.5 py-1 rounded-full border transition-all duration-200 ${
+                        tagSlug === t.slug
+                          ? "bg-green-500/20 border-green-500/40 text-green-300"
+                          : `bg-white/5 border-white/10 ${opacity} hover:border-green-500/30 hover:text-green-300`
+                      } ${size} font-medium`}
+                      title={`${t.count} notícia${t.count > 1 ? "s" : ""}`}
+                    >
+                      {t.name}
+                    </Link>
+                  );
+                })}
               </div>
-            </section>
-          )}
-        </>
-      )}
-
-      <p className="text-center text-xs text-white/20 pt-4">
-        Notícias coletadas automaticamente de fontes do agronegócio.
-      </p>
+            </div>
+          </aside>
+        )}
+      </div>
     </main>
   );
 }
