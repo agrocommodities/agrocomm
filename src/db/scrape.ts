@@ -2,7 +2,17 @@ import "dotenv/config";
 import * as cheerio from "cheerio";
 import { drizzle } from "drizzle-orm/libsql";
 import { eq, and } from "drizzle-orm";
-import { quotes, sources, products, cities, states, scraperLogs, newsArticles } from "./schema";
+import {
+  quotes,
+  sources,
+  products,
+  cities,
+  states,
+  scraperLogs,
+  newsArticles,
+  quoteConflicts,
+  newsSources,
+} from "./schema";
 
 const db = drizzle(process.env.DB_FILE_NAME!);
 
@@ -36,8 +46,15 @@ function shouldSkipToday(): boolean {
 
 async function fetchHtml(url: string): Promise<string> {
   const res = await fetch(url, {
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; AgroCommBot/1.0)" },
-    signal: AbortSignal.timeout(15_000),
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+      "Cache-Control": "no-cache",
+    },
+    signal: AbortSignal.timeout(30_000),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status} ao buscar ${url}`);
   return res.text();
@@ -109,55 +126,95 @@ interface RawQuote {
 }
 
 const SCOT_REGION_MAP: Record<string, { city: string; state: string }> = {
-  // Mato Grosso do Sul
-  "ms c. grande":    { city: "Campo Grande",  state: "MS" },
-  "ms campo grande": { city: "Campo Grande",  state: "MS" },
-  "ms dourados":     { city: "Dourados",      state: "MS" },
-  "ms tres lagoas":  { city: "Três Lagoas",   state: "MS" },
-  "ms 3 lagoas":     { city: "Três Lagoas",   state: "MS" },
-  "ms maracaju":     { city: "Maracaju",      state: "MS" },
-  // Mato Grosso
-  "mt cuiaba":   { city: "Cuiabá",       state: "MT" },
-  "mt sudeste":  { city: "Rondonópolis", state: "MT" },
-  "mt noroeste": { city: "Sorriso",      state: "MT" },
-  "mt sinop":    { city: "Sinop",        state: "MT" },
-  // Goiás
-  "go goiania":   { city: "Goiânia",   state: "GO" },
-  "go rio verde": { city: "Rio Verde", state: "GO" },
+  // São Paulo
+  "sp barretos": { city: "Barretos", state: "SP" },
+  "sp aracatuba": { city: "Araçatuba", state: "SP" },
+  "sp presidente prudente": { city: "Presidente Prudente", state: "SP" },
+  "sp ribeirao preto": { city: "Ribeirão Preto", state: "SP" },
+  "sp s.j. rio preto": { city: "São José do Rio Preto", state: "SP" },
+  "sp sao jose rio preto": { city: "São José do Rio Preto", state: "SP" },
   // Minas Gerais
   "mg triangulo": { city: "Uberlândia", state: "MG" },
-  "mg zebu":      { city: "Uberaba",    state: "MG" },
-  "mg uberaba":   { city: "Uberaba",    state: "MG" },
-  // São Paulo
-  "sp barretos":            { city: "Barretos",             state: "SP" },
-  "sp aracatuba":           { city: "Araçatuba",            state: "SP" },
-  "sp presidente prudente": { city: "Presidente Prudente",  state: "SP" },
-  "sp ribeirao preto":      { city: "Ribeirão Preto",       state: "SP" },
-  "sp s.j. rio preto":      { city: "São José do Rio Preto", state: "SP" },
-  "sp sao jose rio preto":  { city: "São José do Rio Preto", state: "SP" },
+  "mg b.horizonte": { city: "Belo Horizonte", state: "MG" },
+  "mg belo horizonte": { city: "Belo Horizonte", state: "MG" },
+  "mg norte": { city: "Montes Claros", state: "MG" },
+  "mg sul": { city: "Varginha", state: "MG" },
+  "mg zebu": { city: "Uberaba", state: "MG" },
+  "mg uberaba": { city: "Uberaba", state: "MG" },
+  // Goiás
+  "go goiania": { city: "Goiânia", state: "GO" },
+  "go rio verde": { city: "Rio Verde", state: "GO" },
+  "go reg. sul": { city: "Jataí", state: "GO" },
+  "go sul": { city: "Jataí", state: "GO" },
+  // Mato Grosso do Sul
+  "ms c. grande": { city: "Campo Grande", state: "MS" },
+  "ms campo grande": { city: "Campo Grande", state: "MS" },
+  "ms dourados": { city: "Dourados", state: "MS" },
+  "ms tres lagoas": { city: "Três Lagoas", state: "MS" },
+  "ms 3 lagoas": { city: "Três Lagoas", state: "MS" },
+  "ms maracaju": { city: "Maracaju", state: "MS" },
+  // Mato Grosso
+  "mt cuiaba": { city: "Cuiabá", state: "MT" },
+  "mt cuiaba*": { city: "Cuiabá", state: "MT" },
+  "mt sudeste": { city: "Rondonópolis", state: "MT" },
+  "mt sudoeste": { city: "Cáceres", state: "MT" },
+  "mt noroeste": { city: "Sorriso", state: "MT" },
+  "mt norte": { city: "Sinop", state: "MT" },
+  "mt sinop": { city: "Sinop", state: "MT" },
+  // Rio Grande do Sul
+  "rs oeste": { city: "Ijuí", state: "RS" },
+  "rs oeste (kg)": { city: "Ijuí", state: "RS" },
+  "rs pelotas": { city: "Pelotas", state: "RS" },
+  "rs pelotas (kg)": { city: "Pelotas", state: "RS" },
   // Paraná
-  "pr noroeste": { city: "Maringá",  state: "PR" },
-  "pr norte":    { city: "Londrina", state: "PR" },
+  "pr noroeste": { city: "Maringá", state: "PR" },
+  "pr norte": { city: "Londrina", state: "PR" },
   "pr cascavel": { city: "Cascavel", state: "PR" },
+  // Santa Catarina
+  sc: { city: "Chapecó", state: "SC" },
   // Tocantins
+  "to sul": { city: "Gurupi", state: "TO" },
+  "to norte": { city: "Araguaína", state: "TO" },
   "to araguaina": { city: "Araguaína", state: "TO" },
   // Pará
   "pa maraba": { city: "Marabá", state: "PA" },
-  "pa belem":  { city: "Marabá", state: "PA" },
+  "pa redencao": { city: "Redenção", state: "PA" },
+  "pa paragominas": { city: "Paragominas", state: "PA" },
+  "pa belem": { city: "Belém", state: "PA" },
   // Bahia
   "ba barreiras": { city: "Barreiras", state: "BA" },
+  "ba sul": { city: "Itapetinga", state: "BA" },
+  "ba oeste": { city: "Barreiras", state: "BA" },
+  // Maranhão
+  "ma oeste": { city: "Balsas", state: "MA" },
   // Rondônia
-  "ro vilhena":   { city: "Vilhena",   state: "RO" },
+  "ro vilhena": { city: "Vilhena", state: "RO" },
+  "ro sudeste": { city: "Ji-Paraná", state: "RO" },
   "ro ji-parana": { city: "Ji-Paraná", state: "RO" },
+  // Alagoas
+  alagoas: { city: "Maceió", state: "AL" },
+  // Acre
+  acre: { city: "Rio Branco", state: "AC" },
+  // Espírito Santo
+  es: { city: "Vitória", state: "ES" },
+  // Rio de Janeiro
+  rj: { city: "Rio de Janeiro", state: "RJ" },
+  // Roraima
+  roraima: { city: "Boa Vista", state: "RR" },
 };
 
 async function scrapeScotConsultoria(): Promise<RawQuote[]> {
   const results: RawQuote[] = [];
 
   for (const productSlug of ["boi-gordo", "vaca-gorda"]) {
-    const html = await fetchHtml(
-      `https://www.scotconsultoria.com.br/cotacoes/${productSlug}/`,
-    );
+    let html: string;
+    try {
+      html = await fetchHtml(
+        `https://www.scotconsultoria.com.br/cotacoes/${productSlug}/`,
+      );
+    } catch {
+      continue;
+    }
     const $ = cheerio.load(html);
 
     let targetTable: ReturnType<typeof $> | null = null;
@@ -187,13 +244,19 @@ async function scrapeScotConsultoria(): Promise<RawQuote[]> {
       const regionInfo = lookupInMap(SCOT_REGION_MAP, regionText);
       if (!regionInfo) return;
 
+      // RS exibe preços em R$/kg — converte para R$/arroba (1@ = 15kg)
+      let finalPrice = price;
+      if (regionText.toLowerCase().includes("(kg)")) {
+        finalPrice = Math.round(price * 15 * 100) / 100;
+      }
+
       const rowDate = parseBrazilianDate($(tr).text()) ?? tableDate;
 
       results.push({
         productSlug,
         city: regionInfo.city,
         state: regionInfo.state,
-        price,
+        price: finalPrice,
         date: rowDate,
       });
     });
@@ -205,165 +268,279 @@ async function scrapeScotConsultoria(): Promise<RawQuote[]> {
 interface NAPage {
   productSlug: string;
   stateCode: string;
-  /** Mapa: nome normalizado da praça → nome canônico (igual ao campo city do banco) */
-  regionMap: Record<string, string>;
+  /** Caminho customizado de URL (ex: "feijao/feijao-carioca-nota-8") */
+  urlPath?: string;
+  /** Mapa: nome normalizado da praça → nome canônico OU { city, state } para páginas multi-estado */
+  regionMap: Record<string, string | { city: string; state: string }>;
 }
 
 const NA_PAGES: NAPage[] = [
   // ── Soja ──
   {
-    productSlug: "soja", stateCode: "ms",
+    productSlug: "soja",
+    stateCode: "ms",
     regionMap: {
       "campo grande": "Campo Grande",
-      "dourados":     "Dourados",
-      "maracaju":     "Maracaju",
+      dourados: "Dourados",
+      maracaju: "Maracaju",
+      sidrolandia: "Sidrolândia",
+      "chapadao do sul": "Chapadão do Sul",
+      "sao gabriel do oeste": "São Gabriel do Oeste",
+      "rio brilhante": "Rio Brilhante",
     },
   },
   {
-    productSlug: "soja", stateCode: "mt",
+    productSlug: "soja",
+    stateCode: "mt",
     regionMap: {
-      "cuiaba":             "Cuiabá",
-      "sorriso":            "Sorriso",
-      "sinop":              "Sinop",
-      "rondonopolis":       "Rondonópolis",
+      cuiaba: "Cuiabá",
+      sorriso: "Sorriso",
+      sinop: "Sinop",
+      rondonopolis: "Rondonópolis",
       "lucas do rio verde": "Lucas do Rio Verde",
-      "campo verde":        "Campo Verde",
-      "nova mutum":         "Nova Mutum",
+      "campo verde": "Campo Verde",
+      "nova mutum": "Nova Mutum",
     },
   },
   {
-    productSlug: "soja", stateCode: "pr",
+    productSlug: "soja",
+    stateCode: "pr",
     regionMap: {
-      "cascavel":     "Cascavel",
-      "maringa":      "Maringá",
-      "londrina":     "Londrina",
+      cascavel: "Cascavel",
+      maringa: "Maringá",
+      londrina: "Londrina",
       "ponta grossa": "Ponta Grossa",
-      "paranagua":    "Paranaguá",
+      paranagua: "Paranaguá",
     },
   },
   {
-    productSlug: "soja", stateCode: "go",
+    productSlug: "soja",
+    stateCode: "go",
     regionMap: {
-      "goiania":   "Goiânia",
+      goiania: "Goiânia",
       "rio verde": "Rio Verde",
-      "jatai":     "Jataí",
+      jatai: "Jataí",
     },
   },
   {
-    productSlug: "soja", stateCode: "sp",
+    productSlug: "soja",
+    stateCode: "sp",
     regionMap: {
-      "sao paulo":           "São Paulo",
-      "ribeirao preto":      "Ribeirão Preto",
+      "sao paulo": "São Paulo",
+      "ribeirao preto": "Ribeirão Preto",
       "presidente prudente": "Presidente Prudente",
-      "campinas":            "Campinas",
+      campinas: "Campinas",
     },
   },
   {
-    productSlug: "soja", stateCode: "rs",
+    productSlug: "soja",
+    stateCode: "rs",
     regionMap: {
-      "passo fundo":  "Passo Fundo",
-      "cruz alta":    "Cruz Alta",
-      "santa rosa":   "Santa Rosa",
+      "passo fundo": "Passo Fundo",
+      "cruz alta": "Cruz Alta",
+      "santa rosa": "Santa Rosa",
       "porto alegre": "Porto Alegre",
-      "ijui":         "Ijuí",
+      ijui: "Ijuí",
     },
   },
   {
-    productSlug: "soja", stateCode: "mg",
+    productSlug: "soja",
+    stateCode: "mg",
     regionMap: {
-      "uberlandia":     "Uberlândia",
-      "uberaba":        "Uberaba",
+      uberlandia: "Uberlândia",
+      uberaba: "Uberaba",
       "patos de minas": "Patos de Minas",
     },
   },
   {
-    productSlug: "soja", stateCode: "ba",
+    productSlug: "soja",
+    stateCode: "ba",
     regionMap: {
-      "barreiras":              "Barreiras",
+      barreiras: "Barreiras",
       "luis eduardo magalhaes": "Luís Eduardo Magalhães",
-      "l. e. magalhaes":        "Luís Eduardo Magalhães",
-      "lem":                    "Luís Eduardo Magalhães",
+      "l. e. magalhaes": "Luís Eduardo Magalhães",
+      lem: "Luís Eduardo Magalhães",
     },
   },
-  { productSlug: "soja", stateCode: "ma", regionMap: { "balsas": "Balsas" } },
+  { productSlug: "soja", stateCode: "ma", regionMap: { balsas: "Balsas" } },
   {
-    productSlug: "soja", stateCode: "sc",
+    productSlug: "soja",
+    stateCode: "sc",
     regionMap: {
-      "chapeco": "Chapecó",
-      "xanxere": "Xanxerê",
-      "lages":   "Lages",
+      chapeco: "Chapecó",
+      xanxere: "Xanxerê",
+      lages: "Lages",
     },
   },
   {
-    productSlug: "soja", stateCode: "to",
+    productSlug: "soja",
+    stateCode: "to",
     regionMap: {
-      "palmas":       "Palmas",
-      "gurupi":       "Gurupi",
+      palmas: "Palmas",
+      gurupi: "Gurupi",
       "pedro afonso": "Pedro Afonso",
     },
   },
   {
-    productSlug: "soja", stateCode: "pa",
+    productSlug: "soja",
+    stateCode: "pa",
     regionMap: {
-      "santarem":    "Santarém",
-      "paragominas": "Paragominas",
+      santarem: "Santarém",
+      paragominas: "Paragominas",
     },
   },
   // ── Milho ──
   {
-    productSlug: "milho", stateCode: "ms",
+    productSlug: "milho",
+    stateCode: "ms",
     regionMap: {
       "campo grande": "Campo Grande",
-      "dourados":     "Dourados",
-      "maracaju":     "Maracaju",
+      dourados: "Dourados",
+      maracaju: "Maracaju",
+      sidrolandia: "Sidrolândia",
+      "chapadao do sul": "Chapadão do Sul",
+      "sao gabriel do oeste": "São Gabriel do Oeste",
+      "rio brilhante": "Rio Brilhante",
     },
   },
   {
-    productSlug: "milho", stateCode: "mt",
+    productSlug: "milho",
+    stateCode: "mt",
     regionMap: {
-      "cuiaba":       "Cuiabá",
-      "sorriso":      "Sorriso",
-      "sinop":        "Sinop",
-      "rondonopolis": "Rondonópolis",
+      cuiaba: "Cuiabá",
+      sorriso: "Sorriso",
+      sinop: "Sinop",
+      rondonopolis: "Rondonópolis",
     },
   },
   {
-    productSlug: "milho", stateCode: "pr",
+    productSlug: "milho",
+    stateCode: "pr",
     regionMap: {
-      "cascavel":     "Cascavel",
-      "maringa":      "Maringá",
-      "londrina":     "Londrina",
+      cascavel: "Cascavel",
+      maringa: "Maringá",
+      londrina: "Londrina",
       "ponta grossa": "Ponta Grossa",
     },
   },
   {
-    productSlug: "milho", stateCode: "go",
+    productSlug: "milho",
+    stateCode: "go",
     regionMap: {
-      "goiania":   "Goiânia",
+      goiania: "Goiânia",
       "rio verde": "Rio Verde",
     },
   },
   {
-    productSlug: "milho", stateCode: "sp",
+    productSlug: "milho",
+    stateCode: "sp",
     regionMap: {
-      "sao paulo":      "São Paulo",
+      "sao paulo": "São Paulo",
       "ribeirao preto": "Ribeirão Preto",
-      "campinas":       "Campinas",
+      campinas: "Campinas",
     },
   },
   {
-    productSlug: "milho", stateCode: "rs",
+    productSlug: "milho",
+    stateCode: "rs",
     regionMap: {
       "passo fundo": "Passo Fundo",
-      "cruz alta":   "Cruz Alta",
-      "santa rosa":  "Santa Rosa",
+      "cruz alta": "Cruz Alta",
+      "santa rosa": "Santa Rosa",
     },
   },
   {
-    productSlug: "milho", stateCode: "mg",
+    productSlug: "milho",
+    stateCode: "mg",
     regionMap: {
-      "uberlandia":  "Uberlândia",
+      uberlandia: "Uberlândia",
       "sete lagoas": "Sete Lagoas",
+    },
+  },
+  {
+    productSlug: "milho",
+    stateCode: "ba",
+    regionMap: {
+      barreiras: "Barreiras",
+      "luis eduardo magalhaes": "Luís Eduardo Magalhães",
+      "l. e. magalhaes": "Luís Eduardo Magalhães",
+      lem: "Luís Eduardo Magalhães",
+    },
+  },
+  {
+    productSlug: "milho",
+    stateCode: "sc",
+    regionMap: {
+      chapeco: "Chapecó",
+      xanxere: "Xanxerê",
+    },
+  },
+  {
+    productSlug: "milho",
+    stateCode: "to",
+    regionMap: {
+      palmas: "Palmas",
+      gurupi: "Gurupi",
+      "pedro afonso": "Pedro Afonso",
+    },
+  },
+  {
+    productSlug: "milho",
+    stateCode: "ma",
+    regionMap: { balsas: "Balsas" },
+  },
+  {
+    productSlug: "milho",
+    stateCode: "pa",
+    regionMap: {
+      santarem: "Santarém",
+      paragominas: "Paragominas",
+    },
+  },
+  // ── Feijão (páginas nacionais por tipo — regiões mapeadas a cidades) ──
+  {
+    productSlug: "feijao",
+    stateCode: "BR",
+    urlPath: "feijao/feijao-carioca-nota-8",
+    regionMap: {
+      empacotadores: { city: "São Paulo", state: "SP" },
+      sudoeste: { city: "Cascavel", state: "PR" },
+      "triangulo mineiro": { city: "Uberlândia", state: "MG" },
+      noroeste: { city: "Maringá", state: "PR" },
+      leste: { city: "Ponta Grossa", state: "PR" },
+      sul: { city: "Chapecó", state: "SC" },
+      "centro oriental": { city: "Londrina", state: "PR" },
+      "br 163": { city: "Dourados", state: "MS" },
+    },
+  },
+  {
+    productSlug: "feijao",
+    stateCode: "BR",
+    urlPath: "feijao/feijao-preto",
+    regionMap: {
+      empacotadores: { city: "São Paulo", state: "SP" },
+      sudoeste: { city: "Cascavel", state: "PR" },
+      "triangulo mineiro": { city: "Uberlândia", state: "MG" },
+      noroeste: { city: "Maringá", state: "PR" },
+      leste: { city: "Ponta Grossa", state: "PR" },
+      sul: { city: "Chapecó", state: "SC" },
+      "centro oriental": { city: "Londrina", state: "PR" },
+      "br 163": { city: "Dourados", state: "MS" },
+    },
+  },
+  {
+    productSlug: "feijao",
+    stateCode: "BR",
+    urlPath: "feijao/feijao-carioca-nota-9-9-5",
+    regionMap: {
+      empacotadores: { city: "São Paulo", state: "SP" },
+      sudoeste: { city: "Cascavel", state: "PR" },
+      "triangulo mineiro": { city: "Uberlândia", state: "MG" },
+      noroeste: { city: "Maringá", state: "PR" },
+      leste: { city: "Ponta Grossa", state: "PR" },
+      sul: { city: "Chapecó", state: "SC" },
+      "centro oriental": { city: "Londrina", state: "PR" },
+      "br 163": { city: "Dourados", state: "MS" },
     },
   },
 ];
@@ -372,7 +549,9 @@ async function scrapeNoticiasAgricolas(): Promise<RawQuote[]> {
   const results: RawQuote[] = [];
 
   for (const page of NA_PAGES) {
-    const url = `https://www.noticiasagricolas.com.br/cotacoes/${page.productSlug}/${page.productSlug}-mercado-fisico-${page.stateCode}`;
+    const url = page.urlPath
+      ? `https://www.noticiasagricolas.com.br/cotacoes/${page.urlPath}`
+      : `https://www.noticiasagricolas.com.br/cotacoes/${page.productSlug}/${page.productSlug}-mercado-fisico-${page.stateCode}`;
 
     let html: string;
     try {
@@ -391,8 +570,18 @@ async function scrapeNoticiasAgricolas(): Promise<RawQuote[]> {
       const cells = $(tr).find("td");
       if (cells.length < 2) return;
       const cellText = $(cells.eq(0)).text().trim();
-      const canonicalCity = lookupInMap(page.regionMap, cellText);
-      if (!canonicalCity) return;
+      const mapped = lookupInMap(page.regionMap, cellText);
+      if (!mapped) return;
+
+      let canonicalCity: string;
+      let stateCode: string;
+      if (typeof mapped === "string") {
+        canonicalCity = mapped;
+        stateCode = page.stateCode.toUpperCase();
+      } else {
+        canonicalCity = mapped.city;
+        stateCode = mapped.state;
+      }
 
       const priceText = $(cells.eq(1))
         .text()
@@ -416,7 +605,7 @@ async function scrapeNoticiasAgricolas(): Promise<RawQuote[]> {
       results.push({
         productSlug: page.productSlug,
         city: canonicalCity,
-        state: page.stateCode.toUpperCase(),
+        state: stateCode,
         price,
         variation,
         date: rowDate,
@@ -454,13 +643,10 @@ async function persistQuotes(
     .innerJoin(states, eq(cities.stateId, states.id));
 
   // Mapa "STATEUP:normed-city" → city row
-  const cityStateMap = new Map<string, typeof allCities[0]>();
-  // Fallback: mapa "STATEUP" → primeira cidade do estado
-  const stateMap = new Map<string, typeof allCities[0]>();
+  const cityStateMap = new Map<string, (typeof allCities)[0]>();
 
   for (const c of allCities) {
     cityStateMap.set(`${c.stateCode}:${norm(c.name)}`, c);
-    if (!stateMap.has(c.stateCode)) stateMap.set(c.stateCode, c);
   }
 
   for (const row of rows) {
@@ -474,19 +660,41 @@ async function persistQuotes(
     if (!product) continue;
 
     const stateUp = row.state.toUpperCase();
-    const city =
-      cityStateMap.get(`${stateUp}:${norm(row.city)}`) ??
-      stateMap.get(stateUp);
-    if (!city) continue;
+    let cityRow = cityStateMap.get(`${stateUp}:${norm(row.city)}`);
+
+    if (!cityRow) {
+      // Auto-cria cidade se o estado existir no banco
+      const [stateRow] = await db
+        .select({ id: states.id })
+        .from(states)
+        .where(eq(states.code, stateUp))
+        .limit(1);
+      if (!stateRow) continue;
+
+      const slug = `${stateUp.toLowerCase()}-${norm(row.city).replace(/\s+/g, "-")}`;
+      await db
+        .insert(cities)
+        .values({ stateId: stateRow.id, name: row.city, slug })
+        .onConflictDoNothing();
+      const [created] = await db
+        .select({ id: cities.id, name: cities.name, stateCode: states.code })
+        .from(cities)
+        .innerJoin(states, eq(cities.stateId, states.id))
+        .where(eq(cities.slug, slug))
+        .limit(1);
+      if (!created) continue;
+      cityRow = created;
+      cityStateMap.set(`${stateUp}:${norm(row.city)}`, cityRow);
+    }
 
     // Dedup: uma cotação por (produto, cidade, data) — fonte de maior prioridade vence
     const [existing] = await db
-      .select({ id: quotes.id, sourceId: quotes.sourceId })
+      .select({ id: quotes.id, sourceId: quotes.sourceId, price: quotes.price })
       .from(quotes)
       .where(
         and(
           eq(quotes.productId, product.id),
-          eq(quotes.cityId, city.id),
+          eq(quotes.cityId, cityRow.id),
           eq(quotes.quoteDate, dateStr),
         ),
       )
@@ -499,13 +707,58 @@ async function persistQuotes(
           .set({ price: row.price, variation: row.variation ?? null })
           .where(eq(quotes.id, existing.id));
         inserted++;
+      } else {
+        // Conflict: different source, same product/city/date
+        const keepNew = row.price > existing.price;
+        const keptSourceId = keepNew ? sourceId : existing.sourceId;
+        const keptPrice = keepNew ? row.price : existing.price;
+        const rejectedSourceId = keepNew ? existing.sourceId : sourceId;
+        const rejectedPrice = keepNew ? existing.price : row.price;
+
+        if (keepNew) {
+          await db
+            .update(quotes)
+            .set({
+              price: row.price,
+              variation: row.variation ?? null,
+              sourceId,
+            })
+            .where(eq(quotes.id, existing.id));
+        }
+
+        // Check if conflict already logged
+        const [existingConflict] = await db
+          .select({ id: quoteConflicts.id })
+          .from(quoteConflicts)
+          .where(
+            and(
+              eq(quoteConflicts.productId, product.id),
+              eq(quoteConflicts.cityId, cityRow.id),
+              eq(quoteConflicts.quoteDate, dateStr),
+            ),
+          )
+          .limit(1);
+
+        if (!existingConflict) {
+          await db.insert(quoteConflicts).values({
+            quoteId: existing.id,
+            productId: product.id,
+            cityId: cityRow.id,
+            quoteDate: dateStr,
+            keptSourceId,
+            keptPrice,
+            rejectedSourceId,
+            rejectedPrice,
+            status: "pending",
+          });
+        }
       }
       continue;
     }
 
     await db.insert(quotes).values({
       productId: product.id,
-      cityId: city.id,
+      cityId: cityRow.id,
       sourceId,
       price: row.price,
       variation: row.variation,
@@ -518,6 +771,9 @@ async function persistQuotes(
 }
 
 // ── Scraping de Notícias ──────────────────────────────────────────────────────
+
+import { writeFile, mkdir } from "node:fs/promises";
+import { join, extname } from "node:path";
 
 interface RawNews {
   title: string;
@@ -541,68 +797,124 @@ function slugify(text: string): string {
     .slice(0, 100);
 }
 
-function inferNewsCategory(title: string): string {
+function inferNewsCategory(title: string, fallback: string): string {
   const t = norm(title);
-  if (/(boi|vaca|arroba|bovino|pecuaria|suino|frango|leite|nelore)/i.test(t)) return "pecuaria";
-  if (/(soja|milho|feijao|graos|trigo|arroz|safra|plantio|colheita)/i.test(t)) return "graos";
-  if (/(chuva|seca|clima|geada|previsao|tempo|el nino|la nina)/i.test(t)) return "clima";
-  return "geral";
+  if (/(boi|vaca|arroba|bovino|pecuaria|suino|frango|leite|nelore)/i.test(t))
+    return "pecuaria";
+  if (/(soja|milho|feijao|graos|trigo|arroz|safra|plantio|colheita)/i.test(t))
+    return "graos";
+  if (/(chuva|seca|clima|geada|previsao|tempo|el nino|la nina)/i.test(t))
+    return "clima";
+  return fallback;
 }
 
-async function scrapeNewsNoticiasAgricolas(): Promise<RawNews[]> {
+async function fetchOgImage(articleUrl: string): Promise<string | undefined> {
+  try {
+    const html = await fetchHtml(articleUrl);
+    const $ = cheerio.load(html);
+    const ogImage =
+      $('meta[property="og:image"]').attr("content") ??
+      $('meta[name="og:image"]').attr("content");
+    return ogImage || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function downloadImage(
+  imageUrl: string,
+  articleId: number,
+): Promise<string | null> {
+  try {
+    const res = await fetch(imageUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "image/*",
+      },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) return null;
+
+    const contentType = res.headers.get("content-type") ?? "";
+    let ext = ".jpg";
+    if (contentType.includes("png")) ext = ".png";
+    else if (contentType.includes("webp")) ext = ".webp";
+    else if (contentType.includes("gif")) ext = ".gif";
+    else {
+      const urlExt = extname(new URL(imageUrl).pathname).toLowerCase();
+      if ([".jpg", ".jpeg", ".png", ".webp", ".gif"].includes(urlExt)) {
+        ext = urlExt === ".jpeg" ? ".jpg" : urlExt;
+      }
+    }
+
+    const dir = join(
+      process.cwd(),
+      "public",
+      "images",
+      "posts",
+      String(articleId),
+    );
+    await mkdir(dir, { recursive: true });
+    const filePath = join(dir, `image${ext}`);
+    const buffer = Buffer.from(await res.arrayBuffer());
+    await writeFile(filePath, buffer);
+
+    return `/images/posts/${articleId}/image${ext}`;
+  } catch {
+    return null;
+  }
+}
+
+async function scrapeNewsNoticiasAgricolas(
+  activeNS: { url: string; category: string }[],
+): Promise<RawNews[]> {
   const results: RawNews[] = [];
+  const seenUrls = new Set<string>();
 
-  const urls = [
-    "https://www.noticiasagricolas.com.br/noticias/boi-gordo",
-    "https://www.noticiasagricolas.com.br/noticias/soja",
-    "https://www.noticiasagricolas.com.br/noticias/milho",
-  ];
-
-  for (const url of urls) {
+  for (const src of activeNS) {
     let html: string;
     try {
-      html = await fetchHtml(url);
+      html = await fetchHtml(src.url);
     } catch {
       continue;
     }
 
     const $ = cheerio.load(html);
+    let currentDate = today();
 
-    $(".lista-noticias-item, .box-noticias, article.news-item").each((_, el) => {
-      const titleEl = $(el).find("h2 a, h3 a, .titulo a").first();
-      const title = titleEl.text().trim();
-      const href = titleEl.attr("href") ?? "";
+    $("h3, li.horizontal").each((_, el) => {
+      const tag = $(el).prop("tagName")?.toLowerCase();
+
+      if (tag === "h3") {
+        const parsed = parseBrazilianDate($(el).text());
+        if (parsed) currentDate = parsed;
+        return;
+      }
+
+      const anchor = $(el).find("a").first();
+      const href = anchor.attr("href") ?? "";
+      const title = anchor.find("h2").first().text().trim();
       if (!title || !href) return;
 
       const sourceUrl = href.startsWith("http")
         ? href
         : `https://www.noticiasagricolas.com.br${href}`;
-      const excerpt =
-        $(el).find(".resumo, p").first().text().trim().slice(0, 250) ||
-        title;
 
-      const imgSrc =
-        $(el).find("img").first().attr("src") ??
-        $(el).find("img").first().attr("data-src");
+      if (seenUrls.has(sourceUrl)) return;
+      seenUrls.add(sourceUrl);
 
-      // Try to parse date from text or data attributes
-      let publishedAt = today();
-      const dateText = $(el).find(".data, time, .date").first().text().trim();
-      const parsed = parseBrazilianDate(dateText);
-      if (parsed) publishedAt = parsed;
-
-      const slug = `${slugify(title)}-${publishedAt.replace(/-/g, "")}`;
-      const category = inferNewsCategory(title);
+      const slug = `${slugify(title)}-${currentDate.replace(/-/g, "")}`;
+      const category = inferNewsCategory(title, src.category);
 
       results.push({
         title,
         slug,
-        excerpt,
-        imageUrl: imgSrc,
+        excerpt: title,
         sourceUrl,
         sourceName: "Notícias Agrícolas",
         category,
-        publishedAt,
+        publishedAt: currentDate,
       });
     });
   }
@@ -613,8 +925,15 @@ async function scrapeNewsNoticiasAgricolas(): Promise<RawNews[]> {
 async function persistNews(items: RawNews[]): Promise<number> {
   let inserted = 0;
   for (const item of items) {
+    const existing = await db
+      .select({ id: newsArticles.id })
+      .from(newsArticles)
+      .where(eq(newsArticles.sourceUrl, item.sourceUrl))
+      .limit(1);
+    if (existing.length > 0) continue;
+
     try {
-      await db
+      const [row] = await db
         .insert(newsArticles)
         .values({
           title: item.title,
@@ -626,10 +945,24 @@ async function persistNews(items: RawNews[]): Promise<number> {
           category: item.category,
           publishedAt: item.publishedAt,
         })
-        .onConflictDoNothing();
-      inserted++;
+        .onConflictDoNothing()
+        .returning({ id: newsArticles.id });
+
+      if (row) {
+        const ogImage = await fetchOgImage(item.sourceUrl);
+        if (ogImage) {
+          const localPath = await downloadImage(ogImage, row.id);
+          if (localPath) {
+            await db
+              .update(newsArticles)
+              .set({ imageUrl: localPath })
+              .where(eq(newsArticles.id, row.id));
+          }
+        }
+        inserted++;
+      }
     } catch {
-      // slug conflict — already in DB
+      // slug or sourceUrl conflict — already in DB
     }
   }
   return inserted;
@@ -682,9 +1015,17 @@ async function main() {
   // Scraping de notícias agropecuárias
   try {
     console.log("[news] Iniciando scraping de notícias…");
-    const newsItems = await scrapeNewsNoticiasAgricolas();
-    const newsInserted = await persistNews(newsItems);
-    console.log(`[news] ${newsInserted} notícias processadas.`);
+    const activeNS = await db
+      .select({ url: newsSources.url, category: newsSources.category })
+      .from(newsSources)
+      .where(eq(newsSources.active, 1));
+    if (activeNS.length === 0) {
+      console.log("[news] Nenhuma fonte de notícias ativa.");
+    } else {
+      const newsItems = await scrapeNewsNoticiasAgricolas(activeNS);
+      const newsInserted = await persistNews(newsItems);
+      console.log(`[news] ${newsInserted} notícias processadas.`);
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[news] Erro: ${message}`);

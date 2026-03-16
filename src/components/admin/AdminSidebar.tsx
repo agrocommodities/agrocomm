@@ -12,11 +12,15 @@ import {
   Menu,
   X,
   ArrowLeft,
+  AlertTriangle,
+  Newspaper,
 } from "lucide-react";
 
 const links = [
   { href: "/admin", label: "Painel", icon: LayoutDashboard },
   { href: "/admin/cotacoes", label: "Cotações", icon: DollarSign },
+  { href: "/admin/conflitos", label: "Conflitos", icon: AlertTriangle },
+  { href: "/admin/noticias", label: "Notícias", icon: Newspaper },
   { href: "/admin/usuarios", label: "Usuários", icon: Users },
   { href: "/admin/scraping", label: "Scraping", icon: RefreshCw },
   { href: "/admin/estatisticas", label: "Estatísticas", icon: BarChart3 },

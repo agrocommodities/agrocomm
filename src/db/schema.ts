@@ -27,7 +27,7 @@ export const refreshTokens = sqliteTable("refresh_tokens", {
 export const states = sqliteTable("states", {
   id: int().primaryKey({ autoIncrement: true }),
   code: text().notNull().unique(), // ex: "MS", "MT"
-  name: text().notNull(),          // ex: "Mato Grosso do Sul"
+  name: text().notNull(), // ex: "Mato Grosso do Sul"
 });
 
 export const cities = sqliteTable("cities", {
@@ -94,7 +94,10 @@ export const quotes = sqliteTable("quotes", {
 });
 
 export const quotesRelations = relations(quotes, ({ one }) => ({
-  product: one(products, { fields: [quotes.productId], references: [products.id] }),
+  product: one(products, {
+    fields: [quotes.productId],
+    references: [products.id],
+  }),
   city: one(cities, { fields: [quotes.cityId], references: [cities.id] }),
   source: one(sources, { fields: [quotes.sourceId], references: [sources.id] }),
 }));
@@ -111,20 +114,80 @@ export const scraperLogs = sqliteTable("scraper_logs", {
   executedAt: text("executed_at").notNull().default(sql`(datetime('now'))`),
 });
 
+/**
+ * Conflitos de cotações (quando duas fontes reportam preços diferentes
+ * para o mesmo produto, cidade e data)
+ */
+export const quoteConflicts = sqliteTable("quote_conflicts", {
+  id: int().primaryKey({ autoIncrement: true }),
+  quoteId: int("quote_id")
+    .notNull()
+    .references(() => quotes.id, { onDelete: "cascade" }),
+  productId: int("product_id")
+    .notNull()
+    .references(() => products.id),
+  cityId: int("city_id")
+    .notNull()
+    .references(() => cities.id),
+  quoteDate: text("quote_date").notNull(),
+  keptSourceId: int("kept_source_id")
+    .notNull()
+    .references(() => sources.id),
+  keptPrice: real("kept_price").notNull(),
+  rejectedSourceId: int("rejected_source_id")
+    .notNull()
+    .references(() => sources.id),
+  rejectedPrice: real("rejected_price").notNull(),
+  status: text().notNull().default("pending"), // "pending" | "accepted" | "dismissed"
+  resolvedAt: text("resolved_at"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const quoteConflictsRelations = relations(quoteConflicts, ({ one }) => ({
+  quote: one(quotes, {
+    fields: [quoteConflicts.quoteId],
+    references: [quotes.id],
+  }),
+  product: one(products, {
+    fields: [quoteConflicts.productId],
+    references: [products.id],
+  }),
+  city: one(cities, {
+    fields: [quoteConflicts.cityId],
+    references: [cities.id],
+  }),
+  keptSource: one(sources, {
+    fields: [quoteConflicts.keptSourceId],
+    references: [sources.id],
+  }),
+  rejectedSource: one(sources, {
+    fields: [quoteConflicts.rejectedSourceId],
+    references: [sources.id],
+  }),
+}));
+
+// ── Fontes de Notícias ────────────────────────────────────────────────────────
+
+export const newsSources = sqliteTable("news_sources", {
+  id: int().primaryKey({ autoIncrement: true }),
+  slug: text().notNull().unique(),
+  name: text().notNull(),
+  url: text().notNull(),
+  category: text().notNull().default("geral"),
+  active: int().notNull().default(1),
+});
+
 // ── Notícias ──────────────────────────────────────────────────────────────────
 
-/**
- * Artigos de notícias agropecuárias coletados via scraping
- */
 export const newsArticles = sqliteTable("news_articles", {
   id: int().primaryKey({ autoIncrement: true }),
   title: text().notNull(),
   slug: text().notNull().unique(),
   excerpt: text().notNull(),
   imageUrl: text("image_url"),
-  sourceUrl: text("source_url").notNull(),
+  sourceUrl: text("source_url").notNull().unique(),
   sourceName: text("source_name").notNull(),
-  category: text().notNull().default("geral"), // "geral" | "pecuaria" | "graos" | "clima"
+  category: text().notNull().default("geral"),
   publishedAt: text("published_at").notNull(),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });

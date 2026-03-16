@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { newsArticles } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and } from "drizzle-orm";
 
 export type NewsArticle = {
   id: number;
@@ -44,6 +44,31 @@ export async function getNewsByCategory(
     .select(NEWS_SELECT)
     .from(newsArticles)
     .where(eq(newsArticles.category, category))
+    .orderBy(desc(newsArticles.publishedAt))
+    .limit(limit);
+}
+
+export async function getNewsBySlug(
+  slug: string,
+): Promise<NewsArticle | undefined> {
+  const [article] = await db
+    .select(NEWS_SELECT)
+    .from(newsArticles)
+    .where(eq(newsArticles.slug, slug))
+    .limit(1);
+  return article;
+}
+
+export async function getRelatedNews(
+  currentSlug: string,
+  category: string,
+  limit = 4,
+): Promise<NewsArticle[]> {
+  const { ne } = await import("drizzle-orm");
+  return db
+    .select(NEWS_SELECT)
+    .from(newsArticles)
+    .where(and(eq(newsArticles.category, category), ne(newsArticles.slug, currentSlug)))
     .orderBy(desc(newsArticles.publishedAt))
     .limit(limit);
 }

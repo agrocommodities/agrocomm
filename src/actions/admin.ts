@@ -10,12 +10,14 @@ import {
   sources,
   scraperLogs,
   pageViews,
+  quoteConflicts,
+  newsArticles,
+  newsSources,
 } from "@/db/schema";
 import { eq, desc, sql, and, gte, count } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
 import { redirect } from "next/navigation";
-
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
 
@@ -130,9 +132,7 @@ export async function pruneQuotesAction(date: string) {
     return { error: "Data inválida." };
   }
 
-  const result = await db
-    .delete(quotes)
-    .where(eq(quotes.quoteDate, date));
+  const result = await db.delete(quotes).where(eq(quotes.quoteDate, date));
 
   return { success: true, deleted: result.rowsAffected ?? 0 };
 }
@@ -381,4 +381,171 @@ export async function getPageViewStats() {
     topPages,
     topReferrers,
   };
+}
+
+// ── Conflicts ─────────────────────────────────────────────────────────────────
+
+export async function getConflicts() {
+  await requireAdmin();
+
+  const rows = await db
+    .select({
+      id: quoteConflicts.id,
+      quoteId: quoteConflicts.quoteId,
+      productName: products.name,
+      cityName: cities.name,
+      stateCode: states.code,
+      quoteDate: quoteConflicts.quoteDate,
+      keptSourceName: sql<string>`ks.name`.as("kept_source_name"),
+      keptPrice: quoteConflicts.keptPrice,
+      rejectedSourceName: sql<string>`rs.name`.as("rejected_source_name"),
+      rejectedPrice: quoteConflicts.rejectedPrice,
+      status: quoteConflicts.status,
+      createdAt: quoteConflicts.createdAt,
+    })
+    .from(quoteConflicts)
+    .innerJoin(products, eq(quoteConflicts.productId, products.id))
+    .innerJoin(cities, eq(quoteConflicts.cityId, cities.id))
+    .innerJoin(states, eq(cities.stateId, states.id))
+    .innerJoin(
+      sql`${sources} as ks`,
+      sql`ks.id = ${quoteConflicts.keptSourceId}`,
+    )
+    .innerJoin(
+      sql`${sources} as rs`,
+      sql`rs.id = ${quoteConflicts.rejectedSourceId}`,
+    )
+    .orderBy(desc(quoteConflicts.createdAt));
+
+  return rows;
+}
+
+export async function acceptConflictAction(conflictId: number) {
+  await requireAdmin();
+
+  const [conflict] = await db
+    .select()
+    .from(quoteConflicts)
+    .where(eq(quoteConflicts.id, conflictId))
+    .limit(1);
+
+  if (!conflict) return { error: "Conflito não encontrado." };
+  if (conflict.status !== "pending") return { error: "Conflito já resolvido." };
+
+  // Switch to the rejected source's price
+  await db
+    .update(quotes)
+    .set({
+      price: conflict.rejectedPrice,
+      sourceId: conflict.rejectedSourceId,
+    })
+    .where(eq(quotes.id, conflict.quoteId));
+
+  await db
+    .update(quoteConflicts)
+    .set({
+      status: "accepted",
+      resolvedAt: new Date().toISOString(),
+    })
+    .where(eq(quoteConflicts.id, conflictId));
+
+  return { success: true };
+}
+
+export async function dismissConflictAction(conflictId: number) {
+  await requireAdmin();
+
+  const [conflict] = await db
+    .select()
+    .from(quoteConflicts)
+    .where(eq(quoteConflicts.id, conflictId))
+    .limit(1);
+
+  if (!conflict) return { error: "Conflito não encontrado." };
+  if (conflict.status !== "pending") return { error: "Conflito já resolvido." };
+
+  await db
+    .update(quoteConflicts)
+    .set({
+      status: "dismissed",
+      resolvedAt: new Date().toISOString(),
+    })
+    .where(eq(quoteConflicts.id, conflictId));
+
+  return { success: true };
+}
+
+// ── News management ──────────────────────────────────────────────────────────
+
+export async function getAdminNews(page = 1, categoryFilter?: string) {
+  await requireAdmin();
+
+  const limit = 30;
+  const offset = (page - 1) * limit;
+
+  const conditions = categoryFilter
+    ? eq(newsArticles.category, categoryFilter)
+    : undefined;
+
+  const rows = await db
+    .select({
+      id: newsArticles.id,
+      title: newsArticles.title,
+      slug: newsArticles.slug,
+      excerpt: newsArticles.excerpt,
+      imageUrl: newsArticles.imageUrl,
+      sourceUrl: newsArticles.sourceUrl,
+      sourceName: newsArticles.sourceName,
+      category: newsArticles.category,
+      publishedAt: newsArticles.publishedAt,
+      createdAt: newsArticles.createdAt,
+    })
+    .from(newsArticles)
+    .where(conditions)
+    .orderBy(desc(newsArticles.publishedAt), desc(newsArticles.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  const [total] = await db
+    .select({ count: count() })
+    .from(newsArticles)
+    .where(conditions);
+
+  return { rows, total: total.count, page, limit };
+}
+
+export async function deleteNewsAction(id: number) {
+  await requireAdmin();
+  await db.delete(newsArticles).where(eq(newsArticles.id, id));
+  return { success: true };
+}
+
+export async function pruneAllNewsAction() {
+  await requireAdmin();
+  const result = await db.delete(newsArticles);
+  return { success: true, deleted: result.rowsAffected ?? 0 };
+}
+
+export async function getNewsSources() {
+  await requireAdmin();
+  return db
+    .select({
+      id: newsSources.id,
+      slug: newsSources.slug,
+      name: newsSources.name,
+      url: newsSources.url,
+      category: newsSources.category,
+      active: newsSources.active,
+    })
+    .from(newsSources)
+    .orderBy(newsSources.name);
+}
+
+export async function toggleNewsSourceAction(id: number, active: boolean) {
+  await requireAdmin();
+  await db
+    .update(newsSources)
+    .set({ active: active ? 1 : 0 })
+    .where(eq(newsSources.id, id));
+  return { success: true };
 }
