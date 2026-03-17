@@ -7,7 +7,11 @@ function getSessionId(): string {
   if (typeof window === "undefined") return "";
   let id = sessionStorage.getItem("_sid");
   if (!id) {
-    id = crypto.randomUUID();
+    id =
+      crypto.randomUUID?.() ??
+      Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) =>
+        b.toString(16).padStart(2, "0"),
+      ).join("");
     sessionStorage.setItem("_sid", id);
   }
   return id;

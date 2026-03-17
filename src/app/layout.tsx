@@ -54,7 +54,7 @@ export default function RootLayout({
       </head>
       <body className={nunito.variable}>
         <PageTracker />
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col min-h-screen overflow-x-hidden">
           <Header />
           <main className="grow p-4">{children}</main>
           <Footer />

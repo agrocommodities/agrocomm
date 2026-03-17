@@ -116,8 +116,12 @@ export default async function AdminDashboardPage() {
               <tr className="text-white/40 text-xs uppercase tracking-wide">
                 <th className="text-left px-5 py-3 font-medium">Fonte</th>
                 <th className="text-left px-5 py-3 font-medium">Status</th>
-                <th className="text-right px-5 py-3 font-medium">Cotações</th>
-                <th className="text-right px-5 py-3 font-medium">Data</th>
+                <th className="text-right px-5 py-3 font-medium hidden sm:table-cell">
+                  Cotações
+                </th>
+                <th className="text-right px-5 py-3 font-medium hidden sm:table-cell">
+                  Data
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -151,10 +155,10 @@ export default async function AdminDashboardPage() {
                             : "Ignorado"}
                       </span>
                     </td>
-                    <td className="px-5 py-3 text-right text-white/60">
+                    <td className="px-5 py-3 text-right text-white/60 hidden sm:table-cell">
                       {log.quotesInserted}
                     </td>
-                    <td className="px-5 py-3 text-right text-white/40 text-xs">
+                    <td className="px-5 py-3 text-right text-white/40 text-xs hidden sm:table-cell">
                       {log.executedAt}
                     </td>
                   </tr>

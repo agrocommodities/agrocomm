@@ -519,7 +519,13 @@ export async function getAdminNews(page = 1, categoryFilter?: string) {
 export async function deleteNewsAction(id: number) {
   await requireAdmin();
   await db.delete(newsArticles).where(eq(newsArticles.id, id));
-  const imageDir = path.join(process.cwd(), "public", "images", "posts", String(id));
+  const imageDir = path.join(
+    process.cwd(),
+    "public",
+    "images",
+    "posts",
+    String(id),
+  );
   await rm(imageDir, { recursive: true, force: true });
   return { success: true };
 }

@@ -47,8 +47,7 @@ export default function SobrePage() {
 
           <p>
             Os dados são coletados automaticamente de fontes confiáveis do
-            mercado, e
-            atualizados múltiplas vezes ao dia durante os dias úteis.
+            mercado, e atualizados múltiplas vezes ao dia durante os dias úteis.
           </p>
         </div>
       </section>

@@ -8,15 +8,15 @@ export default async function Header() {
   const session = await getSession();
 
   return (
-    <header className="sticky z-50 top-0 bg-alt-background border-b border-white/10">
+    <header className="sticky z-50 top-0 bg-alt-background border-b border-white/10 overflow-x-hidden">
       {/* Top row: logo + user actions */}
-      <div className="flex items-center justify-between gap-4 px-4 py-3 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between gap-2 sm:gap-4 px-4 py-3 max-w-7xl mx-auto">
         <Link
           href="/"
           className="flex items-center gap-2 text-xl font-bold shrink-0"
         >
           <Image src="/images/logo.svg" alt="AgroComm" width={36} height={36} />
-          AgroComm
+          <span className="hidden sm:inline">AgroComm</span>
         </Link>
 
         {/* Desktop: nav links inline */}
@@ -33,27 +33,27 @@ export default async function Header() {
         </nav>
 
         {/* User actions (desktop + mobile) */}
-        <div className="flex items-center gap-4 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0 text-xs sm:text-sm">
           {session ? (
             <>
               {session.role === "admin" && (
                 <Link
                   href="/admin"
-                  className="text-sm font-medium text-green-400 hover:text-green-300 transition-colors"
+                  className="font-medium text-green-400 hover:text-green-300 transition-colors"
                 >
                   Admin
                 </Link>
               )}
               <Link
                 href="/ajustes"
-                className="text-sm font-medium hover:text-green-300 transition-colors"
+                className="font-medium hover:text-green-300 transition-colors"
               >
                 Ajustes
               </Link>
               <form action={logoutAction}>
                 <button
                   type="submit"
-                  className="text-sm font-medium hover:text-green-300 transition-colors cursor-pointer"
+                  className="font-medium hover:text-green-300 transition-colors cursor-pointer"
                 >
                   Sair
                 </button>
@@ -62,7 +62,7 @@ export default async function Header() {
           ) : (
             <Link
               href="/auth/login"
-              className="text-sm font-medium hover:text-green-300 transition-colors"
+              className="font-medium hover:text-green-300 transition-colors"
             >
               Entrar
             </Link>

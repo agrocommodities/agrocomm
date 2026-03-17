@@ -7,7 +7,7 @@ export default function Footer() {
         <p className="text-white/50">
           &copy; {new Date().getFullYear()} AgroComm
         </p>
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-4 flex-wrap">
           <Link
             href="/ajuda"
             className="text-white/40 hover:text-green-400 transition-colors text-xs"

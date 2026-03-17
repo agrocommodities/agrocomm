@@ -36,7 +36,7 @@ export default function AdminSidebar() {
   return (
     <>
       {/* Mobile header bar */}
-      <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-[#1a2218] border-b border-white/10">
+      <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-[#1a2218] border-b border-white/10 shrink-0">
         <Link
           href="/"
           className="text-sm text-white/50 hover:text-white flex items-center gap-1"
