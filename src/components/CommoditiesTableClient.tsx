@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { X, TrendingUp, TrendingDown } from "lucide-react";
 import QuoteChart from "./QuoteChart";
-import { getProductCityHistories } from "@/actions/quotes";
-import type { QuoteRow, CityLine } from "@/actions/quotes";
+import { getCityHistoryByRange } from "@/actions/quotes";
+import type { QuoteRow, HistoryPoint } from "@/actions/quotes";
 
 interface Props {
   quotes: QuoteRow[];
@@ -35,20 +35,20 @@ function VariationBadge({ value }: { value: number | null }) {
 
 export default function CommoditiesTableClient({ quotes, title }: Props) {
   const [selected, setSelected] = useState<QuoteRow | null>(null);
-  const [cityLines, setCityLines] = useState<CityLine[]>([]);
+  const [historyData, setHistoryData] = useState<HistoryPoint[]>([]);
   const [isPending, startTransition] = useTransition();
 
   function handleRowClick(row: QuoteRow) {
     setSelected(row);
     startTransition(async () => {
-      const data = await getProductCityHistories(row.productSlug);
-      setCityLines(data);
+      const data = await getCityHistoryByRange(row.productSlug, row.cityId, 30);
+      setHistoryData(data);
     });
   }
 
   function closeModal() {
     setSelected(null);
-    setCityLines([]);
+    setHistoryData([]);
   }
 
   return (
@@ -157,12 +157,7 @@ export default function CommoditiesTableClient({ quotes, title }: Props) {
             {/* Chart */}
             <div className="px-4 pt-4 pb-6">
               <p className="text-xs text-white/40 px-2 mb-3">
-                Últimos 30 dias — todas as praças
-                {cityLines.length > 1 && (
-                  <span className="ml-1 text-green-400/70">
-                    (cidade em destaque: {selected.city}/{selected.state})
-                  </span>
-                )}
+                Histórico de preços — {selected.city}/{selected.state}
               </p>
               {isPending ? (
                 <div className="flex items-center justify-center h-48 text-white/30 text-sm">
@@ -170,9 +165,13 @@ export default function CommoditiesTableClient({ quotes, title }: Props) {
                 </div>
               ) : (
                 <QuoteChart
-                  lines={cityLines}
+                  data={historyData}
                   unit={selected.unit}
-                  highlightCityId={selected.cityId}
+                  color="#4ade80"
+                  productSlug={selected.productSlug}
+                  cityId={selected.cityId}
+                  showRangeSelector
+                  initialRange={30}
                 />
               )}
             </div>

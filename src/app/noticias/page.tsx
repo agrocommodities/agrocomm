@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getLatestNews, getTagCloud, getNewsByTag } from "@/actions/news";
 import type { NewsArticle } from "@/actions/news";
 import { Newspaper, Clock, ArrowRight, Tag } from "lucide-react";
+import Breadcrumb from "@/components/Breadcrumb";
 import type { Metadata } from "next";
 
 export const revalidate = 600;
@@ -266,7 +267,8 @@ export default async function NoticiasPage({
           {/* Header */}
           <div className="flex flex-col gap-4">
             <div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold flex items-center gap-3">
+              <Breadcrumb items={[{ label: "Notícias" }]} />
+              <h1 className="text-3xl sm:text-4xl font-extrabold flex items-center gap-3 mt-1">
                 <Newspaper className="w-8 h-8 text-green-400" />
                 {currentTag ? `Notícias: ${currentTag}` : "Notícias"}
               </h1>

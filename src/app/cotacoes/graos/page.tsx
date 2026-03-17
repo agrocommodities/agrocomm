@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getQuotesByCategory } from "@/actions/quotes";
 import CommoditiesTableClient from "@/components/CommoditiesTableClient";
+import Breadcrumb from "@/components/Breadcrumb";
 
 export const revalidate = 300;
 export const metadata = { title: "Grãos — AgroComm" };
@@ -19,13 +20,8 @@ export default async function GraosPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
-          <p className="text-sm text-white/40 mb-1">
-            <Link href="/" className="hover:underline">
-              Início
-            </Link>{" "}
-            / Grãos
-          </p>
-          <h1 className="text-3xl font-bold">🌾 Grãos</h1>
+          <Breadcrumb items={[{ label: "Grãos" }]} />
+          <h1 className="text-3xl font-bold mt-1">🌾 Grãos</h1>
           <p className="text-white/50 mt-1 text-sm">
             Cotações de soja, milho e feijão em saca (R$/60kg)
           </p>

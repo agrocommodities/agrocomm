@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import ChicagoClient from "./ChicagoClient";
+import Breadcrumb from "@/components/Breadcrumb";
 
 export const revalidate = 60;
 
@@ -15,13 +15,8 @@ export default function ChicagoPage() {
     <main className="max-w-7xl mx-auto px-4 py-10 flex flex-col gap-8">
       {/* Header */}
       <div className="flex flex-col gap-1">
-        <p className="text-sm text-white/40">
-          <Link href="/" className="hover:underline">
-            Início
-          </Link>{" "}
-          / Bolsa de Chicago
-        </p>
-        <h1 className="text-3xl font-bold">📊 Bolsa de Chicago (CBOT)</h1>
+        <Breadcrumb items={[{ label: "Bolsa de Chicago" }]} />
+        <h1 className="text-3xl font-bold mt-1">📊 Bolsa de Chicago (CBOT)</h1>
         <p className="text-white/50 mt-1 text-sm">
           Cotações em tempo real das principais commodities agropecuárias —
           Futuros CME Group / CBOT

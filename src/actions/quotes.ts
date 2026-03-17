@@ -7,6 +7,7 @@ import { eq, and, gte, desc, sql } from "drizzle-orm";
 export type QuoteRow = {
   id: number;
   cityId: number;
+  citySlug: string;
   productSlug: string;
   productName: string;
   unit: string;
@@ -58,6 +59,7 @@ async function latestQuoteDateForCategory(category: string): Promise<string> {
 const BASE_SELECT = {
   id: quotes.id,
   cityId: cities.id,
+  citySlug: cities.slug,
   productSlug: products.slug,
   productName: products.name,
   unit: products.unit,
@@ -176,6 +178,35 @@ export async function getQuoteHistory(
         gte(quotes.quoteDate, sinceStr),
       ),
     )
+    .orderBy(quotes.quoteDate);
+}
+
+/**
+ * Histórico de uma cidade específica com range customizável.
+ * @param days 0 = tudo, caso contrário quantidade de dias para trás
+ */
+export async function getCityHistoryByRange(
+  productSlug: string,
+  cityId: number,
+  days: number,
+): Promise<HistoryPoint[]> {
+  const conditions = [
+    eq(products.slug, productSlug),
+    eq(quotes.cityId, cityId),
+  ];
+
+  if (days > 0) {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    const sinceStr = since.toISOString().slice(0, 10);
+    conditions.push(gte(quotes.quoteDate, sinceStr));
+  }
+
+  return db
+    .select({ date: quotes.quoteDate, price: quotes.price })
+    .from(quotes)
+    .innerJoin(products, eq(quotes.productId, products.id))
+    .where(and(...conditions))
     .orderBy(quotes.quoteDate);
 }
 

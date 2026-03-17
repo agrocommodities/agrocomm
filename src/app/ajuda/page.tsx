@@ -9,6 +9,7 @@ import {
   Wallet,
   Lightbulb,
 } from "lucide-react";
+import Breadcrumb from "@/components/Breadcrumb";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -21,7 +22,8 @@ export default function AjudaPage() {
   return (
     <main className="max-w-4xl mx-auto px-4 py-10 flex flex-col gap-10">
       <div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold flex items-center gap-3">
+        <Breadcrumb items={[{ label: "Ajuda" }]} />
+        <h1 className="text-3xl sm:text-4xl font-extrabold flex items-center gap-3 mt-1">
           <HelpCircle className="w-8 h-8 text-green-400" />
           Central de Ajuda
         </h1>

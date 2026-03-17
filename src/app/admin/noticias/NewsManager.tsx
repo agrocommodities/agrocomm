@@ -12,7 +12,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Newspaper,
-  Download,
 } from "lucide-react";
 import {
   deleteNewsAction,
@@ -85,12 +84,7 @@ export default function NewsManager({
   initialSources: NewsSource[];
 }) {
   const [scraping, setScraping] = useState(false);
-  const [backfilling, setBackfilling] = useState(false);
   const [result, setResult] = useState<ScrapeResult | null>(null);
-  const [backfillResult, setBackfillResult] = useState<{
-    updated: number;
-    errors: number;
-  } | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -116,29 +110,6 @@ export default function NewsManager({
       });
     } finally {
       setScraping(false);
-    }
-  }
-
-  async function runBackfill() {
-    setBackfilling(true);
-    setBackfillResult(null);
-    try {
-      const res = await fetch("/api/admin/backfill-news", { method: "POST" });
-      const data = await res.json();
-      if (data.error) {
-        setResult({ status: "error", inserted: 0, error: data.error });
-      } else {
-        setBackfillResult(data.result);
-      }
-      router.refresh();
-    } catch (err) {
-      setResult({
-        status: "error",
-        inserted: 0,
-        error: err instanceof Error ? err.message : "Erro desconhecido",
-      });
-    } finally {
-      setBackfilling(false);
     }
   }
 
@@ -202,19 +173,6 @@ export default function NewsManager({
         </button>
         <button
           type="button"
-          disabled={backfilling}
-          onClick={runBackfill}
-          className="flex items-center justify-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 font-semibold text-sm px-5 py-2.5 rounded-lg border border-blue-500/20 transition-colors"
-        >
-          {backfilling ? (
-            <RefreshCw className="w-4 h-4 animate-spin" />
-          ) : (
-            <Download className="w-4 h-4" />
-          )}
-          {backfilling ? "Buscando conteúdo…" : "Preencher Conteúdo"}
-        </button>
-        <button
-          type="button"
           disabled={isPending}
           onClick={handlePruneAll}
           className="flex items-center justify-center gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 font-semibold text-sm px-5 py-2.5 rounded-lg border border-red-500/20 transition-colors"
@@ -223,17 +181,6 @@ export default function NewsManager({
           Limpar Todas
         </button>
       </div>
-
-      {/* Backfill result */}
-      {backfillResult && (
-        <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-          <CheckCircle2 className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-          <p className="text-sm font-medium">
-            {backfillResult.updated} artigos atualizados com conteúdo completo
-            {backfillResult.errors > 0 && `, ${backfillResult.errors} erros`}
-          </p>
-        </div>
-      )}
 
       {/* Scrape result */}
       {result && (

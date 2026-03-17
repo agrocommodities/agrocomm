@@ -1,187 +1,341 @@
 "use client";
 
+import { useState, useTransition, useCallback } from "react";
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-  Legend,
+  ReferenceLine,
 } from "recharts";
-import type { HistoryPoint, CityLine } from "@/actions/quotes";
+import { Minus, ArrowDown, ArrowUp, Activity, Loader2 } from "lucide-react";
+import type { HistoryPoint } from "@/actions/quotes";
+import { getCityHistoryByRange } from "@/actions/quotes";
 
-function formatDate(dateStr: string) {
+// ── Range options ─────────────────────────────────────────────────────────────
+
+export const RANGE_OPTIONS = [
+  { label: "5D", value: 5, full: "5 dias" },
+  { label: "7D", value: 7, full: "7 dias" },
+  { label: "1M", value: 30, full: "1 mês" },
+  { label: "3M", value: 90, full: "3 meses" },
+  { label: "6M", value: 180, full: "6 meses" },
+  { label: "1A", value: 365, full: "1 ano" },
+  { label: "5A", value: 1825, full: "5 anos" },
+  { label: "10A", value: 3650, full: "10 anos" },
+  { label: "Tudo", value: 0, full: "Todo o período" },
+] as const;
+
+export type RangeValue = (typeof RANGE_OPTIONS)[number]["value"];
+
+// ── Date formatting ───────────────────────────────────────────────────────────
+
+function formatDateShort(dateStr: string) {
   const [, m, d] = dateStr.split("-");
   return `${d}/${m}`;
 }
 
-// Paleta de cores para linhas secundárias
-const SECONDARY_COLORS = [
-  "#60a5fa",
-  "#f472b6",
-  "#fb923c",
-  "#a78bfa",
-  "#34d399",
-  "#fbbf24",
-  "#38bdf8",
-  "#e879f9",
-  "#4ade80",
-  "#f87171",
-  "#818cf8",
-  "#2dd4bf",
-];
-
-// ── Modo multi-linha (cidades) ────────────────────────────────────────────────
-
-interface MultiLineProps {
-  lines: CityLine[];
-  unit: string;
-  highlightCityId?: number;
-  data?: never;
-  color?: never;
+function formatDateFull(dateStr: string) {
+  const [y, m, d] = dateStr.split("-");
+  return `${d}/${m}/${y}`;
 }
 
-// ── Modo linha única (média nacional / histórico simples) ─────────────────────
+// ── Stats computation ─────────────────────────────────────────────────────────
 
-interface SingleLineProps {
+export interface QuoteStats {
+  current: number;
+  min: number;
+  max: number;
+  avg: number;
+  change: number;
+  changePercent: number;
+}
+
+export function computeStats(data: HistoryPoint[]): QuoteStats | null {
+  if (data.length === 0) return null;
+  const prices = data.map((d) => d.price);
+  const current = prices[prices.length - 1];
+  const first = prices[0];
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+  const change = current - first;
+  const changePercent = first !== 0 ? (change / first) * 100 : 0;
+  return { current, min, max, avg, change, changePercent };
+}
+
+// ── Range selector pills ─────────────────────────────────────────────────────
+
+interface RangeSelectorProps {
+  value: RangeValue;
+  onChange: (v: RangeValue) => void;
+  loading?: boolean;
+}
+
+export function RangeSelector({
+  value,
+  onChange,
+  loading,
+}: RangeSelectorProps) {
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      {RANGE_OPTIONS.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          disabled={loading}
+          className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+            value === opt.value
+              ? "bg-green-500/20 text-green-400 ring-1 ring-green-500/30"
+              : "text-white/40 hover:text-white/70 hover:bg-white/5"
+          } disabled:opacity-50`}
+          title={opt.full}
+        >
+          {opt.label}
+        </button>
+      ))}
+      {loading && (
+        <Loader2 className="w-3.5 h-3.5 text-green-400 animate-spin ml-1" />
+      )}
+    </div>
+  );
+}
+
+// ── Stats display ─────────────────────────────────────────────────────────────
+
+interface StatsBarProps {
+  stats: QuoteStats;
+  unit: string;
+}
+
+export function StatsBar({ stats, unit }: StatsBarProps) {
+  const prefix = unit.split(" ")[0];
+  const isPositive = stats.change >= 0;
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Current */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+        <div className="flex items-center gap-1.5 mb-1">
+          <Activity className="w-3 h-3 text-green-400" />
+          <span className="text-[10px] uppercase tracking-wider text-white/40 font-medium">
+            Atual
+          </span>
+        </div>
+        <p className="text-lg font-bold tabular-nums">
+          {prefix} {stats.current.toFixed(2)}
+        </p>
+        <span
+          className={`text-xs font-semibold ${isPositive ? "text-green-400" : "text-red-400"}`}
+        >
+          {isPositive ? "+" : ""}
+          {stats.changePercent.toFixed(2)}%
+        </span>
+      </div>
+
+      {/* Min */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+        <div className="flex items-center gap-1.5 mb-1">
+          <ArrowDown className="w-3 h-3 text-red-400" />
+          <span className="text-[10px] uppercase tracking-wider text-white/40 font-medium">
+            Mínimo
+          </span>
+        </div>
+        <p className="text-lg font-bold tabular-nums text-red-400">
+          {prefix} {stats.min.toFixed(2)}
+        </p>
+      </div>
+
+      {/* Max */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+        <div className="flex items-center gap-1.5 mb-1">
+          <ArrowUp className="w-3 h-3 text-green-400" />
+          <span className="text-[10px] uppercase tracking-wider text-white/40 font-medium">
+            Máximo
+          </span>
+        </div>
+        <p className="text-lg font-bold tabular-nums text-green-400">
+          {prefix} {stats.max.toFixed(2)}
+        </p>
+      </div>
+
+      {/* Avg */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+        <div className="flex items-center gap-1.5 mb-1">
+          <Minus className="w-3 h-3 text-blue-400" />
+          <span className="text-[10px] uppercase tracking-wider text-white/40 font-medium">
+            Média
+          </span>
+        </div>
+        <p className="text-lg font-bold tabular-nums text-blue-400">
+          {prefix} {stats.avg.toFixed(2)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Main QuoteChart ───────────────────────────────────────────────────────────
+
+interface QuoteChartProps {
   data: HistoryPoint[];
   unit: string;
   color?: string;
-  lines?: never;
-  highlightCityId?: never;
+  /** If provided, enables dynamic range fetching */
+  productSlug?: string;
+  cityId?: number;
+  /** Show range selector */
+  showRangeSelector?: boolean;
+  /** Initial range in days (default 30) */
+  initialRange?: RangeValue;
+  /** Chart height */
+  height?: number;
 }
 
-type Props = MultiLineProps | SingleLineProps;
+export default function QuoteChart({
+  data: initialData,
+  unit,
+  color = "#4ade80",
+  productSlug,
+  cityId,
+  showRangeSelector = true,
+  initialRange = 30,
+  height = 280,
+}: QuoteChartProps) {
+  const [range, setRange] = useState<RangeValue>(initialRange);
+  const [data, setData] = useState<HistoryPoint[]>(initialData);
+  const [isPending, startTransition] = useTransition();
 
-export default function QuoteChart(props: Props) {
-  const { unit } = props;
+  const handleRangeChange = useCallback(
+    (newRange: RangeValue) => {
+      setRange(newRange);
+      if (productSlug && cityId) {
+        startTransition(async () => {
+          const history = await getCityHistoryByRange(
+            productSlug,
+            cityId,
+            newRange,
+          );
+          setData(history);
+        });
+      }
+    },
+    [productSlug, cityId],
+  );
 
-  // ── Single-line mode ────────────────────────────────────────────────────────
-  if (props.data !== undefined) {
-    const { data, color = "#4ade80" } = props;
-    if (data.length === 0) return <EmptyState />;
+  const stats = computeStats(data);
 
-    const prices = data.map((d) => d.price);
-    const [min, max] = [Math.min(...prices), Math.max(...prices)];
-    const pad = (max - min) * 0.15 || 1;
+  if (data.length === 0 && !isPending) return <EmptyState />;
 
-    return (
-      <ResponsiveContainer width="100%" height={220}>
-        <LineChart
-          data={data}
-          margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
-        >
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke="rgba(255,255,255,0.07)"
-          />
-          <XAxis dataKey="date" tickFormatter={formatDate} {...axisProps} />
-          <YAxis
-            domain={[min - pad, max + pad]}
-            tickFormatter={(v) => v.toFixed(0)}
-            {...axisProps}
-            width={48}
-          />
-          <Tooltip
-            {...tooltipProps(unit)}
-            labelFormatter={(l) => formatDate(String(l))}
-          />
-          <Line
-            type="monotone"
-            dataKey="price"
-            stroke={color}
-            strokeWidth={2}
-            dot={false}
-            activeDot={{ r: 5, fill: color }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    );
-  }
-
-  // ── Multi-line mode ─────────────────────────────────────────────────────────
-  const { lines, highlightCityId } = props;
-  if (!lines || lines.length === 0) return <EmptyState />;
-
-  // Mescla todas as datas
-  const allDates = [
-    ...new Set(lines.flatMap((l) => l.points.map((p) => p.date))),
-  ].sort();
-
-  type ChartPoint = { date: string } & {
-    [k: string]: string | number | undefined;
-  };
-  const chartData: ChartPoint[] = allDates.map((date) => {
-    const point: ChartPoint = { date };
-    for (const line of lines) {
-      const p = line.points.find((p) => p.date === date);
-      if (p) point[`${line.city}/${line.state}`] = p.price;
-    }
-    return point;
-  });
-
-  const allPrices = lines.flatMap((l) => l.points.map((p) => p.price));
-  const [min, max] = [Math.min(...allPrices), Math.max(...allPrices)];
+  const prices = data.map((d) => d.price);
+  const [min, max] = [Math.min(...prices), Math.max(...prices)];
   const pad = (max - min) * 0.15 || 1;
+  const avgPrice = stats?.avg ?? 0;
 
-  let colorIdx = 0;
-  const lineColors = lines.map((line) => {
-    if (line.cityId === highlightCityId) return "#4ade80";
-    return SECONDARY_COLORS[colorIdx++ % SECONDARY_COLORS.length];
-  });
+  const gradientId = `chartGradient-${color.replace("#", "")}`;
 
   return (
-    <ResponsiveContainer width="100%" height={lines.length > 4 ? 280 : 240}>
-      <LineChart
-        data={chartData}
-        margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
-      >
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-        <XAxis dataKey="date" tickFormatter={formatDate} {...axisProps} />
-        <YAxis
-          domain={[min - pad, max + pad]}
-          tickFormatter={(v) => v.toFixed(0)}
-          {...axisProps}
-          width={48}
-        />
-        <Tooltip
-          {...tooltipProps(unit)}
-          labelFormatter={(l) => formatDate(String(l))}
-          formatter={(value, name) => {
-            const num = typeof value === "number" ? value : Number(value);
-            return [`${unit.split(" ")[0]} ${num.toFixed(2)}`, String(name)];
-          }}
-        />
-        {lines.length > 1 && (
-          <Legend
-            wrapperStyle={{
-              fontSize: 11,
-              color: "rgba(255,255,255,0.5)",
-              paddingTop: 8,
-            }}
+    <div className="flex flex-col gap-4">
+      {/* Range selector */}
+      {showRangeSelector && (
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <RangeSelector
+            value={range}
+            onChange={handleRangeChange}
+            loading={isPending}
           />
+        </div>
+      )}
+
+      {/* Stats */}
+      {stats && <StatsBar stats={stats} unit={unit} />}
+
+      {/* Chart */}
+      <div className="relative">
+        {isPending && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 rounded-xl backdrop-blur-[1px]">
+            <Loader2 className="w-6 h-6 text-green-400 animate-spin" />
+          </div>
         )}
-        {lines.map((line, i) => {
-          const key = `${line.city}/${line.state}`;
-          const isHighlight = line.cityId === highlightCityId;
-          return (
-            <Line
-              key={line.cityId}
-              type="monotone"
-              dataKey={key}
-              stroke={lineColors[i]}
-              strokeWidth={isHighlight ? 2.5 : 1.5}
-              strokeOpacity={isHighlight || !highlightCityId ? 1 : 0.35}
-              dot={false}
-              activeDot={{ r: 4, fill: lineColors[i] }}
-              connectNulls
+        <ResponsiveContainer width="100%" height={height}>
+          <AreaChart
+            data={data}
+            margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+          >
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+                <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="rgba(255,255,255,0.06)"
+              vertical={false}
             />
-          );
-        })}
-      </LineChart>
-    </ResponsiveContainer>
+            <XAxis
+              dataKey="date"
+              tickFormatter={formatDateShort}
+              {...axisProps}
+            />
+            <YAxis
+              domain={[min - pad, max + pad]}
+              tickFormatter={(v: number) => v.toFixed(0)}
+              {...axisProps}
+              width={52}
+            />
+            {/* Average reference line */}
+            <ReferenceLine
+              y={avgPrice}
+              stroke="rgba(96,165,250,0.3)"
+              strokeDasharray="6 4"
+              label={{
+                value: `Média ${avgPrice.toFixed(0)}`,
+                fill: "rgba(96,165,250,0.5)",
+                fontSize: 10,
+                position: "insideTopRight",
+              }}
+            />
+            <Tooltip
+              contentStyle={{
+                background: "#171717",
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 12,
+                color: "#fff",
+                fontSize: 13,
+                padding: "10px 14px",
+              }}
+              labelFormatter={(l) => formatDateFull(String(l))}
+              formatter={(value: unknown) => {
+                const num = typeof value === "number" ? value : Number(value);
+                return [`${unit.split(" ")[0]} ${num.toFixed(2)}`, "Preço"] as [
+                  string,
+                  string,
+                ];
+              }}
+            />
+            <Area
+              type="monotone"
+              dataKey="price"
+              stroke={color}
+              strokeWidth={2}
+              fill={`url(#${gradientId})`}
+              dot={false}
+              activeDot={{
+                r: 5,
+                fill: color,
+                stroke: "#fff",
+                strokeWidth: 2,
+              }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 }
 
@@ -193,25 +347,6 @@ const axisProps = {
   tickLine: false as const,
   interval: "preserveStartEnd" as const,
 };
-
-function tooltipProps(unit: string) {
-  return {
-    contentStyle: {
-      background: "#171717",
-      border: "1px solid rgba(255,255,255,0.12)",
-      borderRadius: 10,
-      color: "#fff",
-      fontSize: 13,
-    },
-    formatter: (value: unknown) => {
-      const num = typeof value === "number" ? value : Number(value);
-      return [`${unit.split(" ")[0]} ${num.toFixed(2)}`, "Preço"] as [
-        string,
-        string,
-      ];
-    },
-  };
-}
 
 function EmptyState() {
   return (

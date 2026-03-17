@@ -3,14 +3,8 @@ import { notFound } from "next/navigation";
 import { getNewsBySlug, getRelatedNews } from "@/actions/news";
 import type { NewsArticle } from "@/actions/news";
 import ShareButtons from "@/components/ShareButtons";
-import {
-  Newspaper,
-  Clock,
-  ArrowLeft,
-  ExternalLink,
-  ArrowRight,
-  Tag,
-} from "lucide-react";
+import Breadcrumb from "@/components/Breadcrumb";
+import { Newspaper, Clock, ExternalLink, ArrowRight, Tag } from "lucide-react";
 import type { Metadata } from "next";
 
 const categoryColors: Record<string, string> = {
@@ -136,15 +130,14 @@ export default async function NewsArticlePage({
   return (
     <main className="max-w-5xl mx-auto px-4 py-8">
       {/* Breadcrumb */}
-      <nav className="mb-6">
-        <Link
-          href="/noticias"
-          className="inline-flex items-center gap-1.5 text-sm text-white/40 hover:text-green-400 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Voltar às notícias
-        </Link>
-      </nav>
+      <div className="mb-6">
+        <Breadcrumb
+          items={[
+            { label: "Notícias", href: "/noticias" },
+            { label: article.title },
+          ]}
+        />
+      </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Main content */}

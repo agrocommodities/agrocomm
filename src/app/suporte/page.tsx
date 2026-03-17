@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MessageSquare, HelpCircle, Info, Mail, Clock } from "lucide-react";
 import ContactForm from "@/components/ContactForm";
+import Breadcrumb from "@/components/Breadcrumb";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -12,7 +13,8 @@ export default function SuportePage() {
   return (
     <main className="max-w-4xl mx-auto px-4 py-10 flex flex-col gap-10">
       <div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold flex items-center gap-3">
+        <Breadcrumb items={[{ label: "Suporte" }]} />
+        <h1 className="text-3xl sm:text-4xl font-extrabold flex items-center gap-3 mt-1">
           <MessageSquare className="w-8 h-8 text-green-400" />
           Suporte
         </h1>

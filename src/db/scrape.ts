@@ -273,6 +273,8 @@ interface NAPage {
   urlPath?: string;
   /** Mapa: nome normalizado da praça → nome canônico OU { city, state } para páginas multi-estado */
   regionMap: Record<string, string | { city: string; state: string }>;
+  /** Quando true, extrai cidade/estado automaticamente do formato "Cidade/UF (fonte)" */
+  autoParseCity?: boolean;
 }
 
 const NA_PAGES: NAPage[] = [
@@ -390,6 +392,13 @@ const NA_PAGES: NAPage[] = [
       paragominas: "Paragominas",
     },
   },
+  {
+    productSlug: "soja",
+    stateCode: "BR",
+    urlPath: "soja/soja-mercado-fisico-sindicatos-e-cooperativas",
+    autoParseCity: true,
+    regionMap: {},
+  },
   // ── Milho ──
   {
     productSlug: "milho",
@@ -498,6 +507,13 @@ const NA_PAGES: NAPage[] = [
       paragominas: "Paragominas",
     },
   },
+  {
+    productSlug: "milho",
+    stateCode: "BR",
+    urlPath: "milho/milho-mercado-fisico-sindicatos-e-cooperativas",
+    autoParseCity: true,
+    regionMap: {},
+  },
   // ── Feijão (páginas nacionais por tipo — regiões mapeadas a cidades) ──
   {
     productSlug: "feijao",
@@ -571,17 +587,29 @@ async function scrapeNoticiasAgricolas(): Promise<RawQuote[]> {
       const cells = $(tr).find("td");
       if (cells.length < 2) return;
       const cellText = $(cells.eq(0)).text().trim();
-      const mapped = lookupInMap(page.regionMap, cellText);
-      if (!mapped) return;
 
       let canonicalCity: string;
       let stateCode: string;
-      if (typeof mapped === "string") {
-        canonicalCity = mapped;
-        stateCode = page.stateCode.toUpperCase();
+
+      if (page.autoParseCity) {
+        // Páginas de sindicatos/cooperativas: formato "Cidade/UF (fonte)"
+        const cityStateMatch = cellText.match(/^(.+?)\/([A-Z]{2})\b/);
+        if (!cityStateMatch) return;
+        canonicalCity = cityStateMatch[1].trim();
+        stateCode = cityStateMatch[2];
+        // Ignora entradas de porto (preços portuários)
+        if (/^porto\b/i.test(canonicalCity)) return;
       } else {
-        canonicalCity = mapped.city;
-        stateCode = mapped.state;
+        const mapped = lookupInMap(page.regionMap, cellText);
+        if (!mapped) return;
+
+        if (typeof mapped === "string") {
+          canonicalCity = mapped;
+          stateCode = page.stateCode.toUpperCase();
+        } else {
+          canonicalCity = mapped.city;
+          stateCode = mapped.state;
+        }
       }
 
       const priceText = $(cells.eq(1))
@@ -672,7 +700,7 @@ async function persistQuotes(
         .limit(1);
       if (!stateRow) continue;
 
-      const slug = `${stateUp.toLowerCase()}-${norm(row.city).replace(/\s+/g, "-")}`;
+      const slug = norm(row.city).replace(/\s+/g, "-");
       await db
         .insert(cities)
         .values({ stateId: stateRow.id, name: row.city, slug })
@@ -775,6 +803,7 @@ async function persistQuotes(
 
 import { writeFile, mkdir } from "node:fs/promises";
 import { join, extname } from "node:path";
+import { tags, newsArticleTags } from "./schema";
 
 interface RawNews {
   title: string;
@@ -809,17 +838,135 @@ function inferNewsCategory(title: string, fallback: string): string {
   return fallback;
 }
 
-async function fetchOgImage(articleUrl: string): Promise<string | undefined> {
+/** Fetch full article content, og:image, and tags from the article page */
+async function fetchArticleDetails(articleUrl: string): Promise<{
+  content: string | undefined;
+  ogImage: string | undefined;
+  tags: string[];
+  excerpt: string | undefined;
+}> {
   try {
     const html = await fetchHtml(articleUrl);
     const $ = cheerio.load(html);
+
     const ogImage =
       $('meta[property="og:image"]').attr("content") ??
-      $('meta[name="og:image"]').attr("content");
-    return ogImage || undefined;
+      $('meta[name="og:image"]').attr("content") ??
+      undefined;
+
+    let content: string | undefined;
+    let excerpt: string | undefined;
+    const articleEl =
+      $("div.materia").first().html() ??
+      $(".corpo-materia").first().html() ??
+      $(".content-article").first().html() ??
+      $("article .entry-content").first().html() ??
+      $("article").first().html();
+    if (articleEl) {
+      const $content = cheerio.load(articleEl);
+      $content(
+        "script, style, iframe, .ad, .ads, .publicidade, .banner, .grupo-whatsapp",
+      ).remove();
+      content = $content.html() ?? undefined;
+
+      const firstP = $content("p")
+        .filter((_, el) => {
+          const text = $content(el).text().trim();
+          return text.length > 40;
+        })
+        .first()
+        .text()
+        .trim();
+      if (firstP) {
+        excerpt = firstP.slice(0, 300);
+      }
+    }
+
+    if (!excerpt) {
+      const ogDesc =
+        $('meta[property="og:description"]').attr("content") ??
+        $('meta[name="description"]').attr("content");
+      if (ogDesc && ogDesc.length > 20) {
+        excerpt = ogDesc.slice(0, 300);
+      }
+    }
+
+    const extractedTags: string[] = [];
+    $(".tags a, .tag-list a, .hashtags a, [rel='tag']").each((_, el) => {
+      const tag = $(el).text().trim().replace(/^#/, "");
+      if (tag && tag.length > 1 && tag.length < 50) {
+        extractedTags.push(tag);
+      }
+    });
+
+    const keywords =
+      $('meta[name="keywords"]').attr("content") ??
+      $('meta[name="news_keywords"]').attr("content");
+    if (keywords) {
+      for (const kw of keywords.split(",")) {
+        const tag = kw.trim();
+        if (tag && tag.length > 1 && tag.length < 50) {
+          extractedTags.push(tag);
+        }
+      }
+    }
+
+    return { content, ogImage, tags: [...new Set(extractedTags)], excerpt };
   } catch {
-    return undefined;
+    return {
+      content: undefined,
+      ogImage: undefined,
+      tags: [],
+      excerpt: undefined,
+    };
   }
+}
+
+/** Auto-generate tags from title when none are extracted */
+function autoTagsFromTitle(title: string): string[] {
+  const t = norm(title);
+  const generatedTags: string[] = [];
+
+  const tagMap: Record<string, string> = {
+    soja: "Soja",
+    milho: "Milho",
+    "boi gordo": "Boi Gordo",
+    boi: "Boi Gordo",
+    vaca: "Vaca Gorda",
+    bovino: "Pecuária",
+    pecuaria: "Pecuária",
+    feijao: "Feijão",
+    trigo: "Trigo",
+    arroz: "Arroz",
+    cafe: "Café",
+    algodao: "Algodão",
+    safra: "Safra",
+    colheita: "Colheita",
+    plantio: "Plantio",
+    exportacao: "Exportação",
+    importacao: "Importação",
+    clima: "Clima",
+    chuva: "Clima",
+    seca: "Clima",
+    geada: "Clima",
+    "el nino": "El Niño",
+    "la nina": "La Niña",
+    chicago: "Bolsa de Chicago",
+    cbot: "Bolsa de Chicago",
+    cme: "CME Group",
+    mercado: "Mercado",
+    preco: "Preço",
+    cotacao: "Cotação",
+    agronegocio: "Agronegócio",
+  };
+
+  for (const [keyword, tag] of Object.entries(tagMap)) {
+    if (t.includes(keyword) && !generatedTags.includes(tag)) {
+      generatedTags.push(tag);
+    }
+  }
+
+  return generatedTags;
 }
 
 async function downloadImage(
@@ -934,12 +1081,16 @@ async function persistNews(items: RawNews[]): Promise<number> {
     if (existing.length > 0) continue;
 
     try {
+      // Fetch full content, og:image, and tags from actual article page
+      const details = await fetchArticleDetails(item.sourceUrl);
+
       const [row] = await db
         .insert(newsArticles)
         .values({
           title: item.title,
           slug: item.slug,
-          excerpt: item.excerpt,
+          excerpt: details.excerpt ?? item.excerpt,
+          content: details.content ?? null,
           imageUrl: item.imageUrl ?? null,
           sourceUrl: item.sourceUrl,
           sourceName: item.sourceName,
@@ -950,9 +1101,9 @@ async function persistNews(items: RawNews[]): Promise<number> {
         .returning({ id: newsArticles.id });
 
       if (row) {
-        const ogImage = await fetchOgImage(item.sourceUrl);
-        if (ogImage) {
-          const localPath = await downloadImage(ogImage, row.id);
+        // Download og:image
+        if (details.ogImage) {
+          const localPath = await downloadImage(details.ogImage, row.id);
           if (localPath) {
             await db
               .update(newsArticles)
@@ -960,6 +1111,42 @@ async function persistNews(items: RawNews[]): Promise<number> {
               .where(eq(newsArticles.id, row.id));
           }
         }
+
+        // Persist tags
+        const allTags =
+          details.tags.length > 0
+            ? details.tags
+            : autoTagsFromTitle(item.title);
+
+        for (const tagName of allTags) {
+          const tagSlug = tagName
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/-+/g, "-")
+            .slice(0, 50);
+
+          await db
+            .insert(tags)
+            .values({ name: tagName, slug: tagSlug })
+            .onConflictDoNothing();
+
+          const [tagRow] = await db
+            .select({ id: tags.id })
+            .from(tags)
+            .where(eq(tags.slug, tagSlug))
+            .limit(1);
+
+          if (tagRow) {
+            await db
+              .insert(newsArticleTags)
+              .values({ articleId: row.id, tagId: tagRow.id })
+              .onConflictDoNothing();
+          }
+        }
+
         inserted++;
       }
     } catch {

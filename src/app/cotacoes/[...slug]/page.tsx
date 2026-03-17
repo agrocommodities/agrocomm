@@ -1,11 +1,13 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import {
   getProductQuotes,
   getStatesForProduct,
   getCitiesForProduct,
 } from "@/actions/quotes";
 import LocationPriceSelector from "@/components/LocationPriceSelector";
+import ShareSidebar from "@/components/ShareSidebar";
+import Breadcrumb from "@/components/Breadcrumb";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
 export const revalidate = 300;
@@ -57,35 +59,58 @@ const PRODUCT_META: Record<
   },
 };
 
+/** Parse [...slug] into { produto, estado?, cidade? } */
+function parseSlug(slug: string[]): {
+  produto: string;
+  estado?: string;
+  cidade?: string;
+} | null {
+  if (slug.length === 1) {
+    // /cotacoes/soja
+    return { produto: slug[0] };
+  }
+  if (slug.length === 3) {
+    // /cotacoes/df/brasilia/soja
+    return {
+      estado: slug[0].toUpperCase(),
+      cidade: slug[1],
+      produto: slug[2],
+    };
+  }
+  return null;
+}
+
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ produto: string }>;
+  params: Promise<{ slug: string[] }>;
 }) {
-  const { produto } = await params;
-  const meta = PRODUCT_META[produto];
+  const { slug } = await params;
+  const parsed = parseSlug(slug);
+  if (!parsed) return {};
+  const meta = PRODUCT_META[parsed.produto];
   if (!meta) return {};
   return { title: `${meta.label} — AgroComm` };
 }
 
 export default async function ProdutoPage({
   params,
-  searchParams,
 }: {
-  params: Promise<{ produto: string }>;
-  searchParams: Promise<{ estado?: string; cidade?: string }>;
+  params: Promise<{ slug: string[] }>;
 }) {
-  const { produto } = await params;
-  const { estado, cidade } = await searchParams;
+  const { slug } = await params;
+  const parsed = parseSlug(slug);
+  if (!parsed) notFound();
+
+  const { produto, estado, cidade } = parsed;
   const meta = PRODUCT_META[produto];
   if (!meta) notFound();
 
-  const [{ today, cityHistories }, allStates] = await Promise.all([
+  const [{ today }, allStates] = await Promise.all([
     getProductQuotes(produto),
     getStatesForProduct(produto),
   ]);
 
-  // Build citiesByState map for the selector (only fetch for each distinct state)
   const citiesByState: Record<
     string,
     { id: number; name: string; slug: string }[]
@@ -109,37 +134,38 @@ export default async function ProdutoPage({
       today.filter((r) => r.variation !== null).length
     : null;
 
+  const shareUrl =
+    estado && cidade
+      ? `https://agrocomm.com.br/cotacoes/${estado.toLowerCase()}/${cidade}/${produto}`
+      : `https://agrocomm.com.br/cotacoes/${produto}`;
+  const shareTitle = `${meta.label} — Cotações AgroComm`;
+
   return (
     <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col gap-6">
       {/* Breadcrumb + header */}
       <div>
-        <p className="text-sm text-white/40 mb-1">
-          <Link href="/" className="hover:underline">
-            Início
-          </Link>
-          {" / "}
-          <Link
-            href={`/cotacoes/${meta.categorySlug}`}
-            className="hover:underline capitalize"
-          >
-            {meta.categoryLabel}
-          </Link>
-          {" / "}
-          {meta.label}
-        </p>
+        <Breadcrumb
+          items={[
+            {
+              label: meta.categoryLabel,
+              href: `/cotacoes/${meta.categorySlug}`,
+            },
+            { label: meta.label },
+          ]}
+        />
         <h1 className="text-3xl font-bold mt-1">
           {meta.emoji} {meta.label}
         </h1>
         {unit && <p className="text-white/50 text-sm mt-0.5">{unit}</p>}
       </div>
 
-      {/* Location + price selector */}
+      {/* Location + price selector + chart */}
       <LocationPriceSelector
         todayQuotes={today}
-        cityHistories={cityHistories}
         allStates={allStates}
         citiesByState={citiesByState}
         unit={unit}
+        productSlug={produto}
         initialState={estado}
         initialCitySlug={cidade}
       />
@@ -206,26 +232,50 @@ export default async function ProdutoPage({
                     key={row.id}
                     className="border-t border-white/5 hover:bg-white/5 transition-colors"
                   >
-                    <td className="px-5 py-3 text-white/60">{row.state}</td>
-                    <td className="px-5 py-3 text-white/60">{row.city}</td>
+                    <td className="px-5 py-3 text-white/60">
+                      <Link
+                        href={`/cotacoes/${row.state.toLowerCase()}/${row.citySlug}/${produto}`}
+                        className="hover:text-green-400 transition-colors"
+                      >
+                        {row.state}
+                      </Link>
+                    </td>
+                    <td className="px-5 py-3 text-white/60">
+                      <Link
+                        href={`/cotacoes/${row.state.toLowerCase()}/${row.citySlug}/${produto}`}
+                        className="hover:text-green-400 transition-colors"
+                      >
+                        {row.city}
+                      </Link>
+                    </td>
                     <td className="px-5 py-3 text-right font-semibold">
-                      R$ {row.price.toFixed(2)}
+                      <Link
+                        href={`/cotacoes/${row.state.toLowerCase()}/${row.citySlug}/${produto}`}
+                        className="hover:text-green-400 transition-colors"
+                      >
+                        R$ {row.price.toFixed(2)}
+                      </Link>
                     </td>
                     <td className="px-5 py-3 text-right">
-                      {row.variation !== null ? (
-                        <span
-                          className={`inline-flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full ${
-                            row.variation >= 0
-                              ? "bg-green-500/20 text-green-400"
-                              : "bg-red-500/20 text-red-400"
-                          }`}
-                        >
-                          {row.variation >= 0 ? "+" : ""}
-                          {row.variation.toFixed(2)}%
-                        </span>
-                      ) : (
-                        <span className="text-white/30">—</span>
-                      )}
+                      <Link
+                        href={`/cotacoes/${row.state.toLowerCase()}/${row.citySlug}/${produto}`}
+                        className="hover:text-green-400 transition-colors"
+                      >
+                        {row.variation !== null ? (
+                          <span
+                            className={`inline-flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                              row.variation >= 0
+                                ? "bg-green-500/20 text-green-400"
+                                : "bg-red-500/20 text-red-400"
+                            }`}
+                          >
+                            {row.variation >= 0 ? "+" : ""}
+                            {row.variation.toFixed(2)}%
+                          </span>
+                        ) : (
+                          <span className="text-white/30">—</span>
+                        )}
+                      </Link>
                     </td>
                   </tr>
                 ))
@@ -234,6 +284,9 @@ export default async function ProdutoPage({
           </table>
         </div>
       </div>
+
+      {/* Share sidebar */}
+      <ShareSidebar url={shareUrl} title={shareTitle} />
     </main>
   );
 }
