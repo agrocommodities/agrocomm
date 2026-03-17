@@ -161,6 +161,7 @@ export default async function ProdutoPage({
 
       {/* Location + price selector + chart */}
       <LocationPriceSelector
+        key={`${estado ?? ""}-${cidade ?? ""}`}
         todayQuotes={today}
         allStates={allStates}
         citiesByState={citiesByState}
