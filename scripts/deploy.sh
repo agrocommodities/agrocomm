@@ -24,3 +24,16 @@ sudo /usr/bin/systemctl stop $SERVICE
 rm -rf "$PROJECT_DIR"
 mv "$TEMP_DIR" "$PROJECT_DIR"
 sudo /usr/bin/systemctl start $SERVICE
+
+# Aguardar serviço ficar saudável (até 60s)
+for i in $(seq 1 12); do
+  sleep 5
+  if curl -s -f http://localhost:4000/api/health > /dev/null 2>&1; then
+    echo "Serviço iniciado com sucesso"
+    exit 0
+  fi
+  echo "Aguardando serviço... (tentativa $i/12)"
+done
+
+echo "Serviço não respondeu após 60s"
+exit 1

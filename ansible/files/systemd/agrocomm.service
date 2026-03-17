@@ -17,9 +17,9 @@ RestartSec=10s
 StartLimitIntervalSec=60
 StartLimitBurst=3
 # Garantir que o serviço seja considerado "falho" se não iniciar corretamente
-TimeoutStartSec=30s
-# Verificação de saúde com systemd (disponível em versões mais recentes do systemd)
-ExecStartPost=/bin/sh -c 'sleep 5 && curl -s -f http://localhost:4000/api/health || exit 1'
+TimeoutStartSec=90s
+# Verificação de saúde: tenta até 6x com 5s de intervalo (máx ~30s)
+ExecStartPost=/bin/sh -c 'for i in 1 2 3 4 5 6; do sleep 5 && curl -s -f http://localhost:4000/api/health > /dev/null 2>&1 && exit 0; done; exit 1'
 # Arquivo de ambiente
 EnvironmentFile=-/var/www/agrocomm/.env.production
 # Configurações de segurança

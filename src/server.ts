@@ -2,9 +2,10 @@ import { createServer } from "node:http";
 import next from "next";
 import { Server as SocketIOServer } from "socket.io";
 
-const port = parseInt(process.env.PORT || "4000", 10);
 const dev = process.env.NODE_ENV !== "production";
-const app = next({ dev });
+const port = dev ? 3000 : 4000;
+const hostname = dev ? "localhost" : "agrocomm.com.br";
+const app = next({ hostname, port, dev });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
@@ -15,7 +16,7 @@ app.prepare().then(() => {
   const io = new SocketIOServer(httpServer, {
     path: "/api/socketio",
     addTrailingSlash: false,
-    cors: { origin: dev ? "*" : "https://agrocomm.com.br" },
+    cors: { origin: "*" },
   });
 
   io.on("connection", (socket) => {
