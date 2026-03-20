@@ -803,6 +803,8 @@ async function persistQuotes(
 
 import { writeFile, mkdir } from "node:fs/promises";
 import { join, extname } from "node:path";
+import { randomUUID } from "node:crypto";
+import sharp from "sharp";
 import { tags, newsArticleTags } from "./schema";
 
 interface RawNews {
@@ -971,7 +973,7 @@ function autoTagsFromTitle(title: string): string[] {
 
 async function downloadImage(
   imageUrl: string,
-  articleId: number,
+  publishedAt: string,
 ): Promise<string | null> {
   try {
     const res = await fetch(imageUrl, {
@@ -996,20 +998,36 @@ async function downloadImage(
       }
     }
 
-    const dir = join(
-      process.cwd(),
-      "public",
-      "images",
-      "posts",
-      String(articleId),
-    );
+    const [year, month] = publishedAt.split("-");
+    const uuid = randomUUID();
+    const dir = join(process.cwd(), "public", "posts", year, month);
     await mkdir(dir, { recursive: true });
-    const filePath = join(dir, `image${ext}`);
-    const buffer = Buffer.from(await res.arrayBuffer());
-    await writeFile(filePath, buffer);
 
-    return `/images/posts/${articleId}/image${ext}`;
-  } catch {
+    const fileName = `${uuid}${ext}`;
+    const filePath = join(dir, fileName);
+    const buffer = Buffer.from(await res.arrayBuffer());
+
+    // Resize to max 1080p if larger
+    const image = sharp(buffer);
+    const metadata = await image.metadata();
+    if (
+      (metadata.width && metadata.width > 1920) ||
+      (metadata.height && metadata.height > 1080)
+    ) {
+      const resized = await image
+        .resize(1920, 1080, { fit: "inside", withoutEnlargement: true })
+        .toBuffer();
+      await writeFile(filePath, resized);
+    } else {
+      await writeFile(filePath, buffer);
+    }
+
+    return `/posts/${year}/${month}/${fileName}`;
+  } catch (err) {
+    console.error(
+      "[news] Erro ao baixar imagem:",
+      err instanceof Error ? err.message : err,
+    );
     return null;
   }
 }
@@ -1103,7 +1121,10 @@ async function persistNews(items: RawNews[]): Promise<number> {
       if (row) {
         // Download og:image
         if (details.ogImage) {
-          const localPath = await downloadImage(details.ogImage, row.id);
+          const localPath = await downloadImage(
+            details.ogImage,
+            item.publishedAt,
+          );
           if (localPath) {
             await db
               .update(newsArticles)

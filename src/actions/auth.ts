@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -53,6 +54,7 @@ export async function loginAction(
     role: user.role,
   });
   await setSessionCookie(token);
+  revalidatePath("/", "layout");
   redirect("/");
 }
 
@@ -95,12 +97,14 @@ export async function registerAction(
     role: "user",
   });
   await setSessionCookie(token);
+  revalidatePath("/", "layout");
   redirect("/");
 }
 
 export async function logoutAction() {
   const cookieStore = await cookies();
   cookieStore.delete("session");
+  revalidatePath("/", "layout");
   redirect("/auth/login");
 }
 
