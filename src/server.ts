@@ -27,6 +27,18 @@ app.prepare().then(() => {
     socket.on("unsubscribe:commodity", (commodity: string) => {
       socket.leave(`commodity:${commodity}`);
     });
+
+    socket.on("subscribe:notifications", () => {
+      // User room is set via auth token in handshake
+      const userId = socket.handshake.auth?.userId;
+      if (userId) {
+        socket.join(`user:${userId}`);
+      }
+    });
+
+    socket.on("subscribe:user", (userId: number) => {
+      socket.join(`user:${userId}`);
+    });
   });
 
   // Broadcast commodity price updates every 60 seconds

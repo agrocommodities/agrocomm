@@ -15,10 +15,14 @@ git clean -fxd -e .env
 cp -f .env .env.production
 
 pnpm install
-pnpm run push
-pnpm run seed
-pnpm run scrape
-pnpm run build || exit 1
+if pnpm run push; then
+  pnpm run seed
+  pnpm run scrape
+  pnpm run build || exit 1
+else
+  echo "Erro ao executar push, abortando deploy"
+  exit 1
+fi
 
 sudo /usr/bin/systemctl stop $SERVICE
 rm -rf "$PROJECT_DIR"

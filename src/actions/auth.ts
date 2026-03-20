@@ -1,15 +1,17 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { signSession } from "@/lib/auth";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { logAction } from "@/lib/moderation";
 
-type AuthState = { error: string; fields?: Record<string, string> } | null;
+type AuthState =
+  | { error: string; fields?: Record<string, string> }
+  | { success: true }
+  | null;
 type ProfileState = { error?: string; success?: boolean } | null;
 
 async function setSessionCookie(token: string) {
@@ -42,10 +44,19 @@ export async function loginAction(
     .where(eq(users.email, email))
     .limit(1);
 
-  if (!user) return { error: "E-mail ou senha inválidos.", fields };
+  if (!user) {
+    await logAction("login_failed", { details: JSON.stringify({ email }) });
+    return { error: "E-mail ou senha inválidos.", fields };
+  }
 
   const valid = await verifyPassword(user.passwordHash, password);
-  if (!valid) return { error: "E-mail ou senha inválidos.", fields };
+  if (!valid) {
+    await logAction("login_failed", {
+      userId: user.id,
+      details: JSON.stringify({ email }),
+    });
+    return { error: "E-mail ou senha inválidos.", fields };
+  }
 
   const token = await signSession({
     userId: user.id,
@@ -54,8 +65,8 @@ export async function loginAction(
     role: user.role,
   });
   await setSessionCookie(token);
-  revalidatePath("/", "layout");
-  redirect("/");
+  await logAction("login_success", { userId: user.id });
+  return { success: true };
 }
 
 export async function registerAction(
@@ -97,15 +108,19 @@ export async function registerAction(
     role: "user",
   });
   await setSessionCookie(token);
-  revalidatePath("/", "layout");
-  redirect("/");
+  await logAction("register", {
+    userId: newUser.id,
+    details: JSON.stringify({ name, email }),
+  });
+  return { success: true };
 }
 
 export async function logoutAction() {
+  const { getSession } = await import("@/lib/auth");
+  const session = await getSession();
+  if (session) await logAction("logout", { userId: session.userId });
   const cookieStore = await cookies();
   cookieStore.delete("session");
-  revalidatePath("/", "layout");
-  redirect("/auth/login");
 }
 
 export async function updateProfileAction(

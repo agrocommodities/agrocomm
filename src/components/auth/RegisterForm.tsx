@@ -1,11 +1,20 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { registerAction } from "@/actions/auth";
 
 export default function RegisterForm() {
   const [state, action, pending] = useActionState(registerAction, null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state && "success" in state) {
+      router.refresh();
+      router.push("/");
+    }
+  }, [state, router]);
 
   return (
     <form action={action} className="flex flex-col gap-5">
@@ -20,7 +29,9 @@ export default function RegisterForm() {
           required
           autoComplete="name"
           placeholder="João da Silva"
-          defaultValue={state?.fields?.name}
+          defaultValue={
+            state && "error" in state ? state.fields?.name : undefined
+          }
           className="bg-white/10 border border-white/20 rounded-lg px-4 py-2.5 text-sm placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-green-400/50 transition"
         />
       </div>
@@ -36,7 +47,9 @@ export default function RegisterForm() {
           required
           autoComplete="email"
           placeholder="seu@email.com"
-          defaultValue={state?.fields?.email}
+          defaultValue={
+            state && "error" in state ? state.fields?.email : undefined
+          }
           className="bg-white/10 border border-white/20 rounded-lg px-4 py-2.5 text-sm placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-green-400/50 transition"
         />
       </div>
@@ -75,7 +88,7 @@ export default function RegisterForm() {
         />
       </div>
 
-      {state?.error && (
+      {state && "error" in state && (
         <p className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2.5">
           {state.error}
         </p>

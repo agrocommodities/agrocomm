@@ -7,6 +7,7 @@ import {
   Info,
   MessageSquare,
   BarChart3,
+  ShoppingBag,
 } from "lucide-react";
 
 export const navLinks = [
@@ -15,6 +16,7 @@ export const navLinks = [
   { name: "Grãos", href: "/cotacoes/graos", icon: Wheat },
   { name: "Chicago", href: "/cotacoes/chicago", icon: BarChart3 },
   { name: "Notícias", href: "/noticias", icon: Newspaper },
+  { name: "Classificados", href: "/classificados", icon: ShoppingBag },
 ];
 
 export const footerLinks = [

@@ -263,3 +263,143 @@ export const exchangeRates = sqliteTable("exchange_rates", {
   rateDate: text("rate_date").notNull(), // "YYYY-MM-DD"
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
+
+// ── Classificados ─────────────────────────────────────────────────────────────
+
+export const classifiedCategories = sqliteTable("classified_categories", {
+  id: int().primaryKey({ autoIncrement: true }),
+  name: text().notNull().unique(),
+  slug: text().notNull().unique(),
+  icon: text(), // lucide icon name
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const classifieds = sqliteTable("classifieds", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  categoryId: int("category_id")
+    .notNull()
+    .references(() => classifiedCategories.id),
+  title: text().notNull(),
+  slug: text().notNull().unique(),
+  description: text().notNull(),
+  price: real().notNull(),
+  stateId: int("state_id")
+    .notNull()
+    .references(() => states.id),
+  cityId: int("city_id")
+    .notNull()
+    .references(() => cities.id),
+  status: text().notNull().default("pending"), // "pending" | "approved" | "rejected" | "blocked"
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const classifiedImages = sqliteTable("classified_images", {
+  id: int().primaryKey({ autoIncrement: true }),
+  classifiedId: int("classified_id")
+    .notNull()
+    .references(() => classifieds.id, { onDelete: "cascade" }),
+  url: text().notNull(),
+  position: int().notNull().default(0),
+});
+
+export const classifiedComments = sqliteTable("classified_comments", {
+  id: int().primaryKey({ autoIncrement: true }),
+  classifiedId: int("classified_id")
+    .notNull()
+    .references(() => classifieds.id, { onDelete: "cascade" }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  content: text().notNull(),
+  originalContent: text("original_content"), // before moderation
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+// Relations
+export const classifiedsRelations = relations(classifieds, ({ one, many }) => ({
+  user: one(users, { fields: [classifieds.userId], references: [users.id] }),
+  category: one(classifiedCategories, {
+    fields: [classifieds.categoryId],
+    references: [classifiedCategories.id],
+  }),
+  state: one(states, {
+    fields: [classifieds.stateId],
+    references: [states.id],
+  }),
+  city: one(cities, { fields: [classifieds.cityId], references: [cities.id] }),
+  images: many(classifiedImages),
+  comments: many(classifiedComments),
+}));
+
+export const classifiedImagesRelations = relations(
+  classifiedImages,
+  ({ one }) => ({
+    classified: one(classifieds, {
+      fields: [classifiedImages.classifiedId],
+      references: [classifieds.id],
+    }),
+  }),
+);
+
+export const classifiedCommentsRelations = relations(
+  classifiedComments,
+  ({ one }) => ({
+    classified: one(classifieds, {
+      fields: [classifiedComments.classifiedId],
+      references: [classifieds.id],
+    }),
+    user: one(users, {
+      fields: [classifiedComments.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+// ── Moderação ─────────────────────────────────────────────────────────────────
+
+export const moderationSettings = sqliteTable("moderation_settings", {
+  id: int().primaryKey({ autoIncrement: true }),
+  key: text().notNull().unique(), // "block_phones" | "block_emails" | "block_addresses" | "block_social" | "block_links"
+  enabled: int().notNull().default(1), // 1 = enabled
+  action: text().notNull().default("censor"), // "censor" | "censor_notify" | "delete" | "delete_notify" | "none"
+  censorText: text("censor_text").notNull().default("[contato removido]"),
+});
+
+// ── Notificações ──────────────────────────────────────────────────────────────
+
+export const notifications = sqliteTable("notifications", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text().notNull(),
+  message: text().notNull(),
+  read: int().notNull().default(0), // 0 = unread, 1 = read
+  link: text(), // optional link to navigate to
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+}));
+
+// ── Logs de Auditoria ─────────────────────────────────────────────────────────
+
+export const auditLogs = sqliteTable("audit_logs", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int("user_id").references(() => users.id, { onDelete: "set null" }),
+  action: text().notNull(), // "login_success" | "login_failed" | "classified_created" | "comment_moderated" | etc.
+  target: text(), // e.g. "classified:42", "comment:15"
+  details: text(), // JSON string with extra info
+  originalText: text("original_text"), // for moderation: the original content
+  replacedText: text("replaced_text"), // for moderation: what it was replaced with
+  ipAddress: text("ip_address"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});

@@ -2,13 +2,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { getSession } from "@/lib/auth";
 import { navLinks } from "@/config";
-import { logoutAction } from "@/actions/auth";
+import UserMenu from "@/components/UserMenu";
 
 export default async function Header() {
   const session = await getSession();
 
   return (
-    <header className="sticky z-50 top-0 bg-alt-background border-b border-white/10 overflow-x-hidden">
+    <header className="sticky z-50 top-0 bg-alt-background border-b border-white/10">
       {/* Top row: logo + user actions */}
       <div className="flex items-center justify-between gap-2 sm:gap-4 px-4 py-3 max-w-7xl mx-auto">
         <Link
@@ -32,47 +32,15 @@ export default async function Header() {
           ))}
         </nav>
 
-        {/* User actions (desktop + mobile) */}
-        <div className="flex items-center gap-2 sm:gap-4 shrink-0 text-xs sm:text-sm">
-          {session ? (
-            <>
-              {session.role === "admin" && (
-                <Link
-                  href="/admin"
-                  className="font-medium text-green-400 hover:text-green-300 transition-colors"
-                >
-                  Admin
-                </Link>
-              )}
-              <Link
-                href="/ajustes"
-                className="font-medium hover:text-green-300 transition-colors"
-              >
-                Ajustes
-              </Link>
-              <form action={logoutAction}>
-                <button
-                  type="submit"
-                  className="font-medium hover:text-green-300 transition-colors cursor-pointer"
-                >
-                  Sair
-                </button>
-              </form>
-            </>
-          ) : (
-            <Link
-              href="/auth/login"
-              className="font-medium hover:text-green-300 transition-colors"
-            >
-              Entrar
-            </Link>
-          )}
+        {/* User menu */}
+        <div className="shrink-0">
+          <UserMenu session={session} />
         </div>
       </div>
 
       {/* Mobile: horizontal scrollable nav (hidden scrollbar) */}
       <nav className="md:hidden overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex gap-6 px-4 pb-3 min-w-max">
+        <div className="flex justify-between gap-4 px-4 pb-3 min-w-full w-max">
           {navLinks.map((l) => (
             <Link
               key={l.href}

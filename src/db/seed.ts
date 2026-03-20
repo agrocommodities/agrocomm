@@ -9,6 +9,8 @@ import {
   sources,
   users,
   newsSources,
+  classifiedCategories,
+  moderationSettings,
 } from "./schema";
 
 const db = drizzle(process.env.DB_FILE_NAME!);
@@ -288,6 +290,66 @@ async function main() {
         target: newsSources.slug,
         set: { active: ns.active, url: ns.url, category: ns.category },
       });
+  }
+
+  console.log("Seeding classified categories…");
+  const CLASSIFIED_CATEGORIES = [
+    { name: "Tratores", slug: "tratores", icon: "Tractor" },
+    { name: "Colheitadeiras", slug: "colheitadeiras", icon: "Combine" },
+    {
+      name: "Implementos Agrícolas",
+      slug: "implementos-agricolas",
+      icon: "Wrench",
+    },
+    { name: "Caminhões", slug: "caminhoes", icon: "Truck" },
+    { name: "Máquinas", slug: "maquinas", icon: "Cog" },
+    { name: "Gado", slug: "gado", icon: "Beef" },
+    { name: "Cavalos", slug: "cavalos", icon: "Horse" },
+    { name: "Fazendas e Sítios", slug: "fazendas-sitios", icon: "TreePine" },
+    { name: "Sementes e Insumos", slug: "sementes-insumos", icon: "Wheat" },
+    { name: "Irrigação", slug: "irrigacao", icon: "Droplets" },
+    { name: "Drones e Tecnologia", slug: "drones-tecnologia", icon: "Radar" },
+    { name: "Outros", slug: "outros", icon: "Package" },
+  ];
+  for (const c of CLASSIFIED_CATEGORIES) {
+    await db.insert(classifiedCategories).values(c).onConflictDoNothing();
+  }
+
+  console.log("Seeding moderation settings…");
+  const MOD_SETTINGS = [
+    {
+      key: "block_phones",
+      enabled: 1,
+      action: "censor",
+      censorText: "[telefone removido]",
+    },
+    {
+      key: "block_emails",
+      enabled: 1,
+      action: "censor",
+      censorText: "[e-mail removido]",
+    },
+    {
+      key: "block_addresses",
+      enabled: 1,
+      action: "censor",
+      censorText: "[endereço removido]",
+    },
+    {
+      key: "block_social",
+      enabled: 1,
+      action: "censor",
+      censorText: "[rede social removida]",
+    },
+    {
+      key: "block_links",
+      enabled: 1,
+      action: "censor",
+      censorText: "[link removido]",
+    },
+  ];
+  for (const s of MOD_SETTINGS) {
+    await db.insert(moderationSettings).values(s).onConflictDoNothing();
   }
 
   console.log("✅ Seed concluído!");

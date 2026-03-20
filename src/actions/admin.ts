@@ -18,8 +18,12 @@ import { eq, desc, sql, and, gte, count } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
 import { redirect } from "next/navigation";
-import { rm } from "node:fs/promises";
+import { rm, stat, readdir, rmdir } from "node:fs/promises";
 import path from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
 
@@ -567,4 +571,199 @@ export async function toggleNewsSourceAction(id: number, active: boolean) {
     .set({ active: active ? 1 : 0 })
     .where(eq(newsSources.id, id));
   return { success: true };
+}
+
+// ── Armazenamento ─────────────────────────────────────────────────────────────
+
+interface DiskUsage {
+  total: number;
+  used: number;
+  available: number;
+}
+
+async function getDiskUsage(): Promise<DiskUsage> {
+  const { stdout } = await execFileAsync("df", [
+    "-B1",
+    "--output=size,used,avail",
+    "/",
+  ]);
+  const lines = stdout.trim().split("\n");
+  const parts = lines[1].trim().split(/\s+/);
+  return {
+    total: Number(parts[0]),
+    used: Number(parts[1]),
+    available: Number(parts[2]),
+  };
+}
+
+export interface PostStorageInfo {
+  articleId: number;
+  title: string;
+  slug: string;
+  publishedAt: string;
+  imageUrl: string | null;
+  mediaSize: number;
+  mediaCount: number;
+}
+
+export interface StorageData {
+  disk: DiskUsage;
+  posts: PostStorageInfo[];
+}
+
+export async function getStorageInfo(): Promise<StorageData> {
+  await requireAdmin();
+
+  const disk = await getDiskUsage();
+
+  const articles = await db
+    .select({
+      id: newsArticles.id,
+      title: newsArticles.title,
+      slug: newsArticles.slug,
+      publishedAt: newsArticles.publishedAt,
+      imageUrl: newsArticles.imageUrl,
+    })
+    .from(newsArticles)
+    .orderBy(desc(newsArticles.publishedAt));
+
+  // Collect media sizes for each article
+  const posts: PostStorageInfo[] = [];
+
+  for (const article of articles) {
+    let mediaSize = 0;
+    let mediaCount = 0;
+
+    if (article.imageUrl) {
+      // imageUrl is relative, e.g. /posts/2026/03/uuid.jpg or /images/posts/123/image.jpg
+      const filePath = path.join(process.cwd(), "public", article.imageUrl);
+      try {
+        const s = await stat(filePath);
+        mediaSize = s.size;
+        mediaCount = 1;
+      } catch {
+        // file missing
+      }
+    }
+
+    posts.push({
+      articleId: article.id,
+      title: article.title,
+      slug: article.slug,
+      publishedAt: article.publishedAt,
+      imageUrl: article.imageUrl,
+      mediaSize,
+      mediaCount,
+    });
+  }
+
+  return { disk, posts };
+}
+
+export async function deleteEmptyImageDirs(): Promise<{ deleted: number }> {
+  await requireAdmin();
+  const baseDir = path.join(process.cwd(), "public", "images", "posts");
+  let deleted = 0;
+
+  try {
+    const entries = await readdir(baseDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const dirPath = path.join(baseDir, entry.name);
+      const contents = await readdir(dirPath);
+      if (contents.length === 0) {
+        await rmdir(dirPath);
+        deleted++;
+      }
+    }
+  } catch {
+    // base dir may not exist
+  }
+
+  return { deleted };
+}
+
+export interface OrphanMedia {
+  filePath: string;
+  relativePath: string;
+  size: number;
+}
+
+async function collectFiles(
+  dir: string,
+  base: string,
+): Promise<{ relativePath: string; fullPath: string; size: number }[]> {
+  const result: { relativePath: string; fullPath: string; size: number }[] = [];
+  try {
+    const entries = await readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        result.push(...(await collectFiles(full, base)));
+      } else if (entry.isFile()) {
+        const s = await stat(full);
+        const rel = `/${path.relative(base, full)}`;
+        result.push({ relativePath: rel, fullPath: full, size: s.size });
+      }
+    }
+  } catch {
+    // dir may not exist
+  }
+  return result;
+}
+
+export async function detectOrphanMedia(): Promise<OrphanMedia[]> {
+  await requireAdmin();
+  const publicDir = path.join(process.cwd(), "public");
+
+  // Collect all files from both media directories
+  const allFiles = [
+    ...(await collectFiles(path.join(publicDir, "images", "posts"), publicDir)),
+    ...(await collectFiles(path.join(publicDir, "posts"), publicDir)),
+  ];
+
+  // Get all imageUrls from DB
+  const articles = await db
+    .select({ imageUrl: newsArticles.imageUrl })
+    .from(newsArticles);
+  const usedPaths = new Set(
+    articles.map((a) => a.imageUrl).filter(Boolean) as string[],
+  );
+
+  return allFiles
+    .filter((f) => !usedPaths.has(f.relativePath))
+    .map((f) => ({
+      filePath: f.fullPath,
+      relativePath: f.relativePath,
+      size: f.size,
+    }));
+}
+
+export async function deleteOrphanMedia(
+  paths: string[],
+): Promise<{ deleted: number }> {
+  await requireAdmin();
+  let deleted = 0;
+  const publicDir = path.join(process.cwd(), "public");
+
+  for (const relativePath of paths) {
+    // Validate the path is within public/images/posts or public/posts
+    const fullPath = path.join(publicDir, relativePath);
+    const resolved = path.resolve(fullPath);
+    const allowedPrefixes = [
+      path.resolve(path.join(publicDir, "images", "posts")),
+      path.resolve(path.join(publicDir, "posts")),
+    ];
+    if (!allowedPrefixes.some((prefix) => resolved.startsWith(`${prefix}/`))) {
+      continue;
+    }
+    try {
+      await rm(resolved);
+      deleted++;
+    } catch {
+      // file already gone
+    }
+  }
+
+  return { deleted };
 }
