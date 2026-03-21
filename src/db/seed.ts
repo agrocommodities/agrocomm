@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { drizzle } from "drizzle-orm/libsql";
 import { eq, sql } from "drizzle-orm";
 import { hashPassword } from "../lib/password";
@@ -35,7 +36,9 @@ interface CidadeJSON {
   state_code: string;
 }
 
-const jsonDir = resolve(import.meta.dirname, "../../json");
+const currentDir =
+  import.meta.dirname ?? dirname(fileURLToPath(import.meta.url));
+const jsonDir = resolve(currentDir, "../../json");
 
 const estadosJSON: EstadoJSON[] = JSON.parse(
   readFileSync(resolve(jsonDir, "estados.json"), "utf-8"),

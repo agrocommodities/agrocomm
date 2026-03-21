@@ -95,11 +95,21 @@ export default function NewsManager({
     setResult(null);
     try {
       const res = await fetch("/api/admin/scrape-news", { method: "POST" });
-      const data = await res.json();
+      const text = await res.text();
+      let data: Record<string, unknown>;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(
+          res.status === 504
+            ? "Tempo limite excedido — a coleta demorou demais. Tente novamente."
+            : `Resposta inesperada do servidor (HTTP ${res.status})`,
+        );
+      }
       if (data.error) {
-        setResult({ status: "error", inserted: 0, error: data.error });
+        setResult({ status: "error", inserted: 0, error: String(data.error) });
       } else {
-        setResult(data.result);
+        setResult(data.result as ScrapeResult);
       }
       router.refresh();
     } catch (err) {

@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { validateTurnstileToken } from "next-turnstile";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { signSession } from "@/lib/auth";
@@ -88,6 +89,27 @@ export async function registerAction(
 
   if (!name || !email || !password)
     return { error: "Preencha todos os campos.", fields };
+
+  if (process.env.NODE_ENV !== "development") {
+    const turnstileToken = formData.get("cf-turnstile-response");
+    if (!turnstileToken || typeof turnstileToken !== "string") {
+      return {
+        error: "Verificação de segurança ausente. Tente novamente.",
+        fields,
+      };
+    }
+    const turnstileResult = await validateTurnstileToken({
+      token: turnstileToken,
+      secretKey: process.env.TURNSTILE_SECRET_KEY!,
+    });
+    if (!turnstileResult.success) {
+      return {
+        error: "Falha na verificação de segurança. Tente novamente.",
+        fields,
+      };
+    }
+  }
+
   if (password.length < 8)
     return { error: "A senha deve ter no mínimo 8 caracteres.", fields };
   if (password !== confirm)

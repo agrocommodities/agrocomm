@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Turnstile } from "next-turnstile";
 import { registerAction } from "@/actions/auth";
 
 export default function RegisterForm() {
@@ -87,6 +88,14 @@ export default function RegisterForm() {
           className="bg-white/10 border border-white/20 rounded-lg px-4 py-2.5 text-sm placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-green-400/50 transition"
         />
       </div>
+
+      {process.env.NODE_ENV !== "development" && (
+        <Turnstile
+          siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+          theme="dark"
+          language="pt-br"
+        />
+      )}
 
       {state && "error" in state && (
         <p className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2.5">

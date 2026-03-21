@@ -1,5 +1,6 @@
 "use server";
 
+import { validateTurnstileToken } from "next-turnstile";
 import { db } from "@/db";
 import { contactMessages } from "@/db/schema";
 
@@ -25,6 +26,20 @@ export async function submitContactForm(formData: FormData) {
   // Basic email validation
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { error: "E-mail inválido." };
+  }
+
+  if (process.env.NODE_ENV !== "development") {
+    const turnstileToken = formData.get("cf-turnstile-response");
+    if (!turnstileToken || typeof turnstileToken !== "string") {
+      return { error: "Verificação de segurança ausente. Tente novamente." };
+    }
+    const turnstileResult = await validateTurnstileToken({
+      token: turnstileToken,
+      secretKey: process.env.TURNSTILE_SECRET_KEY!,
+    });
+    if (!turnstileResult.success) {
+      return { error: "Falha na verificação de segurança. Tente novamente." };
+    }
   }
 
   try {

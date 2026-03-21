@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { submitContactForm } from "@/actions/contact";
+import { Turnstile } from "next-turnstile";
 import { Send, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 
 export default function ContactForm() {
@@ -114,6 +115,14 @@ export default function ContactForm() {
           className="bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm placeholder:text-white/20 focus:border-green-500/40 focus:outline-none transition-colors resize-y min-h-28"
         />
       </div>
+
+      {process.env.NODE_ENV !== "development" && (
+        <Turnstile
+          siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+          theme="dark"
+          language="pt-br"
+        />
+      )}
 
       <button
         type="submit"
