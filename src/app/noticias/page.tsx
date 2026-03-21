@@ -268,7 +268,7 @@ export default async function NoticiasPage({
     : null;
 
   return (
-    <main className="max-w-7xl mx-auto px-4 py-8">
+    <main className="max-w-7xl mx-auto">
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Main content */}
         <div className="flex-1 min-w-0 flex flex-col gap-8">

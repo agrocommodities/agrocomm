@@ -130,11 +130,13 @@ export default function CommoditiesTableClient({ quotes, title }: Props) {
                 ).map(([key, label, align]) => (
                   <th
                     key={key}
-                    className={`text-${align} px-5 py-3 font-medium cursor-pointer select-none hover:text-white/60 transition-colors`}
+                    className={`text-${align} px-2 md:px-5 py-3 font-medium cursor-pointer select-none hover:text-white/60 transition-colors`}
                     onClick={() => toggleSort(key)}
                   >
-                    {label}
-                    <SortIcon active={sortKey === key} dir={sortDir} />
+                    <div className="inline-flex items-center gap-0.5">
+                      {label}
+                      <SortIcon active={sortKey === key} dir={sortDir} />
+                    </div>
                   </th>
                 ))}
               </tr>
@@ -142,7 +144,7 @@ export default function CommoditiesTableClient({ quotes, title }: Props) {
             <tbody>
               {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-10 text-white/30">
+                  <td colSpan={5} className="text-center py-6 text-white/30">
                     Sem cotações para hoje
                   </td>
                 </tr>
@@ -158,13 +160,19 @@ export default function CommoditiesTableClient({ quotes, title }: Props) {
                     }}
                     className="border-t border-white/5 hover:bg-white/5 cursor-pointer transition-colors"
                   >
-                    <td className="px-5 py-3 font-medium">{row.productName}</td>
-                    <td className="px-5 py-3 text-white/60">{row.state}</td>
-                    <td className="px-5 py-3 text-white/60">{row.city}</td>
-                    <td className="px-5 py-3 text-right font-semibold">
+                    <td className="px-2 md:px-5 py-3 font-medium whitespace-nowrap">
+                      {row.productName}
+                    </td>
+                    <td className="px-2 md:px-5 py-3 text-white/60 whitespace-nowrap">
+                      {row.state}
+                    </td>
+                    <td className="px-2 md:px-5 py-3 text-white/60 min-w-0 whitespace-nowrap">
+                      {row.city}
+                    </td>
+                    <td className="px-2 md:px-5 py-3 text-right font-semibold whitespace-nowrap">
                       R$ {row.price.toFixed(2)}
                     </td>
-                    <td className="px-5 py-3 text-right">
+                    <td className="px-2 md:px-5 py-3 text-right whitespace-nowrap">
                       <VariationBadge value={row.variation} />
                     </td>
                   </tr>
@@ -177,7 +185,7 @@ export default function CommoditiesTableClient({ quotes, title }: Props) {
 
       {/* Modal */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-stretch sm:items-center sm:justify-center">
           {/* backdrop */}
           <button
             type="button"
@@ -189,15 +197,15 @@ export default function CommoditiesTableClient({ quotes, title }: Props) {
             role="dialog"
             aria-modal="true"
             aria-label={selected.productName}
-            className="relative z-10 w-full max-w-2xl bg-[#1a2218] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            className="relative z-10 w-full sm:max-w-2xl h-full sm:h-auto sm:max-h-[85vh] overflow-y-auto bg-[#1a2218] sm:border sm:border-white/10 sm:rounded-2xl shadow-2xl sm:mx-4"
           >
             {/* Modal header */}
-            <div className="flex items-start justify-between px-6 py-5 border-b border-white/10">
-              <div>
-                <h3 className="font-semibold text-base">
+            <div className="flex items-start justify-between px-4 sm:px-6 py-4 sm:py-5 border-b border-white/10">
+              <div className="min-w-0">
+                <h3 className="font-semibold text-sm sm:text-base truncate">
                   {selected.productName}
                 </h3>
-                <p className="text-sm text-white/50 mt-0.5">
+                <p className="text-xs sm:text-sm text-white/50 mt-0.5">
                   <span className="text-green-400 font-medium">
                     {selected.city} — {selected.state}
                   </span>
@@ -208,17 +216,17 @@ export default function CommoditiesTableClient({ quotes, title }: Props) {
               <button
                 type="button"
                 onClick={closeModal}
-                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                className="shrink-0 p-1.5 rounded-lg hover:bg-white/10 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Price highlight */}
-            <div className="flex items-center gap-4 px-6 py-4 border-b border-white/10">
+            <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4 border-b border-white/10">
               <div>
                 <p className="text-xs text-white/40 mb-0.5">Última cotação</p>
-                <p className="text-2xl font-bold">
+                <p className="text-xl sm:text-2xl font-bold">
                   R$ {selected.price.toFixed(2)}
                 </p>
               </div>
@@ -226,7 +234,7 @@ export default function CommoditiesTableClient({ quotes, title }: Props) {
             </div>
 
             {/* Chart */}
-            <div className="px-4 pt-4 pb-6">
+            <div className="px-2 sm:px-4 pt-3 sm:pt-4 pb-4 sm:pb-6">
               <p className="text-xs text-white/40 px-2 mb-3">
                 Histórico de preços — {selected.city}/{selected.state}
               </p>

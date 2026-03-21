@@ -29,7 +29,7 @@ export default async function GraosPage() {
   const quotes = await getQuotesByCategory("graos");
 
   return (
-    <main className="max-w-7xl mx-auto px-4 py-10 flex flex-col gap-8">
+    <div className="max-w-7xl mx-auto flex flex-col gap-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
@@ -61,6 +61,6 @@ export default async function GraosPage() {
         Clique em qualquer linha para ver o gráfico de evolução dos últimos 30
         dias.
       </p>
-    </main>
+    </div>
   );
 }

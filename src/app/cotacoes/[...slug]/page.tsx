@@ -142,7 +142,7 @@ export default async function ProdutoPage({
   const shareTitle = `${meta.label} — Cotações AgroComm`;
 
   return (
-    <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col gap-6">
+    <main className="max-w-7xl mx-auto flex flex-col gap-6">
       {/* Breadcrumb + header */}
       <div>
         <Breadcrumb

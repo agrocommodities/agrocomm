@@ -3,10 +3,10 @@ import Link from "next/link";
 export default function Footer() {
   return (
     <footer className="bg-alt-background text-sm">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-2">
-        <p className="text-white/50">
+      <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col-reverse sm:flex-row items-center justify-between gap-2">
+        <div className="text-white/50">
           &copy; {new Date().getFullYear()} AgroComm
-        </p>
+        </div>
         <nav className="flex items-center gap-4 flex-wrap">
           <Link
             href="/ajuda"
@@ -30,7 +30,7 @@ export default function Footer() {
             href="/termos"
             className="text-white/40 hover:text-green-400 transition-colors text-xs"
           >
-            Termos de Uso
+            Termos
           </Link>
           <Link
             href="/privacidade"

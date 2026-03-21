@@ -20,18 +20,20 @@ export const metadata: Metadata = {
 
 export default function ChicagoPage() {
   return (
-    <main className="max-w-7xl mx-auto px-4 py-10 flex flex-col gap-8">
+    <div className="max-w-7xl mx-auto flex flex-col gap-8">
       {/* Header */}
       <div className="flex flex-col gap-1">
         <Breadcrumb items={[{ label: "Bolsa de Chicago" }]} />
-        <h1 className="text-3xl font-bold mt-1">📊 Bolsa de Chicago (CBOT)</h1>
-        <p className="text-white/50 mt-1 text-sm">
+        <h1 className="text-xl md:text-3xl font-bold">
+          📊 Bolsa de Chicago (CBOT)
+        </h1>
+        <div className="text-white/50 text-sm">
           Cotações em tempo real das principais commodities agropecuárias —
           Futuros CME Group / CBOT
-        </p>
+        </div>
       </div>
 
       <ChicagoClient />
-    </main>
+    </div>
   );
 }

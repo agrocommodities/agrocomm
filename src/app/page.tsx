@@ -176,7 +176,7 @@ export default async function HomePage() {
   };
 
   return (
-    <main className="max-w-7xl mx-auto px-4 py-10">
+    <main className="max-w-7xl mx-auto p-2 md:px-4">
       <script
         type="application/ld+json"
         // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data
@@ -187,14 +187,14 @@ export default async function HomePage() {
         // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data
         dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
       />
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-4 md:gap-8">
         {/* Main content */}
         <div className="flex-1 min-w-0 flex flex-col gap-10">
           {/* Hero */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold">
-                Cotações de Commodities Agropecuárias
+              <h1 className="text-xl md:text-3xl font-bold">
+                Commodities Agropecuárias
               </h1>
               <p className="text-sm text-white/50 mt-1">
                 Preços atualizados de soja, milho, feijão, boi gordo e vaca

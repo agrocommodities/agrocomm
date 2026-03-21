@@ -359,6 +359,7 @@ export async function createRoleAction(formData: FormData) {
 
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
+  const icon = String(formData.get("icon") ?? "Shield").trim() || "Shield";
 
   if (!name) return { error: "Nome é obrigatório." };
 
@@ -376,7 +377,21 @@ export async function createRoleAction(formData: FormData) {
     .limit(1);
   if (existing) return { error: "Já existe um cargo com este nome." };
 
-  await db.insert(roles).values({ name, slug, description });
+  await db.insert(roles).values({ name, slug, description, icon });
+  return { success: true };
+}
+
+export async function updateRoleIconAction(roleId: number, icon: string) {
+  await requireAdmin();
+
+  const [role] = await db
+    .select()
+    .from(roles)
+    .where(eq(roles.id, roleId))
+    .limit(1);
+  if (!role) return { error: "Cargo não encontrado." };
+
+  await db.update(roles).set({ icon }).where(eq(roles.id, roleId));
   return { success: true };
 }
 

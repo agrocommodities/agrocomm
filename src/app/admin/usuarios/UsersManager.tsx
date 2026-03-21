@@ -22,9 +22,11 @@ import {
   deleteRoleAction,
   updateRolePermissionsAction,
   updateUserPermissionsAction,
+  updateRoleIconAction,
   impersonateUserAction,
   impersonateVisitorAction,
 } from "@/actions/admin";
+import IconPicker, { RoleIconRenderer } from "@/components/admin/IconPicker";
 
 interface User {
   id: number;
@@ -41,6 +43,7 @@ interface Role {
   name: string;
   slug: string;
   description: string | null;
+  icon: string;
   isSystem: number;
   createdAt: string;
   permissionIds: number[];
@@ -574,18 +577,21 @@ function RolesTab({
 }) {
   const [showForm, setShowForm] = useState(false);
   const [editingRole, setEditingRole] = useState<number | null>(null);
+  const [newRoleIcon, setNewRoleIcon] = useState("Shield");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   async function handleCreateRole(formData: FormData) {
     setError("");
+    formData.set("icon", newRoleIcon);
     startTransition(async () => {
       const result = await createRoleAction(formData);
       if (result.error) {
         setError(result.error);
       } else {
         setShowForm(false);
+        setNewRoleIcon("Shield");
         router.refresh();
       }
     });
@@ -598,6 +604,14 @@ function RolesTab({
       return;
     startTransition(async () => {
       const result = await deleteRoleAction(roleId);
+      if (result.error) alert(result.error);
+      else router.refresh();
+    });
+  }
+
+  function handleChangeIcon(roleId: number, icon: string) {
+    startTransition(async () => {
+      const result = await updateRoleIconAction(roleId, icon);
       if (result.error) alert(result.error);
       else router.refresh();
     });
@@ -654,6 +668,10 @@ function RolesTab({
               />
             </div>
           </div>
+          <div className="mt-4">
+            <span className="text-xs text-white/60 block mb-1.5">Ícone</span>
+            <IconPicker value={newRoleIcon} onChange={setNewRoleIcon} />
+          </div>
           {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
           <button
             type="submit"
@@ -684,7 +702,10 @@ function RolesTab({
                   {role.isSystem ? (
                     <Lock className="w-4 h-4" />
                   ) : (
-                    <Shield className="w-4 h-4" />
+                    <RoleIconRenderer
+                      iconName={role.icon}
+                      className="w-4 h-4"
+                    />
                   )}
                 </div>
                 <div>
@@ -700,6 +721,12 @@ function RolesTab({
                 )}
               </div>
               <div className="flex items-center gap-2">
+                {!role.isSystem && (
+                  <IconPicker
+                    value={role.icon}
+                    onChange={(icon) => handleChangeIcon(role.id, icon)}
+                  />
+                )}
                 <button
                   type="button"
                   onClick={() =>

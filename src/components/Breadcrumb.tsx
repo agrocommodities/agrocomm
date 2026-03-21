@@ -43,8 +43,8 @@ function ChevronIcon() {
 
 export default function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
   return (
-    <nav aria-label="Breadcrumb">
-      <ol className="flex items-center gap-1 text-sm text-white/40">
+    <nav className="my-4" aria-label="Breadcrumb">
+      <ol className="flex items-center gap-1 text-white/40">
         <li>
           <Link
             href="/"

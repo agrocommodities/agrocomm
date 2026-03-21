@@ -88,7 +88,7 @@ export function RangeSelector({
           type="button"
           onClick={() => onChange(opt.value)}
           disabled={loading}
-          className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+          className={`px-1 md:px-2.5 py-0.5 md:py-1 rounded-md text-xs font-medium transition-all ${
             value === opt.value
               ? "bg-green-500/20 text-green-400 ring-1 ring-green-500/30"
               : "text-white/40 hover:text-white/70 hover:bg-white/5"

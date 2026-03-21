@@ -35,17 +35,15 @@ export default function Modal({ children }: { children: React.ReactNode }) {
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-3xl max-h-[85vh] overflow-y-auto mx-4 bg-[#394634] border border-white/15 rounded-2xl shadow-2xl">
-        {/* Close button */}
+      <div className="relative z-10 w-full max-w-3xl max-h-[85vh] overflow-y-auto mx-4 bg-[#394634] border border-white/15 rounded-2xl shadow-2xl p-6 sm:p-8">
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 z-10 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
+          className="absolute top-6 right-6 sm:top-8 sm:right-8 z-10 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
-
-        <div className="p-6 sm:p-8">{children}</div>
+        {children}
       </div>
     </div>
   );

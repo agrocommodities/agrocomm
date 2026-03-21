@@ -14,10 +14,10 @@ export const metadata: Metadata = {
 
 export default function TermosPage() {
   return (
-    <main className="max-w-4xl mx-auto px-4 py-10 flex flex-col gap-8">
+    <div className="max-w-4xl mx-auto flex flex-col gap-4">
       <div>
         <Breadcrumb items={[{ label: "Termos de Uso" }]} />
-        <h1 className="text-3xl sm:text-4xl font-extrabold flex items-center gap-3 mt-1">
+        <h1 className="text-2xl md:text-3xl font-extrabold flex items-center gap-3 mt-1">
           <FileText className="w-8 h-8 text-green-400" />
           Termos de Uso
         </h1>
@@ -229,6 +229,6 @@ export default function TermosPage() {
           Política de Privacidade
         </Link>
       </nav>
-    </main>
+    </div>
   );
 }

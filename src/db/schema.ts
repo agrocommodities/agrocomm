@@ -8,6 +8,7 @@ export const roles = sqliteTable("roles", {
   name: text().notNull().unique(),
   slug: text().notNull().unique(),
   description: text(),
+  icon: text().notNull().default("Shield"),
   isSystem: int("is_system").notNull().default(0),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
