@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default async function NovoClassificadoPage() {
   const session = await getSession();
-  if (!session) redirect("/auth/login");
+  if (!session) redirect("/login");
 
   const [categories, statesList] = await Promise.all([
     getClassifiedCategories(),

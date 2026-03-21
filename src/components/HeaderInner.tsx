@@ -52,7 +52,7 @@ export default function HeaderInner({ session, links }: Props) {
             </form>
           ) : (
             <Link
-              href="/auth/login"
+              href="/login"
               className="text-sm font-medium hover:text-green-300 transition-colors"
             >
               Entrar
@@ -91,7 +91,7 @@ export default function HeaderInner({ session, links }: Props) {
           </form>
         ) : (
           <Link
-            href="/auth/login"
+            href="/login"
             className="text-sm font-medium hover:text-green-300 transition-colors"
             onClick={() => setOpen(false)}
           >

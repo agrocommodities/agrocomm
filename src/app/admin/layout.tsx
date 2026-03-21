@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { getSession, getUserPermissions } from "@/lib/auth";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 
-export const metadata = { title: "Admin — AgroComm" };
+export const metadata = { title: "Admin \u2014 AgroComm" };
 
 export default async function AdminLayout({
   children,
@@ -10,7 +10,9 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const session = await getSession();
-  if (!session || session.role !== "admin") redirect("/");
+  if (!session) redirect("/");
+  const perms = await getUserPermissions(session.userId);
+  if (!perms.has("admin.access")) redirect("/");
 
   return (
     <div className="fixed inset-0 z-100 flex flex-col lg:flex-row bg-[#2a3425] overflow-hidden">

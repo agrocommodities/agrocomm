@@ -58,6 +58,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.3,
     },
+    {
+      url: `${baseUrl}/termos`,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
+    {
+      url: `${baseUrl}/privacidade`,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
   ];
 
   const articles = await db

@@ -53,7 +53,7 @@ const selectClass =
   "focus:outline-none focus:ring-2 focus:ring-green-400/50 transition appearance-none " +
   "text-white placeholder-white/40 cursor-pointer";
 
-const optionClass = "bg-[#2a3925] text-white";
+const optionClass = "";
 
 export default function LocationPriceSelector({
   todayQuotes,

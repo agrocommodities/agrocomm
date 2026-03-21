@@ -5,6 +5,7 @@ import {
   Globe2,
   BarChart3,
   Wallet,
+  ShoppingCart,
 } from "lucide-react";
 export default function AjudaModal() {
   return (
@@ -64,6 +65,17 @@ export default function AjudaModal() {
             Contratos futuros na B3, ETFs (CORN11, SOJA11), ações do agro
             (SLCE3, JBSS3), FIAgros e CRAs são formas acessíveis de investir em
             commodities.
+          </p>
+        </section>
+
+        <section className="bg-white/5 rounded-xl p-4">
+          <h3 className="font-bold text-sm flex items-center gap-2 mb-2">
+            <ShoppingCart className="w-4 h-4 text-green-400" />
+            Classificados
+          </h3>
+          <p className="text-xs text-white/60 leading-relaxed">
+            Compre e venda tratores, máquinas, implementos, gado e fazendas na
+            nossa seção de classificados agrícolas.
           </p>
         </section>
 

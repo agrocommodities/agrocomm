@@ -6,6 +6,7 @@ import {
   BarChart3,
   Newspaper,
   Globe2,
+  ShoppingCart,
 } from "lucide-react";
 import Breadcrumb from "@/components/Breadcrumb";
 import type { Metadata } from "next";
@@ -105,6 +106,19 @@ export default function SobrePage() {
               <p className="text-xs text-white/50 mt-1">
                 Evolução dos preços nos últimos 30 dias com gráficos interativos
                 e comparação entre cidades.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white/5 rounded-xl p-4 flex gap-3">
+            <ShoppingCart className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-white/90 text-sm">
+                Classificados Agrícolas
+              </p>
+              <p className="text-xs text-white/50 mt-1">
+                Compre e venda tratores, máquinas, implementos, gado e fazendas
+                diretamente na plataforma.
               </p>
             </div>
           </div>

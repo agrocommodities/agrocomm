@@ -1,6 +1,46 @@
 import { int, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { sql, relations } from "drizzle-orm";
 
+// ── Cargos e Permissões ──────────────────────────────────────────────────────
+
+export const roles = sqliteTable("roles", {
+  id: int().primaryKey({ autoIncrement: true }),
+  name: text().notNull().unique(),
+  slug: text().notNull().unique(),
+  description: text(),
+  isSystem: int("is_system").notNull().default(0),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const permissions = sqliteTable("permissions", {
+  id: int().primaryKey({ autoIncrement: true }),
+  key: text().notNull().unique(),
+  name: text().notNull(),
+  description: text(),
+  category: text().notNull().default("geral"),
+});
+
+export const rolePermissions = sqliteTable("role_permissions", {
+  id: int().primaryKey({ autoIncrement: true }),
+  roleId: int("role_id")
+    .notNull()
+    .references(() => roles.id, { onDelete: "cascade" }),
+  permissionId: int("permission_id")
+    .notNull()
+    .references(() => permissions.id, { onDelete: "cascade" }),
+});
+
+export const userPermissions = sqliteTable("user_permissions", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  permissionId: int("permission_id")
+    .notNull()
+    .references(() => permissions.id, { onDelete: "cascade" }),
+  granted: int().notNull().default(1), // 1 = conceder, 0 = revogar
+});
+
 // ── Autenticação ──────────────────────────────────────────────────────────────
 
 export const users = sqliteTable("users", {
@@ -8,7 +48,8 @@ export const users = sqliteTable("users", {
   name: text().notNull(),
   email: text().notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  role: text().notNull().default("user"), // "user" | "admin"
+  role: text().notNull().default("user"),
+  roleId: int("role_id").references(() => roles.id, { onDelete: "set null" }),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 
@@ -19,6 +60,17 @@ export const refreshTokens = sqliteTable("refresh_tokens", {
     .references(() => users.id, { onDelete: "cascade" }),
   token: text().notNull().unique(),
   expiresAt: text("expires_at").notNull(),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const passwordResetTokens = sqliteTable("password_reset_tokens", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: text().notNull().unique(),
+  expiresAt: text("expires_at").notNull(),
+  usedAt: text("used_at"),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 
@@ -405,3 +457,50 @@ export const auditLogs = sqliteTable("audit_logs", {
   ipAddress: text("ip_address"),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
+
+// ── Relations de Cargos/Permissões ────────────────────────────────────────────
+
+export const rolesRelations = relations(roles, ({ many }) => ({
+  rolePermissions: many(rolePermissions),
+}));
+
+export const permissionsRelations = relations(permissions, ({ many }) => ({
+  rolePermissions: many(rolePermissions),
+  userPermissions: many(userPermissions),
+}));
+
+export const rolePermissionsRelations = relations(
+  rolePermissions,
+  ({ one }) => ({
+    role: one(roles, {
+      fields: [rolePermissions.roleId],
+      references: [roles.id],
+    }),
+    permission: one(permissions, {
+      fields: [rolePermissions.permissionId],
+      references: [permissions.id],
+    }),
+  }),
+);
+
+export const userPermissionsRelations = relations(
+  userPermissions,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [userPermissions.userId],
+      references: [users.id],
+    }),
+    permission: one(permissions, {
+      fields: [userPermissions.permissionId],
+      references: [permissions.id],
+    }),
+  }),
+);
+
+export const usersRelations = relations(users, ({ one, many }) => ({
+  userRole: one(roles, { fields: [users.roleId], references: [roles.id] }),
+  notifications: many(notifications),
+  classifieds: many(classifieds),
+  classifiedComments: many(classifiedComments),
+  userPermissions: many(userPermissions),
+}));

@@ -16,6 +16,7 @@ html,
 body {
   background: var(--background);
   color: var(--foreground);
+  color-scheme: dark;
   font-family: var(--font-nunito), Arial, Helvetica, sans-serif;
   overflow-x: clip;
 }
@@ -24,6 +25,12 @@ input,
 select,
 textarea {
   font-size: 16px;
+}
+
+select,
+select option {
+  background-color: #2a3925;
+  color: #ffffff;
 }
 
 @keyframes slide-up {

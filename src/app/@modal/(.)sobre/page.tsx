@@ -1,5 +1,5 @@
 import Modal from "@/components/Modal";
-import { Info, BarChart3, Globe2, Newspaper } from "lucide-react";
+import { Info, BarChart3, Globe2, Newspaper, ShoppingCart } from "lucide-react";
 export default function SobreModal() {
   return (
     <Modal>
@@ -55,6 +55,15 @@ export default function SobreModal() {
             <div>
               <p className="font-semibold text-xs text-white/90">Gráficos</p>
               <p className="text-[11px] text-white/40">30 dias</p>
+            </div>
+          </div>
+          <div className="bg-white/5 rounded-lg p-3 flex gap-2 col-span-2">
+            <ShoppingCart className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-xs text-white/90">
+                Classificados
+              </p>
+              <p className="text-[11px] text-white/40">Compra & venda</p>
             </div>
           </div>
         </div>

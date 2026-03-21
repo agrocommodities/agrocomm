@@ -322,7 +322,7 @@ export async function createClassified(
       price,
       stateId,
       cityId,
-      status: "pending",
+      status: session.role === "admin" ? "approved" : "pending",
     })
     .returning({ id: classifieds.id });
 

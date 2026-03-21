@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { drizzle } from "drizzle-orm/libsql";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { hashPassword } from "../lib/password";
 import {
   products,
@@ -11,6 +11,9 @@ import {
   newsSources,
   classifiedCategories,
   moderationSettings,
+  roles,
+  permissions,
+  rolePermissions,
 } from "./schema";
 
 const db = drizzle(process.env.DB_FILE_NAME!);
@@ -460,6 +463,193 @@ async function main() {
   ];
   for (const s of MOD_SETTINGS) {
     await db.insert(moderationSettings).values(s).onConflictDoNothing();
+  }
+
+  // ── Permissions ─────────────────────────────────────────────────────────────
+
+  console.log("Seeding permissions…");
+  const PERMISSIONS = [
+    {
+      key: "admin.access",
+      name: "Acessar painel admin",
+      category: "admin",
+    },
+    {
+      key: "admin.users",
+      name: "Gerenciar usuários",
+      category: "admin",
+    },
+    {
+      key: "admin.roles",
+      name: "Gerenciar cargos e permissões",
+      category: "admin",
+    },
+    {
+      key: "admin.quotes",
+      name: "Gerenciar cotações",
+      category: "admin",
+    },
+    {
+      key: "admin.news",
+      name: "Gerenciar notícias",
+      category: "admin",
+    },
+    {
+      key: "admin.classifieds",
+      name: "Moderação de classificados",
+      category: "admin",
+    },
+    {
+      key: "admin.categories",
+      name: "Gerenciar categorias",
+      category: "admin",
+    },
+    {
+      key: "admin.moderation",
+      name: "Configurar moderação",
+      category: "admin",
+    },
+    {
+      key: "admin.scraping",
+      name: "Gerenciar scraping",
+      category: "admin",
+    },
+    {
+      key: "admin.storage",
+      name: "Gerenciar armazenamento",
+      category: "admin",
+    },
+    {
+      key: "admin.stats",
+      name: "Ver estatísticas",
+      category: "admin",
+    },
+    {
+      key: "admin.logs",
+      name: "Ver logs de auditoria",
+      category: "admin",
+    },
+    {
+      key: "admin.conflicts",
+      name: "Gerenciar conflitos de cotações",
+      category: "admin",
+    },
+    {
+      key: "classifieds.create",
+      name: "Criar classificados",
+      category: "classificados",
+    },
+    {
+      key: "classifieds.comment",
+      name: "Comentar em classificados",
+      category: "classificados",
+    },
+  ];
+  for (const p of PERMISSIONS) {
+    await db.insert(permissions).values(p).onConflictDoNothing();
+  }
+
+  // ── Roles ───────────────────────────────────────────────────────────────────
+
+  console.log("Seeding roles…");
+  const ROLES = [
+    {
+      name: "Super Admin",
+      slug: "super-admin",
+      description: "Acesso total ao sistema",
+      isSystem: 1,
+    },
+    {
+      name: "Corretor",
+      slug: "corretor",
+      description: "Corretor de commodities",
+      isSystem: 0,
+    },
+    {
+      name: "Cerealista",
+      slug: "cerealista",
+      description: "Comerciante de cereais e grãos",
+      isSystem: 0,
+    },
+    {
+      name: "Agricultor",
+      slug: "agricultor",
+      description: "Produtor agrícola",
+      isSystem: 0,
+    },
+    {
+      name: "Pecuarista",
+      slug: "pecuarista",
+      description: "Criador de gado e animais",
+      isSystem: 0,
+    },
+  ];
+  for (const r of ROLES) {
+    await db.insert(roles).values(r).onConflictDoNothing();
+  }
+
+  // Assign all permissions to Super Admin
+  console.log("Assigning permissions to Super Admin…");
+  const [superAdminRole] = await db
+    .select({ id: roles.id })
+    .from(roles)
+    .where(eq(roles.slug, "super-admin"))
+    .limit(1);
+
+  if (superAdminRole) {
+    const allPerms = await db.select({ id: permissions.id }).from(permissions);
+    // Clear existing and re-insert
+    await db
+      .delete(rolePermissions)
+      .where(eq(rolePermissions.roleId, superAdminRole.id));
+    if (allPerms.length > 0) {
+      await db.insert(rolePermissions).values(
+        allPerms.map((p) => ({
+          roleId: superAdminRole.id,
+          permissionId: p.id,
+        })),
+      );
+    }
+
+    // Assign basic permissions to other roles
+    const basicPermKeys = ["classifieds.create", "classifieds.comment"];
+    const basicPerms = await db
+      .select({ id: permissions.id })
+      .from(permissions)
+      .where(
+        sql`${permissions.key} IN (${sql.join(
+          basicPermKeys.map((k) => sql`${k}`),
+          sql`, `,
+        )})`,
+      );
+
+    for (const roleDef of ROLES) {
+      if (roleDef.slug === "super-admin") continue;
+      const [role] = await db
+        .select({ id: roles.id })
+        .from(roles)
+        .where(eq(roles.slug, roleDef.slug))
+        .limit(1);
+      if (!role) continue;
+      await db
+        .delete(rolePermissions)
+        .where(eq(rolePermissions.roleId, role.id));
+      if (basicPerms.length > 0) {
+        await db.insert(rolePermissions).values(
+          basicPerms.map((p) => ({
+            roleId: role.id,
+            permissionId: p.id,
+          })),
+        );
+      }
+    }
+
+    // Set admin user to Super Admin role
+    console.log("Setting admin user as Super Admin…");
+    await db
+      .update(users)
+      .set({ roleId: superAdminRole.id, role: "super-admin" })
+      .where(eq(users.email, adminEmail));
   }
 
   console.log("✅ Seed concluído!");

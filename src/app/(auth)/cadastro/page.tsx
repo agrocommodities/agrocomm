@@ -2,8 +2,9 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import RegisterForm from "@/components/auth/RegisterForm";
+import type { Metadata } from "next";
 
-export const metadata = { title: "Cadastro — AgroComm" };
+export const metadata: Metadata = { title: "Cadastro — AgroComm" };
 
 export default async function RegisterPage() {
   const session = await getSession();

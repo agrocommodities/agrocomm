@@ -63,6 +63,7 @@ export async function loginAction(
     email: user.email,
     name: user.name,
     role: user.role,
+    roleId: user.roleId,
   });
   await setSessionCookie(token);
   await logAction("login_success", { userId: user.id });
@@ -106,6 +107,7 @@ export async function registerAction(
     email,
     name,
     role: "user",
+    roleId: null,
   });
   await setSessionCookie(token);
   await logAction("register", {
@@ -181,6 +183,7 @@ export async function updateProfileAction(
     email,
     name,
     role: user.role,
+    roleId: user.roleId,
   });
   await setSessionCookie(token);
 

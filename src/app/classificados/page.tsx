@@ -328,7 +328,7 @@ export default async function ClassificadosPage({
             Quer publicar um anúncio?
           </p>
           <Link
-            href="/auth/login"
+            href="/login"
             className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold text-sm px-6 py-2.5 rounded-lg transition-colors"
           >
             Faça login

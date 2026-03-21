@@ -26,6 +26,18 @@ export default function Footer() {
           >
             Suporte
           </Link>
+          <Link
+            href="/termos"
+            className="text-white/40 hover:text-green-400 transition-colors text-xs"
+          >
+            Termos de Uso
+          </Link>
+          <Link
+            href="/privacidade"
+            className="text-white/40 hover:text-green-400 transition-colors text-xs"
+          >
+            Privacidade
+          </Link>
         </nav>
       </div>
     </footer>

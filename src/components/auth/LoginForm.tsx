@@ -37,9 +37,20 @@ export default function LoginForm() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="password" className="text-sm font-medium text-white/80">
-          Senha
-        </label>
+        <div className="flex items-center justify-between">
+          <label
+            htmlFor="password"
+            className="text-sm font-medium text-white/80"
+          >
+            Senha
+          </label>
+          <Link
+            href="/esqueci-senha"
+            className="text-xs text-green-400 hover:underline"
+          >
+            Esqueceu a senha?
+          </Link>
+        </div>
         <input
           id="password"
           name="password"
@@ -67,7 +78,7 @@ export default function LoginForm() {
 
       <p className="text-center text-sm text-white/50">
         Não tem conta?{" "}
-        <Link href="/auth/cadastro" className="text-green-400 hover:underline">
+        <Link href="/cadastro" className="text-green-400 hover:underline">
           Cadastre-se
         </Link>
       </p>

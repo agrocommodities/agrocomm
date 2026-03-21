@@ -104,7 +104,7 @@ export default function RegisterForm() {
 
       <p className="text-center text-sm text-white/50">
         Já tem conta?{" "}
-        <Link href="/auth/login" className="text-green-400 hover:underline">
+        <Link href="/login" className="text-green-400 hover:underline">
           Entrar
         </Link>
       </p>

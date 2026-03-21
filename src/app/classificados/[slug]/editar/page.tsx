@@ -22,7 +22,7 @@ interface Props {
 
 export default async function EditarClassificadoPage({ params }: Props) {
   const session = await getSession();
-  if (!session) redirect("/auth/login");
+  if (!session) redirect("/login");
 
   const { slug } = await params;
   const item = await getClassifiedBySlug(slug);

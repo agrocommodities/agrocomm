@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { getTodayQuotes, type QuoteRow } from "@/actions/quotes";
 import { getLatestNews } from "@/actions/news";
+import { getClassifieds } from "@/actions/classifieds";
 import CommoditiesTableClient from "@/components/CommoditiesTableClient";
 import CommoditySidebar from "@/components/CommoditySidebar";
+import ClassifiedsSidebar from "@/components/ClassifiedsSidebar";
 import { Clock, ArrowRight, Newspaper } from "lucide-react";
 
 export const revalidate = 300; // 5 min
@@ -115,15 +117,20 @@ function sampleQuotes(rows: QuoteRow[]): QuoteRow[] {
 }
 
 export default async function HomePage() {
-  const [allQuotes, news] = await Promise.all([
+  const [allQuotes, news, classifiedsData] = await Promise.all([
     getTodayQuotes(),
     getLatestNews(6),
+    getClassifieds({ limit: 5 }),
   ]);
 
   const pecuaria = sampleQuotes(
-    allQuotes.filter((q) => q.category === "pecuaria"),
+    allQuotes.filter(
+      (q) => q.category === "pecuaria" && q.productSlug === "boi-gordo",
+    ),
   );
-  const graos = sampleQuotes(allQuotes.filter((q) => q.category === "graos"));
+  const graos = sampleQuotes(
+    allQuotes.filter((q) => q.category === "graos" && q.productSlug === "soja"),
+  );
 
   // Formata a data real de cada categoria
   function fmtDate(dateStr: string | undefined) {
@@ -214,9 +221,7 @@ export default async function HomePage() {
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <h2 className="text-lg font-semibold text-white/80">
-                  🌾 Grãos
-                </h2>
+                <h2 className="text-lg font-semibold text-white/80">🌾 Soja</h2>
                 {graosDate && (
                   <span className="text-xs text-white/30 capitalize">
                     {graosDate}
@@ -230,10 +235,7 @@ export default async function HomePage() {
                 Ver todos →
               </Link>
             </div>
-            <CommoditiesTableClient
-              quotes={graos}
-              title="Saca — Soja, Milho & Feijão"
-            />
+            <CommoditiesTableClient quotes={graos} title="Saca — Soja" />
           </section>
 
           {/* Pecuária */}
@@ -241,7 +243,7 @@ export default async function HomePage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <h2 className="text-lg font-semibold text-white/80">
-                  🐄 Pecuária
+                  🐄 Boi Gordo
                 </h2>
                 {pecuariaDate && (
                   <span className="text-xs text-white/30 capitalize">
@@ -258,7 +260,7 @@ export default async function HomePage() {
             </div>
             <CommoditiesTableClient
               quotes={pecuaria}
-              title="Arroba — Boi & Vaca"
+              title="Arroba — Boi Gordo"
             />
           </section>
 
@@ -339,6 +341,7 @@ export default async function HomePage() {
         {/* Sidebar */}
         <div className="lg:w-72 shrink-0">
           <div className="lg:sticky lg:top-20 flex flex-col gap-5">
+            <ClassifiedsSidebar items={classifiedsData.items} />
             <CommoditySidebar />
           </div>
         </div>

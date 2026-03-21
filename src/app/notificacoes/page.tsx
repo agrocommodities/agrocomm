@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default async function NotificacoesPage() {
   const session = await getSession();
-  if (!session) redirect("/auth/login");
+  if (!session) redirect("/login");
 
   const notifications = await getUserNotifications();
 

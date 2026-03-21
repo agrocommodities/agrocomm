@@ -39,14 +39,14 @@ export default function UserMenu({ session }: Props) {
       await logoutAction();
       setOpen(false);
       router.refresh();
-      router.push("/auth/login");
+      router.push("/login");
     });
   }
 
   if (!session) {
     return (
       <Link
-        href="/auth/login"
+        href="/login"
         className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-xs sm:text-sm font-semibold rounded-lg px-3.5 py-2 transition-colors"
       >
         <LogIn className="w-4 h-4" />
@@ -67,7 +67,7 @@ export default function UserMenu({ session }: Props) {
         <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-600 text-white text-sm font-bold select-none">
           {initial}
         </span>
-        <span className="hidden sm:block text-sm font-medium max-w-[120px] truncate">
+        <span className="hidden sm:block text-sm font-medium max-w-30 truncate">
           {session.name}
         </span>
         <ChevronDown

@@ -13,9 +13,13 @@ import {
   quoteConflicts,
   newsArticles,
   newsSources,
+  roles,
+  permissions,
+  rolePermissions,
+  userPermissions,
 } from "@/db/schema";
 import { eq, desc, sql, and, gte, count } from "drizzle-orm";
-import { getSession } from "@/lib/auth";
+import { getSession, getUserPermissions } from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
 import { redirect } from "next/navigation";
 import { rm, stat, readdir, rmdir } from "node:fs/promises";
@@ -29,7 +33,9 @@ const execFileAsync = promisify(execFile);
 
 async function requireAdmin() {
   const session = await getSession();
-  if (!session || session.role !== "admin") redirect("/");
+  if (!session) redirect("/");
+  const perms = await getUserPermissions(session.userId);
+  if (!perms.has("admin.access")) redirect("/");
   return session;
 }
 
@@ -206,23 +212,43 @@ export async function getAdminUsers() {
       name: users.name,
       email: users.email,
       role: users.role,
+      roleId: users.roleId,
+      roleName: roles.name,
       createdAt: users.createdAt,
     })
     .from(users)
+    .leftJoin(roles, eq(users.roleId, roles.id))
     .orderBy(desc(users.createdAt));
 
   return rows;
 }
 
-export async function updateUserRoleAction(userId: number, role: string) {
+export async function updateUserRoleAction(
+  userId: number,
+  roleId: number | null,
+) {
   const session = await requireAdmin();
   if (userId === session.userId) {
-    return { error: "Você não pode alterar seu próprio papel." };
+    return { error: "Você não pode alterar seu próprio cargo." };
   }
-  if (role !== "admin" && role !== "user") {
-    return { error: "Papel inválido." };
+
+  if (roleId !== null) {
+    const [role] = await db
+      .select()
+      .from(roles)
+      .where(eq(roles.id, roleId))
+      .limit(1);
+    if (!role) return { error: "Cargo não encontrado." };
+    await db
+      .update(users)
+      .set({ roleId, role: role.slug })
+      .where(eq(users.id, userId));
+  } else {
+    await db
+      .update(users)
+      .set({ roleId: null, role: "user" })
+      .where(eq(users.id, userId));
   }
-  await db.update(users).set({ role }).where(eq(users.id, userId));
   return { success: true };
 }
 
@@ -243,7 +269,8 @@ export async function createUserAction(formData: FormData) {
     .trim()
     .toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const role = String(formData.get("role") ?? "user");
+  const roleIdStr = formData.get("roleId");
+  const roleId = roleIdStr ? Number(roleIdStr) : null;
 
   if (!name || !email || !password) {
     return { error: "Preencha todos os campos." };
@@ -259,8 +286,145 @@ export async function createUserAction(formData: FormData) {
     .limit(1);
   if (existing) return { error: "Este e-mail já está cadastrado." };
 
+  let roleSlug = "user";
+  if (roleId) {
+    const [role] = await db
+      .select({ slug: roles.slug })
+      .from(roles)
+      .where(eq(roles.id, roleId))
+      .limit(1);
+    if (role) roleSlug = role.slug;
+  }
+
   const passwordHash = await hashPassword(password);
-  await db.insert(users).values({ name, email, passwordHash, role });
+  await db
+    .insert(users)
+    .values({ name, email, passwordHash, role: roleSlug, roleId });
+  return { success: true };
+}
+
+// ── Roles & Permissions management ────────────────────────────────────────────
+
+export async function getAdminRoles() {
+  await requireAdmin();
+
+  const allRoles = await db.select().from(roles).orderBy(roles.name);
+
+  const allRolePerms = await db
+    .select({
+      roleId: rolePermissions.roleId,
+      permissionId: rolePermissions.permissionId,
+    })
+    .from(rolePermissions);
+
+  return allRoles.map((role) => ({
+    ...role,
+    permissionIds: allRolePerms
+      .filter((rp) => rp.roleId === role.id)
+      .map((rp) => rp.permissionId),
+  }));
+}
+
+export async function getAdminPermissions() {
+  await requireAdmin();
+  return db
+    .select()
+    .from(permissions)
+    .orderBy(permissions.category, permissions.name);
+}
+
+export async function getAllUserPermissionOverrides() {
+  await requireAdmin();
+  return db.select().from(userPermissions);
+}
+
+export async function createRoleAction(formData: FormData) {
+  await requireAdmin();
+
+  const name = String(formData.get("name") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim() || null;
+
+  if (!name) return { error: "Nome é obrigatório." };
+
+  const slug = name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
+
+  const [existing] = await db
+    .select({ id: roles.id })
+    .from(roles)
+    .where(eq(roles.slug, slug))
+    .limit(1);
+  if (existing) return { error: "Já existe um cargo com este nome." };
+
+  await db.insert(roles).values({ name, slug, description });
+  return { success: true };
+}
+
+export async function deleteRoleAction(roleId: number) {
+  await requireAdmin();
+
+  const [role] = await db
+    .select()
+    .from(roles)
+    .where(eq(roles.id, roleId))
+    .limit(1);
+  if (!role) return { error: "Cargo não encontrado." };
+  if (role.isSystem) {
+    return { error: "Não é possível excluir cargos do sistema." };
+  }
+
+  await db
+    .update(users)
+    .set({ roleId: null, role: "user" })
+    .where(eq(users.roleId, roleId));
+  await db.delete(roles).where(eq(roles.id, roleId));
+  return { success: true };
+}
+
+export async function updateRolePermissionsAction(
+  roleId: number,
+  permissionIds: number[],
+) {
+  await requireAdmin();
+
+  const [role] = await db
+    .select()
+    .from(roles)
+    .where(eq(roles.id, roleId))
+    .limit(1);
+  if (!role) return { error: "Cargo não encontrado." };
+
+  await db.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
+
+  if (permissionIds.length > 0) {
+    await db
+      .insert(rolePermissions)
+      .values(permissionIds.map((pid) => ({ roleId, permissionId: pid })));
+  }
+  return { success: true };
+}
+
+export async function updateUserPermissionsAction(
+  userId: number,
+  overrides: { permissionId: number; granted: number }[],
+) {
+  await requireAdmin();
+
+  await db.delete(userPermissions).where(eq(userPermissions.userId, userId));
+
+  if (overrides.length > 0) {
+    await db.insert(userPermissions).values(
+      overrides.map((o) => ({
+        userId,
+        permissionId: o.permissionId,
+        granted: o.granted,
+      })),
+    );
+  }
   return { success: true };
 }
 

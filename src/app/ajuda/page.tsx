@@ -8,6 +8,7 @@ import {
   BarChart3,
   Wallet,
   Lightbulb,
+  ShoppingCart,
 } from "lucide-react";
 import Breadcrumb from "@/components/Breadcrumb";
 import type { Metadata } from "next";
@@ -276,6 +277,37 @@ export default function AjudaPage() {
             mercado de commodities, a AgroComm oferece as ferramentas para tomar
             decisões mais informadas.
           </p>
+        </div>
+      </section>
+
+      {/* Classificados */}
+      <section className="bg-white/3 border border-white/10 rounded-2xl p-6 sm:p-8">
+        <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
+          <ShoppingCart className="w-5 h-5 text-green-400" />
+          Classificados Agrícolas
+        </h2>
+        <div className="text-white/70 space-y-3 text-sm leading-relaxed">
+          <p>
+            A AgroComm conta com uma seção de{" "}
+            <strong className="text-white/90">classificados agrícolas</strong>,
+            onde você pode comprar e vender tratores, máquinas, implementos,
+            gado, fazendas e outros produtos do agronegócio.
+          </p>
+          <p>
+            Para publicar um anúncio, basta criar uma conta gratuita e preencher
+            o formulário com as informações do produto, fotos e preço. Os
+            anúncios passam por moderação antes de serem publicados.
+          </p>
+          <p>
+            Navegue pelos classificados por categoria, estado ou utilize a busca
+            para encontrar exatamente o que precisa.
+          </p>
+          <Link
+            href="/classificados"
+            className="inline-flex items-center gap-2 text-green-400 hover:text-green-300 font-medium transition-colors"
+          >
+            Acessar classificados →
+          </Link>
         </div>
       </section>
 

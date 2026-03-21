@@ -163,7 +163,7 @@ export default function ClassifiedComments({
         </form>
       ) : (
         <p className="text-sm text-white/40 mb-6">
-          <a href="/auth/login" className="text-green-400 hover:underline">
+          <a href="/login" className="text-green-400 hover:underline">
             Faça login
           </a>{" "}
           para comentar.

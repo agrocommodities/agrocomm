@@ -191,7 +191,7 @@ export default async function ClassifiedDetailPage({ params }: Props) {
               </Link>
             ) : (
               <Link
-                href="/auth/login"
+                href="/login"
                 className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm"
               >
                 Faça login para negociar

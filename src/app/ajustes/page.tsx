@@ -2,12 +2,13 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import SettingsForm from "@/components/auth/SettingsForm";
 import Breadcrumb from "@/components/Breadcrumb";
+import type { Metadata } from "next";
 
-export const metadata = { title: "Ajustes — AgroComm" };
+export const metadata: Metadata = { title: "Ajustes — AgroComm" };
 
 export default async function AjustesPage() {
   const session = await getSession();
-  if (!session) redirect("/auth/login");
+  if (!session) redirect("/login");
 
   return (
     <main className="min-h-[80vh] flex items-center justify-center px-4 py-8">
