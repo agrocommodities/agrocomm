@@ -50,6 +50,7 @@ export const users = sqliteTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: text().notNull().default("user"),
   roleId: int("role_id").references(() => roles.id, { onDelete: "set null" }),
+  avatarUrl: text("avatar_url"),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 

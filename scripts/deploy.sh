@@ -15,6 +15,9 @@ git clean -fxd -e .env
 cp -f .env .env.production
 
 pnpm install
+
+pnpm tsx scripts/create-reset-table.ts || exit 1
+
 if pnpm run push; then
   pnpm run seed
   pnpm run scrape

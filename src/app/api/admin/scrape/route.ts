@@ -1,9 +1,13 @@
-import { getSession } from "@/lib/auth";
+import { getSession, getUserPermissions } from "@/lib/auth";
 import { runFullScrape } from "@/lib/scraper";
 
 export async function POST(request: Request) {
   const session = await getSession();
-  if (!session || session.role !== "admin") {
+  if (!session) {
+    return Response.json({ error: "Não autorizado" }, { status: 403 });
+  }
+  const perms = await getUserPermissions(session.userId);
+  if (!perms.has("admin.access")) {
     return Response.json({ error: "Não autorizado" }, { status: 403 });
   }
 

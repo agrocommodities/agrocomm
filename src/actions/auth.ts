@@ -2,6 +2,9 @@
 
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+import { mkdir, writeFile, rm } from "node:fs/promises";
+import { join } from "node:path";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { signSession } from "@/lib/auth";
@@ -64,6 +67,7 @@ export async function loginAction(
     name: user.name,
     role: user.role,
     roleId: user.roleId,
+    avatarUrl: user.avatarUrl ?? null,
   });
   await setSessionCookie(token);
   await logAction("login_success", { userId: user.id });
@@ -108,6 +112,7 @@ export async function registerAction(
     name,
     role: "user",
     roleId: null,
+    avatarUrl: null,
   });
   await setSessionCookie(token);
   await logAction("register", {
@@ -150,6 +155,8 @@ export async function updateProfileAction(
     .limit(1);
   if (!user) return { error: "Usuário não encontrado." };
 
+  const avatarUrl = user.avatarUrl ?? null;
+
   if (email !== user.email) {
     const [existing] = await db
       .select({ id: users.id })
@@ -184,8 +191,122 @@ export async function updateProfileAction(
     name,
     role: user.role,
     roleId: user.roleId,
+    avatarUrl,
   });
   await setSessionCookie(token);
 
   return { success: true };
+}
+
+export type AvatarState = {
+  error?: string;
+  success?: boolean;
+  avatarUrl?: string | null;
+} | null;
+
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
+
+export async function uploadAvatarAction(
+  _prev: AvatarState,
+  formData: FormData,
+): Promise<AvatarState> {
+  const { getSession } = await import("@/lib/auth");
+  const session = await getSession();
+  if (!session) return { error: "Não autenticado." };
+
+  const file = formData.get("avatar");
+  if (!(file instanceof File) || file.size === 0)
+    return { error: "Selecione uma imagem." };
+
+  if (!ALLOWED_TYPES.includes(file.type))
+    return { error: "Formato inválido. Use JPG, PNG ou WebP." };
+
+  if (file.size > MAX_SIZE)
+    return { error: "Imagem muito grande. Máximo 2 MB." };
+
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const filename = `${randomUUID()}.${ext}`;
+  const dir = join(
+    process.cwd(),
+    "public",
+    "images",
+    "avatars",
+    String(session.userId),
+  );
+  await mkdir(dir, { recursive: true });
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  await writeFile(join(dir, filename), buffer);
+
+  const avatarUrl = `/images/avatars/${session.userId}/${filename}`;
+
+  // Remove old avatar file if exists
+  if (session.avatarUrl) {
+    const oldPath = join(process.cwd(), "public", session.avatarUrl);
+    await rm(oldPath, { force: true }).catch(() => {});
+  }
+
+  await db.update(users).set({ avatarUrl }).where(eq(users.id, session.userId));
+
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, session.userId))
+    .limit(1);
+  if (!user) return { error: "Usuário não encontrado." };
+
+  const token = await signSession({
+    userId: session.userId,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    roleId: user.roleId,
+    avatarUrl,
+  });
+  await setSessionCookie(token);
+
+  return { success: true, avatarUrl };
+}
+
+export async function resetAvatarAction(): Promise<AvatarState> {
+  const { getSession } = await import("@/lib/auth");
+  const session = await getSession();
+  if (!session) return { error: "Não autenticado." };
+
+  // Remove avatar directory
+  if (session.avatarUrl) {
+    const dir = join(
+      process.cwd(),
+      "public",
+      "images",
+      "avatars",
+      String(session.userId),
+    );
+    await rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+
+  await db
+    .update(users)
+    .set({ avatarUrl: null })
+    .where(eq(users.id, session.userId));
+
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, session.userId))
+    .limit(1);
+  if (!user) return { error: "Usuário não encontrado." };
+
+  const token = await signSession({
+    userId: session.userId,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    roleId: user.roleId,
+    avatarUrl: null,
+  });
+  await setSessionCookie(token);
+
+  return { success: true, avatarUrl: null };
 }

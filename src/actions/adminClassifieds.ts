@@ -14,14 +14,16 @@ import {
   cities,
 } from "@/db/schema";
 import { eq, desc, and, count, like } from "drizzle-orm";
-import { getSession } from "@/lib/auth";
+import { getSession, getUserPermissions } from "@/lib/auth";
 import { logAction } from "@/lib/moderation";
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
 
 async function requireAdmin() {
   const session = await getSession();
-  if (!session || session.role !== "admin") throw new Error("Unauthorized");
+  if (!session) throw new Error("Unauthorized");
+  const perms = await getUserPermissions(session.userId);
+  if (!perms.has("admin.access")) throw new Error("Unauthorized");
   return session;
 }
 

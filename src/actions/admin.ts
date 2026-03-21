@@ -19,7 +19,7 @@ import {
   userPermissions,
 } from "@/db/schema";
 import { eq, desc, sql, and, gte, count } from "drizzle-orm";
-import { getSession, getUserPermissions } from "@/lib/auth";
+import { getSession, getUserPermissions, SUPER_ADMIN_EMAIL } from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
 import { redirect } from "next/navigation";
 import { rm, stat, readdir, rmdir } from "node:fs/promises";
@@ -231,6 +231,14 @@ export async function updateUserRoleAction(
   if (userId === session.userId) {
     return { error: "Você não pode alterar seu próprio cargo." };
   }
+  const [target] = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (target?.email === SUPER_ADMIN_EMAIL) {
+    return { error: "O Super Admin não pode ter seu cargo alterado." };
+  }
 
   if (roleId !== null) {
     const [role] = await db
@@ -256,6 +264,14 @@ export async function deleteUserAction(userId: number) {
   const session = await requireAdmin();
   if (userId === session.userId) {
     return { error: "Você não pode excluir sua própria conta." };
+  }
+  const [target] = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (target?.email === SUPER_ADMIN_EMAIL) {
+    return { error: "O Super Admin não pode ser excluído." };
   }
   await db.delete(users).where(eq(users.id, userId));
   return { success: true };
@@ -413,6 +429,14 @@ export async function updateUserPermissionsAction(
   overrides: { permissionId: number; granted: number }[],
 ) {
   await requireAdmin();
+  const [target] = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (target?.email === SUPER_ADMIN_EMAIL) {
+    return { error: "As permissões do Super Admin não podem ser alteradas." };
+  }
 
   await db.delete(userPermissions).where(eq(userPermissions.userId, userId));
 
@@ -930,4 +954,114 @@ export async function deleteOrphanMedia(
   }
 
   return { deleted };
+}
+
+// ── Impersonation ─────────────────────────────────────────────────────────────
+
+export async function impersonateUserAction(userId: number) {
+  const session = await requireAdmin();
+  const cookieStore = await (await import("next/headers")).cookies();
+
+  // Prevent nested impersonation
+  if (cookieStore.get("impersonating_from")?.value) {
+    return { error: "Você já está impersonificando alguém." };
+  }
+
+  const [target] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (!target) return { error: "Usuário não encontrado." };
+
+  // Save the current admin token so we can restore it later
+  const currentToken = cookieStore.get("session")?.value;
+  if (!currentToken) return { error: "Sessão inválida." };
+
+  const cookieOpts = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: 60 * 60 * 2, // 2h max impersonation
+  };
+
+  cookieStore.set("impersonating_from", currentToken, cookieOpts);
+
+  // Sign a new session as the target user
+  const { signSession } = await import("@/lib/auth");
+  const token = await signSession({
+    userId: target.id,
+    email: target.email,
+    name: target.name,
+    role: target.role,
+    roleId: target.roleId,
+    avatarUrl: target.avatarUrl ?? null,
+  });
+
+  cookieStore.set("session", token, {
+    ...cookieOpts,
+    maxAge: 60 * 60 * 24 * 7,
+  });
+
+  await (await import("@/lib/moderation")).logAction("impersonate_start", {
+    userId: session.userId,
+    details: JSON.stringify({
+      targetUserId: target.id,
+      targetEmail: target.email,
+    }),
+  });
+
+  return { success: true };
+}
+
+export async function impersonateVisitorAction() {
+  const session = await requireAdmin();
+  const cookieStore = await (await import("next/headers")).cookies();
+
+  if (cookieStore.get("impersonating_from")?.value) {
+    return { error: "Você já está impersonificando alguém." };
+  }
+
+  const currentToken = cookieStore.get("session")?.value;
+  if (!currentToken) return { error: "Sessão inválida." };
+
+  const cookieOpts = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: 60 * 60 * 2,
+  };
+
+  cookieStore.set("impersonating_from", currentToken, cookieOpts);
+
+  // Remove session → user sees the site as a visitor
+  cookieStore.delete("session");
+
+  await (await import("@/lib/moderation")).logAction("impersonate_visitor", {
+    userId: session.userId,
+  });
+
+  return { success: true };
+}
+
+export async function stopImpersonatingAction() {
+  const cookieStore = await (await import("next/headers")).cookies();
+  const originalToken = cookieStore.get("impersonating_from")?.value;
+  if (!originalToken) return { error: "Você não está impersonificando." };
+
+  const cookieOpts = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  };
+
+  // Restore the original admin session
+  cookieStore.set("session", originalToken, cookieOpts);
+  cookieStore.delete("impersonating_from");
+
+  return { success: true };
 }

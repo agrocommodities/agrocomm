@@ -52,3 +52,7 @@ public/images/posts/**
 # classifieds
 public/images/classifieds/**
 !public/images/classifieds/.gitkeep
+
+# avatar
+public/images/avatars/**
+!public/images/avatars/.gitkeep

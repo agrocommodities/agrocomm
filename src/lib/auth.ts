@@ -19,6 +19,8 @@ export interface SessionPayload {
   name: string;
   role: string;
   roleId: number | null;
+  avatarUrl: string | null;
+  isImpersonating?: boolean;
 }
 
 export async function signSession(payload: SessionPayload): Promise<string> {
@@ -35,18 +37,30 @@ export async function getSession(): Promise<SessionPayload | null> {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, SECRET);
-    return payload as unknown as SessionPayload;
+    const session = payload as unknown as SessionPayload;
+    session.isImpersonating = !!cookieStore.get("impersonating_from")?.value;
+    return session;
   } catch {
     return null;
   }
 }
 
+export const SUPER_ADMIN_EMAIL = "agrocomm@agrocomm.com.br";
+
 export async function getUserPermissions(userId: number): Promise<Set<string>> {
   const [user] = await db
-    .select({ roleId: users.roleId })
+    .select({ roleId: users.roleId, email: users.email })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
+
+  // Super admin always has all permissions — cannot be restricted
+  if (user?.email === SUPER_ADMIN_EMAIL) {
+    const allPerms = await db
+      .select({ key: permissions.key })
+      .from(permissions);
+    return new Set(allPerms.map((p) => p.key));
+  }
 
   const perms = new Set<string>();
 

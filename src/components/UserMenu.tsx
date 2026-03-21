@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   LogIn,
   Settings,
@@ -16,9 +17,10 @@ import type { SessionPayload } from "@/lib/auth";
 
 interface Props {
   session: SessionPayload | null;
+  hasAdminAccess?: boolean;
 }
 
-export default function UserMenu({ session }: Props) {
+export default function UserMenu({ session, hasAdminAccess }: Props) {
   const [open, setOpen] = useState(false);
   const [loggingOut, startLogout] = useTransition();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -64,8 +66,18 @@ export default function UserMenu({ session }: Props) {
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-white/10 transition-colors cursor-pointer"
       >
-        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-600 text-white text-sm font-bold select-none">
-          {initial}
+        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-600 text-white text-sm font-bold select-none overflow-hidden">
+          {session.avatarUrl ? (
+            <Image
+              src={session.avatarUrl}
+              alt="Avatar"
+              width={32}
+              height={32}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            initial
+          )}
         </span>
         <span className="hidden sm:block text-sm font-medium max-w-30 truncate">
           {session.name}
@@ -88,7 +100,7 @@ export default function UserMenu({ session }: Props) {
 
         {/* Links */}
         <div className="py-1.5">
-          {session.role === "admin" && (
+          {hasAdminAccess && (
             <Link
               href="/admin"
               onClick={() => setOpen(false)}

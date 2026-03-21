@@ -1,8 +1,11 @@
 import { Nunito } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { cookies } from "next/headers";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PageTracker from "@/components/PageTracker";
+import ImpersonationBanner from "@/components/ImpersonationBanner";
+import { getSession } from "@/lib/auth";
 import type { Metadata } from "next";
 import "./globals.css";
 
@@ -92,13 +95,17 @@ export const metadata: Metadata = {
   category: "agriculture",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
   modal,
 }: Readonly<{
   children: React.ReactNode;
   modal: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const isImpersonating = !!cookieStore.get("impersonating_from")?.value;
+  const session = isImpersonating ? await getSession() : null;
+
   return (
     <html lang="pt-BR">
       <head>
@@ -111,6 +118,9 @@ export default function RootLayout({
       </head>
       <body className={nunito.variable}>
         <PageTracker />
+        {isImpersonating && (
+          <ImpersonationBanner targetName={session?.name ?? null} />
+        )}
         <div className="flex flex-col min-h-screen">
           <Header />
           <main className="grow p-4">{children}</main>

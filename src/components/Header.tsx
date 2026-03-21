@@ -1,11 +1,14 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getSession } from "@/lib/auth";
+import { getSession, getUserPermissions } from "@/lib/auth";
 import { navLinks } from "@/config";
 import UserMenu from "@/components/UserMenu";
 
 export default async function Header() {
   const session = await getSession();
+  const hasAdminAccess = session
+    ? (await getUserPermissions(session.userId)).has("admin.access")
+    : false;
 
   return (
     <header className="sticky z-50 top-0 bg-alt-background">
@@ -34,7 +37,7 @@ export default async function Header() {
 
         {/* User menu */}
         <div className="shrink-0">
-          <UserMenu session={session} />
+          <UserMenu session={session} hasAdminAccess={hasAdminAccess} />
         </div>
       </div>
 

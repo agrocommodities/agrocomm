@@ -12,7 +12,7 @@ import {
   users,
 } from "@/db/schema";
 import { eq, desc, and, like, inArray, count } from "drizzle-orm";
-import { getSession } from "@/lib/auth";
+import { getSession, getUserPermissions } from "@/lib/auth";
 import { moderateText } from "@/lib/moderation";
 import { logAction } from "@/lib/moderation";
 import { writeFile, mkdir, unlink, readdir, rmdir } from "node:fs/promises";
@@ -232,7 +232,9 @@ export async function getClassifiedBySlug(
   const session = await getSession();
   if (
     row.status !== "approved" &&
-    (!session || (session.userId !== row.userId && session.role !== "admin"))
+    (!session ||
+      (session.userId !== row.userId &&
+        !(await getUserPermissions(session.userId)).has("admin.access")))
   ) {
     return null;
   }

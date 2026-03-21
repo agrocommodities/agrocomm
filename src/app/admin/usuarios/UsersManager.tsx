@@ -2,7 +2,18 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, X, Shield, Key, Save, Users, Lock } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  X,
+  Shield,
+  Key,
+  Save,
+  Users,
+  Lock,
+  Eye,
+  UserX,
+} from "lucide-react";
 import {
   deleteUserAction,
   updateUserRoleAction,
@@ -11,6 +22,8 @@ import {
   deleteRoleAction,
   updateRolePermissionsAction,
   updateUserPermissionsAction,
+  impersonateUserAction,
+  impersonateVisitorAction,
 } from "@/actions/admin";
 
 interface User {
@@ -138,6 +151,34 @@ function UsersTab({
     });
   }
 
+  function handleImpersonate(id: number, name: string) {
+    if (
+      !confirm(
+        `Impersonificar o usuário "${name}"? Você verá o site como este usuário.`,
+      )
+    )
+      return;
+    startTransition(async () => {
+      const result = await impersonateUserAction(id);
+      if (result.error) alert(result.error);
+      else window.location.href = "/";
+    });
+  }
+
+  function handleImpersonateVisitor() {
+    if (
+      !confirm(
+        "Impersonificar visitante? Você verá o site como usuário deslogado.",
+      )
+    )
+      return;
+    startTransition(async () => {
+      const result = await impersonateVisitorAction();
+      if (result.error) alert(result.error);
+      else window.location.href = "/";
+    });
+  }
+
   function handleRoleChange(userId: number, roleIdStr: string) {
     const roleId = roleIdStr === "" ? null : Number(roleIdStr);
     startTransition(async () => {
@@ -165,7 +206,16 @@ function UsersTab({
   return (
     <>
       {/* Toolbar */}
-      <div className="flex justify-end">
+      <div className="flex justify-between">
+        <button
+          type="button"
+          onClick={handleImpersonateVisitor}
+          disabled={isPending}
+          className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+        >
+          <UserX className="w-4 h-4" />
+          Impersonificar Visitante
+        </button>
         <button
           type="button"
           onClick={() => setShowForm(!showForm)}
@@ -305,6 +355,15 @@ function UsersTab({
                     </td>
                     <td className="px-3 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleImpersonate(user.id, user.name)}
+                          disabled={isPending}
+                          className="p-1.5 rounded-lg hover:bg-blue-500/20 text-white/30 hover:text-blue-400 transition-colors"
+                          title="Impersonificar"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
                         <button
                           type="button"
                           onClick={() => setPermUserId(user.id)}
