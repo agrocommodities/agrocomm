@@ -107,8 +107,9 @@ export default async function RootLayout({
   const session = isImpersonating ? await getSession() : null;
 
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" style={{ background: "#171717" }}>
       <head>
+        <meta name="theme-color" content="#171717" />
         <link
           rel="shortcut icon"
           href="/images/logo.svg"

@@ -407,6 +407,9 @@ async function main() {
 
   console.log("Seeding classified categories…");
   const CLASSIFIED_CATEGORIES = [
+    { name: "Camionetes", slug: "camionetes", icon: "Truck" },
+    { name: "Carros", slug: "carros", icon: "Car" },
+    { name: "Motos", slug: "motos", icon: "Motorcycle" },
     { name: "Tratores", slug: "tratores", icon: "Tractor" },
     { name: "Colheitadeiras", slug: "colheitadeiras", icon: "Combine" },
     {
@@ -545,6 +548,7 @@ async function main() {
       category: "classificados",
     },
   ];
+  
   for (const p of PERMISSIONS) {
     await db.insert(permissions).values(p).onConflictDoNothing();
   }
