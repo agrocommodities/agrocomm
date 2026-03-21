@@ -41,30 +41,70 @@ function formatDate(dateStr: string) {
   return `${day} ${months[Number(month)]} ${year}`;
 }
 
+/** Capitais dos estados brasileiros (para priorizar na amostragem) */
+const STATE_CAPITALS: Record<string, string> = {
+  AC: "Rio Branco",
+  AL: "Maceió",
+  AP: "Macapá",
+  AM: "Manaus",
+  BA: "Salvador",
+  CE: "Fortaleza",
+  DF: "Brasília",
+  ES: "Vitória",
+  GO: "Goiânia",
+  MA: "São Luís",
+  MT: "Cuiabá",
+  MS: "Campo Grande",
+  MG: "Belo Horizonte",
+  PA: "Belém",
+  PB: "João Pessoa",
+  PR: "Curitiba",
+  PE: "Recife",
+  PI: "Teresina",
+  RJ: "Rio de Janeiro",
+  RN: "Natal",
+  RS: "Porto Alegre",
+  RO: "Porto Velho",
+  RR: "Boa Vista",
+  SC: "Florianópolis",
+  SP: "São Paulo",
+  SE: "Aracaju",
+  TO: "Palmas",
+};
+
 /**
- * Amostra cotações: 1 cidade por produto por estado.
- * Usa hash simples baseado na data para variar a cidade selecionada diariamente.
+ * Amostra cotações: 1 cidade por estado (preferindo a capital).
+ * Mostra todos os produtos disponíveis para a cidade selecionada.
  */
 function sampleQuotes(rows: QuoteRow[]): QuoteRow[] {
-  const grouped = new Map<string, QuoteRow[]>();
+  // Agrupa cidades por estado
+  const citiesByState = new Map<string, Set<string>>();
   for (const row of rows) {
-    const key = `${row.productSlug}::${row.state}`;
-    const arr = grouped.get(key);
-    if (arr) arr.push(row);
-    else grouped.set(key, [row]);
+    const set = citiesByState.get(row.state);
+    if (set) set.add(row.city);
+    else citiesByState.set(row.state, new Set([row.city]));
   }
 
+  // Para cada estado, escolhe a capital ou uma cidade aleatória (hash do dia)
   const today = new Date().toISOString().slice(0, 10);
   let hash = 0;
   for (let i = 0; i < today.length; i++) {
     hash = (hash * 31 + today.charCodeAt(i)) | 0;
   }
 
-  const sampled: QuoteRow[] = [];
-  for (const [, cities] of grouped) {
-    const idx = Math.abs(hash) % cities.length;
-    sampled.push(cities[idx]);
+  const picked = new Map<string, string>(); // state → city
+  for (const [state, citySet] of citiesByState) {
+    const capital = STATE_CAPITALS[state];
+    if (capital && citySet.has(capital)) {
+      picked.set(state, capital);
+    } else {
+      const arr = [...citySet];
+      picked.set(state, arr[Math.abs(hash) % arr.length]);
+    }
   }
+
+  // Filtra apenas cotações da cidade selecionada por estado
+  const sampled = rows.filter((r) => picked.get(r.state) === r.city);
 
   sampled.sort(
     (a, b) =>

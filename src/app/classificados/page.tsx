@@ -253,7 +253,7 @@ export default async function ClassificadosPage({
               className="group bg-white/3 border border-white/10 rounded-2xl hover:border-green-500/30 transition-all duration-300"
             >
               {/* Image */}
-              <div className="aspect-[4/3] bg-white/5 rounded-t-2xl overflow-hidden">
+              <div className="aspect-4/3 bg-white/5 rounded-t-2xl overflow-hidden">
                 {item.images[0] ? (
                   // biome-ignore lint/performance/noImgElement: user uploaded images
                   <img

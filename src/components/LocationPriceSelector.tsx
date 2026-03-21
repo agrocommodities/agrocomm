@@ -292,7 +292,7 @@ export default function LocationPriceSelector({
           )}
 
           {/* Chart with range selector + stats */}
-          <section className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 sm:p-5">
+          <section className="bg-white/3 border border-white/10 rounded-2xl p-4 sm:p-5">
             <h2 className="font-semibold text-sm text-white/60 mb-4">
               Histórico de preços — {todayRow?.city ?? ""}/
               {todayRow?.state ?? selectedState}
@@ -318,7 +318,7 @@ export default function LocationPriceSelector({
 
       {/* Empty state when no city selected */}
       {!selectedCityId && selectedState && (
-        <div className="bg-white/[0.03] border border-white/10 border-dashed rounded-2xl px-5 py-10 text-center">
+        <div className="bg-white/3 border border-white/10 border-dashed rounded-2xl px-5 py-10 text-center">
           <MapPin className="w-8 h-8 text-white/20 mx-auto mb-3" />
           <p className="text-sm text-white/40">
             Selecione uma cidade para ver preços e gráficos detalhados

@@ -1,7 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { X, TrendingUp, TrendingDown } from "lucide-react";
+import { useState, useMemo, useTransition } from "react";
+import {
+  X,
+  TrendingUp,
+  TrendingDown,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+} from "lucide-react";
 import QuoteChart from "./QuoteChart";
 import { getCityHistoryByRange } from "@/actions/quotes";
 import type { QuoteRow, HistoryPoint } from "@/actions/quotes";
@@ -33,10 +40,61 @@ function VariationBadge({ value }: { value: number | null }) {
   );
 }
 
+type SortKey = "productName" | "state" | "city" | "price" | "variation";
+type SortDir = "asc" | "desc";
+
+function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
+  if (!active)
+    return <ChevronsUpDown className="w-3 h-3 inline ml-1 opacity-40" />;
+  return dir === "asc" ? (
+    <ChevronUp className="w-3 h-3 inline ml-1" />
+  ) : (
+    <ChevronDown className="w-3 h-3 inline ml-1" />
+  );
+}
+
 export default function CommoditiesTableClient({ quotes, title }: Props) {
   const [selected, setSelected] = useState<QuoteRow | null>(null);
   const [historyData, setHistoryData] = useState<HistoryPoint[]>([]);
   const [isPending, startTransition] = useTransition();
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
+
+  const sorted = useMemo(() => {
+    if (!sortKey) return quotes;
+    const arr = [...quotes];
+    arr.sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case "productName":
+          cmp = a.productName.localeCompare(b.productName);
+          break;
+        case "state":
+          cmp = a.state.localeCompare(b.state);
+          break;
+        case "city":
+          cmp = a.city.localeCompare(b.city);
+          break;
+        case "price":
+          cmp = a.price - b.price;
+          break;
+        case "variation":
+          cmp = (a.variation ?? -Infinity) - (b.variation ?? -Infinity);
+          break;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [quotes, sortKey, sortDir]);
 
   function handleRowClick(row: QuoteRow) {
     setSelected(row);
@@ -61,22 +119,35 @@ export default function CommoditiesTableClient({ quotes, title }: Props) {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-white/40 text-xs uppercase tracking-wide">
-                <th className="text-left px-5 py-3 font-medium">Produto</th>
-                <th className="text-left px-5 py-3 font-medium">Estado</th>
-                <th className="text-left px-5 py-3 font-medium">Cidade</th>
-                <th className="text-right px-5 py-3 font-medium">Preço</th>
-                <th className="text-right px-5 py-3 font-medium">Variação</th>
+                {(
+                  [
+                    ["productName", "Produto", "left"],
+                    ["state", "Estado", "left"],
+                    ["city", "Cidade", "left"],
+                    ["price", "Preço", "right"],
+                    ["variation", "Variação", "right"],
+                  ] as const
+                ).map(([key, label, align]) => (
+                  <th
+                    key={key}
+                    className={`text-${align} px-5 py-3 font-medium cursor-pointer select-none hover:text-white/60 transition-colors`}
+                    onClick={() => toggleSort(key)}
+                  >
+                    {label}
+                    <SortIcon active={sortKey === key} dir={sortDir} />
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {quotes.length === 0 ? (
+              {sorted.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="text-center py-10 text-white/30">
                     Sem cotações para hoje
                   </td>
                 </tr>
               ) : (
-                quotes.map((row) => (
+                sorted.map((row) => (
                   <tr
                     key={row.id}
                     tabIndex={0}

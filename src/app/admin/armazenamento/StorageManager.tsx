@@ -315,7 +315,7 @@ export default function StorageManager({ data }: { data: StorageData }) {
             </select>
           </div>
         </div>
-        <div className="overflow-x-auto max-h-[32rem] overflow-y-auto">
+        <div className="overflow-x-auto max-h-128 overflow-y-auto">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-[#2a3425]">
               <tr className="text-white/40 text-xs uppercase tracking-wide">

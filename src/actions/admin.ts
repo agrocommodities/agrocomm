@@ -700,9 +700,9 @@ async function collectFiles(
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         result.push(...(await collectFiles(full, base)));
-      } else if (entry.isFile()) {
+      } else if (entry.isFile() && entry.name !== ".gitkeep") {
         const s = await stat(full);
-        const rel = `/${path.relative(base, full)}`;
+        const rel = `/${path.relative(base, full).replaceAll("\\", "/")}`;
         result.push({ relativePath: rel, fullPath: full, size: s.size });
       }
     }

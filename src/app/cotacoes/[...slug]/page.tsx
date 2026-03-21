@@ -1,5 +1,5 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import {
   getProductQuotes,
   getStatesForProduct,
@@ -7,6 +7,7 @@ import {
 } from "@/actions/quotes";
 import LocationPriceSelector from "@/components/LocationPriceSelector";
 import ShareSidebar from "@/components/ShareSidebar";
+import ProductQuotesTable from "@/components/ProductQuotesTable";
 import Breadcrumb from "@/components/Breadcrumb";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
@@ -84,7 +85,7 @@ export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string[] }>;
-}) {
+}): Promise<Metadata> {
   const { slug } = await params;
   const parsed = parseSlug(slug);
   if (!parsed) return {};
@@ -204,87 +205,7 @@ export default async function ProdutoPage({
       )}
 
       {/* Today's table */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-white/10">
-          <h2 className="font-semibold text-base">
-            Cotações de hoje por praça
-          </h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-white/40 text-xs uppercase tracking-wide">
-                <th className="text-left px-5 py-3 font-medium">Estado</th>
-                <th className="text-left px-5 py-3 font-medium">Cidade</th>
-                <th className="text-right px-5 py-3 font-medium">Preço</th>
-                <th className="text-right px-5 py-3 font-medium">Variação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {today.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="text-center py-10 text-white/30">
-                    Sem cotações para hoje
-                  </td>
-                </tr>
-              ) : (
-                today.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-t border-white/5 hover:bg-white/5 transition-colors"
-                  >
-                    <td className="px-5 py-3 text-white/60">
-                      <Link
-                        href={`/cotacoes/${row.state.toLowerCase()}/${row.citySlug}/${produto}`}
-                        className="hover:text-green-400 transition-colors"
-                      >
-                        {row.state}
-                      </Link>
-                    </td>
-                    <td className="px-5 py-3 text-white/60">
-                      <Link
-                        href={`/cotacoes/${row.state.toLowerCase()}/${row.citySlug}/${produto}`}
-                        className="hover:text-green-400 transition-colors"
-                      >
-                        {row.city}
-                      </Link>
-                    </td>
-                    <td className="px-5 py-3 text-right font-semibold">
-                      <Link
-                        href={`/cotacoes/${row.state.toLowerCase()}/${row.citySlug}/${produto}`}
-                        className="hover:text-green-400 transition-colors"
-                      >
-                        R$ {row.price.toFixed(2)}
-                      </Link>
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <Link
-                        href={`/cotacoes/${row.state.toLowerCase()}/${row.citySlug}/${produto}`}
-                        className="hover:text-green-400 transition-colors"
-                      >
-                        {row.variation !== null ? (
-                          <span
-                            className={`inline-flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full ${
-                              row.variation >= 0
-                                ? "bg-green-500/20 text-green-400"
-                                : "bg-red-500/20 text-red-400"
-                            }`}
-                          >
-                            {row.variation >= 0 ? "+" : ""}
-                            {row.variation.toFixed(2)}%
-                          </span>
-                        ) : (
-                          <span className="text-white/30">—</span>
-                        )}
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <ProductQuotesTable rows={today} productSlug={produto} />
 
       {/* Share sidebar */}
       <ShareSidebar url={shareUrl} title={shareTitle} />
