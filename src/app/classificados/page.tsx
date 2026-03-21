@@ -12,6 +12,8 @@ import {
   Tag,
   ChevronLeft,
   ChevronRight,
+  Calendar,
+  Gauge,
 } from "lucide-react";
 import Breadcrumb from "@/components/Breadcrumb";
 import type { Metadata } from "next";
@@ -284,6 +286,22 @@ export default async function ClassificadosPage({
                 <p className="text-lg font-bold text-green-400 mb-2">
                   {formatPrice(item.price)}
                 </p>
+                {(item.year != null || item.mileage != null) && (
+                  <div className="flex items-center gap-3 text-xs text-white/40 mb-2">
+                    {item.year != null && (
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {item.year}
+                      </span>
+                    )}
+                    {item.mileage != null && (
+                      <span className="flex items-center gap-1">
+                        <Gauge className="w-3 h-3" />
+                        {item.mileage.toLocaleString("pt-BR")} km
+                      </span>
+                    )}
+                  </div>
+                )}
                 <div className="flex items-center gap-1 text-xs text-white/40">
                   <MapPin className="w-3 h-3" />
                   {item.cityName}, {item.stateCode}

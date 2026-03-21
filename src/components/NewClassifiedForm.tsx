@@ -4,6 +4,7 @@ import { useActionState, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClassified, getCitiesForState } from "@/actions/classifieds";
 import { ImagePlus, X } from "lucide-react";
+import MarkdownEditor from "@/components/MarkdownEditor";
 
 interface Category {
   id: number;
@@ -20,6 +21,21 @@ interface State {
 interface City {
   id: number;
   name: string;
+}
+
+const YEAR_AND_MILEAGE_SLUGS = ["carros", "caminhoes", "camionetes", "motos"];
+const YEAR_ONLY_SLUGS = [
+  "tratores",
+  "colheitadeiras",
+  "implementos-agricolas",
+  "maquinas",
+];
+
+function getCategorySlug(
+  categories: Category[],
+  categoryId: string,
+): string | undefined {
+  return categories.find((c) => String(c.id) === categoryId)?.slug;
 }
 
 const inputClass =
@@ -44,6 +60,7 @@ export default function NewClassifiedForm({
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [priceDisplay, setPriceDisplay] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [state, formAction, isPending] = useActionState(
     async (
@@ -63,6 +80,14 @@ export default function NewClassifiedForm({
     },
     null,
   );
+
+  const selectedSlug = getCategorySlug(categories, selectedCategoryId);
+  const showYear =
+    selectedSlug != null &&
+    (YEAR_AND_MILEAGE_SLUGS.includes(selectedSlug) ||
+      YEAR_ONLY_SLUGS.includes(selectedSlug));
+  const showMileage =
+    selectedSlug != null && YEAR_AND_MILEAGE_SLUGS.includes(selectedSlug);
 
   function handleStateChange(stateId: string) {
     if (!stateId) {
@@ -144,6 +169,8 @@ export default function NewClassifiedForm({
           name="categoryId"
           required
           className={inputClass}
+          value={selectedCategoryId}
+          onChange={(e) => setSelectedCategoryId(e.target.value)}
         >
           <option value="">Selecione...</option>
           {categories.map((c) => (
@@ -171,6 +198,46 @@ export default function NewClassifiedForm({
           className={inputClass}
         />
       </div>
+
+      {/* Year + Mileage (conditional) */}
+      {showYear && (
+        <div
+          className={`grid grid-cols-1 ${showMileage ? "sm:grid-cols-2" : ""} gap-4`}
+        >
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="year" className="text-xs text-white/60 font-medium">
+              Ano
+            </label>
+            <input
+              id="year"
+              name="year"
+              type="number"
+              min={1900}
+              max={new Date().getFullYear() + 1}
+              placeholder="Ex: 2020"
+              className={inputClass}
+            />
+          </div>
+          {showMileage && (
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="mileage"
+                className="text-xs text-white/60 font-medium"
+              >
+                Quilometragem (km)
+              </label>
+              <input
+                id="mileage"
+                name="mileage"
+                type="number"
+                min={0}
+                placeholder="Ex: 85000"
+                className={inputClass}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Location */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -227,14 +294,13 @@ export default function NewClassifiedForm({
         >
           Descrição *
         </label>
-        <textarea
+        <MarkdownEditor
           id="description"
           name="description"
           required
-          rows={5}
           maxLength={5000}
           placeholder="Descreva o produto, estado de conservação, ano, horas de uso, etc."
-          className={inputClass}
+          inputClassName={inputClass}
         />
       </div>
 

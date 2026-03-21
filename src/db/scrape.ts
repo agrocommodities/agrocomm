@@ -74,11 +74,43 @@ function norm(str: string): string {
     .trim();
 }
 
-/** Converte data brasileira "DD/MM/YYYY" → "YYYY-MM-DD" */
+/** Converte data brasileira "DD/MM/YYYY" ou "DD/MM" → "YYYY-MM-DD" */
 function parseBrazilianDate(text: string): string | undefined {
-  const m = text.match(/\b(\d{2})\/(\d{2})\/(\d{4})\b/);
+  // DD/MM/YYYY
+  const full = text.match(/\b(\d{2})\/(\d{2})\/(\d{4})\b/);
+  if (full) return `${full[3]}-${full[2]}-${full[1]}`;
+  // DD/MM (sem ano — assume ano corrente)
+  const short = text.match(/\b(\d{2})\/(\d{2})\b/);
+  if (short) {
+    const year = new Date().getFullYear();
+    return `${year}-${short[2]}-${short[1]}`;
+  }
+  return undefined;
+}
+
+const MONTH_NAMES: Record<string, string> = {
+  janeiro: "01",
+  fevereiro: "02",
+  "mar\u00e7o": "03",
+  marco: "03",
+  abril: "04",
+  maio: "05",
+  junho: "06",
+  julho: "07",
+  agosto: "08",
+  setembro: "09",
+  outubro: "10",
+  novembro: "11",
+  dezembro: "12",
+};
+
+/** Converte "13 de março de 2026" → "2026-03-13" */
+function parseBrazilianTextDate(text: string): string | undefined {
+  const m = text.toLowerCase().match(/(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/);
   if (!m) return undefined;
-  return `${m[3]}-${m[2]}-${m[1]}`;
+  const month = MONTH_NAMES[m[2]];
+  if (!month) return undefined;
+  return `${m[3]}-${month}-${m[1].padStart(2, "0")}`;
 }
 
 /** Extrai a data de uma tabela buscando nas células de cabeçalho e corpo */
@@ -89,7 +121,34 @@ function extractTableDate(
   for (const sel of ["caption", "thead th", "thead td", "tbody td"]) {
     let found: string | undefined;
     table.find(sel).each((_, el) => {
-      const d = parseBrazilianDate($(el).text());
+      const t = $(el).text();
+      const d = parseBrazilianDate(t) ?? parseBrazilianTextDate(t);
+      if (d) {
+        found = d;
+        return false;
+      }
+    });
+    if (found) return found;
+  }
+  return undefined;
+}
+
+/** Busca data na página fora da tabela (títulos, spans, parágrafos próximos) */
+function extractPageDate($: CheerioAPI): string | undefined {
+  for (const sel of [
+    "h1",
+    "h2",
+    "h3",
+    ".data",
+    ".date",
+    "time",
+    "span.data",
+    "p",
+  ]) {
+    let found: string | undefined;
+    $(sel).each((_, el) => {
+      const t = $(el).text();
+      const d = parseBrazilianDate(t) ?? parseBrazilianTextDate(t);
       if (d) {
         found = d;
         return false;
@@ -229,7 +288,8 @@ async function scrapeScotConsultoria(): Promise<RawQuote[]> {
     if (!targetTable) continue;
     const foundTable: Cheerio<DomElement> = targetTable;
 
-    const tableDate = extractTableDate($, foundTable);
+    // Extrai a data da tabela (busca em caption, th e td), com fallback na página
+    const tableDate = extractTableDate($, foundTable) ?? extractPageDate($);
 
     foundTable.find("tr.conteudo").each((_, tr) => {
       const cells = $(tr).find("td");
@@ -251,7 +311,11 @@ async function scrapeScotConsultoria(): Promise<RawQuote[]> {
         finalPrice = Math.round(price * 15 * 100) / 100;
       }
 
-      const rowDate = parseBrazilianDate($(tr).text()) ?? tableDate;
+      // Data pode vir em uma célula da própria linha; caso contrário usa a da tabela
+      const rowDate =
+        parseBrazilianDate($(tr).text()) ??
+        parseBrazilianTextDate($(tr).text()) ??
+        tableDate;
 
       results.push({
         productSlug,
@@ -581,7 +645,8 @@ async function scrapeNoticiasAgricolas(): Promise<RawQuote[]> {
     const firstTable = $("table.cot-fisicas").first();
     if (!firstTable.length) continue;
 
-    const tableDate = extractTableDate($, firstTable);
+    // Extrai a data da tabela (busca em caption, th e td), com fallback na página
+    const tableDate = extractTableDate($, firstTable) ?? extractPageDate($);
 
     firstTable.find("tbody tr").each((_, tr) => {
       const cells = $(tr).find("td");
@@ -629,7 +694,11 @@ async function scrapeNoticiasAgricolas(): Promise<RawQuote[]> {
         if (!Number.isNaN(parsed)) variation = parsed;
       }
 
-      const rowDate = parseBrazilianDate($(tr).text()) ?? tableDate;
+      // Data pode vir em uma célula da própria linha; caso contrário usa a da tabela
+      const rowDate =
+        parseBrazilianDate($(tr).text()) ??
+        parseBrazilianTextDate($(tr).text()) ??
+        tableDate;
 
       results.push({
         productSlug: page.productSlug,

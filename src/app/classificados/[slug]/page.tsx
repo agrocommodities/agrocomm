@@ -10,11 +10,14 @@ import {
   MessageCircle,
   TrendingUp,
   TrendingDown,
+  Calendar,
+  Gauge,
 } from "lucide-react";
 import Breadcrumb from "@/components/Breadcrumb";
 import ClassifiedGallery from "@/components/ClassifiedGallery";
 import ClassifiedComments from "@/components/ClassifiedComments";
 import ClassifiedOwnerActions from "@/components/ClassifiedOwnerActions";
+import MarkdownContent from "@/components/MarkdownContent";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -177,6 +180,24 @@ export default async function ClassifiedDetailPage({ params }: Props) {
             {item.cityName}, {item.stateName}
           </div>
 
+          {/* Year / Mileage */}
+          {(item.year != null || item.mileage != null) && (
+            <div className="flex flex-wrap items-center gap-4 text-sm text-white/60 mb-6">
+              {item.year != null && (
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-white/40" />
+                  Ano: {item.year}
+                </span>
+              )}
+              {item.mileage != null && (
+                <span className="flex items-center gap-1.5">
+                  <Gauge className="w-4 h-4 text-white/40" />
+                  {item.mileage.toLocaleString("pt-BR")} km
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Negotiate button */}
           <div className="mb-6">
             {session ? (
@@ -204,9 +225,10 @@ export default async function ClassifiedDetailPage({ params }: Props) {
             <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">
               Descrição
             </h2>
-            <p className="text-sm text-white/80 whitespace-pre-wrap leading-relaxed">
-              {item.description}
-            </p>
+            <MarkdownContent
+              content={item.description}
+              className="text-sm text-white/80 leading-relaxed markdown-preview"
+            />
           </div>
 
           {/* Seller info */}

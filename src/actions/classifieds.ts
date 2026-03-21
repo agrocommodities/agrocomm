@@ -28,6 +28,8 @@ export interface ClassifiedItem {
   description: string;
   price: number;
   previousPrice: number | null;
+  year: number | null;
+  mileage: number | null;
   status: string;
   createdAt: string;
   userName: string;
@@ -131,6 +133,8 @@ export async function getClassifieds(
       description: classifieds.description,
       price: classifieds.price,
       previousPrice: classifieds.previousPrice,
+      year: classifieds.year,
+      mileage: classifieds.mileage,
       status: classifieds.status,
       createdAt: classifieds.createdAt,
       userId: classifieds.userId,
@@ -202,6 +206,8 @@ export async function getClassifiedBySlug(
       description: classifieds.description,
       price: classifieds.price,
       previousPrice: classifieds.previousPrice,
+      year: classifieds.year,
+      mileage: classifieds.mileage,
       status: classifieds.status,
       createdAt: classifieds.createdAt,
       userId: classifieds.userId,
@@ -306,6 +312,12 @@ export async function createClassified(
 
   const slug = `${slugify(title)}-${randomUUID().slice(0, 8)}`;
 
+  // Parse optional year / mileage
+  const yearRaw = formData.get("year");
+  const year = yearRaw ? Number(yearRaw) : null;
+  const mileageRaw = formData.get("mileage");
+  const mileage = mileageRaw ? Number(mileageRaw) : null;
+
   // Moderate description
   const modResult = await moderateText(
     description,
@@ -322,6 +334,8 @@ export async function createClassified(
       slug,
       description: modResult.text,
       price,
+      year,
+      mileage,
       stateId,
       cityId,
       status: session.role === "admin" ? "approved" : "pending",
@@ -755,12 +769,20 @@ export async function editUserClassified(
     `classified:edit:${classifiedId}`,
   );
 
+  // Parse optional year / mileage
+  const yearRaw = formData.get("year");
+  const year = yearRaw ? Number(yearRaw) : null;
+  const mileageRaw = formData.get("mileage");
+  const mileage = mileageRaw ? Number(mileageRaw) : null;
+
   const updateData: Record<string, unknown> = {
     title,
     description: modResult.text,
     categoryId,
     stateId,
     cityId,
+    year,
+    mileage,
     updatedAt: new Date().toISOString(),
   };
 

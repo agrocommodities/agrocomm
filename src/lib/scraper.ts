@@ -314,7 +314,10 @@ async function scrapeScotConsultoria(): Promise<RawQuote[]> {
       }
 
       // Data pode vir em uma célula da própria linha; caso contrário usa a da tabela
-      const rowDate = parseBrazilianDate($(tr).text()) ?? tableDate;
+      const rowDate =
+        parseBrazilianDate($(tr).text()) ??
+        parseBrazilianTextDate($(tr).text()) ??
+        tableDate;
 
       results.push({
         productSlug,
@@ -508,7 +511,10 @@ async function scrapeNoticiasAgricolas(): Promise<RawQuote[]> {
       }
 
       // Data pode vir em uma célula da própria linha; caso contrário usa a da tabela
-      const rowDate = parseBrazilianDate($(tr).text()) ?? tableDate;
+      const rowDate =
+        parseBrazilianDate($(tr).text()) ??
+        parseBrazilianTextDate($(tr).text()) ??
+        tableDate;
 
       results.push({
         productSlug: page.productSlug,

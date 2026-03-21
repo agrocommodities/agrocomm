@@ -4,6 +4,7 @@ import { useActionState, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { editUserClassified, getCitiesForState } from "@/actions/classifieds";
 import { ImagePlus, X } from "lucide-react";
+import MarkdownEditor from "@/components/MarkdownEditor";
 
 interface Category {
   id: number;
@@ -36,7 +37,24 @@ interface ClassifiedData {
   categoryId: number;
   stateId: number;
   cityId: number;
+  year: number | null;
+  mileage: number | null;
   images: ExistingImage[];
+}
+
+const YEAR_AND_MILEAGE_SLUGS = ["carros", "caminhoes", "camionetes", "motos"];
+const YEAR_ONLY_SLUGS = [
+  "tratores",
+  "colheitadeiras",
+  "implementos-agricolas",
+  "maquinas",
+];
+
+function getCategorySlug(
+  categories: Category[],
+  categoryId: string,
+): string | undefined {
+  return categories.find((c) => String(c.id) === categoryId)?.slug;
 }
 
 const inputClass =
@@ -68,6 +86,9 @@ export default function EditClassifiedForm({
   const [removedIds, setRemovedIds] = useState<number[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [newPreviews, setNewPreviews] = useState<string[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(
+    String(classified.categoryId),
+  );
   const [priceDisplay, setPriceDisplay] = useState(
     classified.price.toLocaleString("pt-BR"),
   );
@@ -95,6 +116,14 @@ export default function EditClassifiedForm({
     },
     null,
   );
+
+  const selectedSlug = getCategorySlug(categories, selectedCategoryId);
+  const showYear =
+    selectedSlug != null &&
+    (YEAR_AND_MILEAGE_SLUGS.includes(selectedSlug) ||
+      YEAR_ONLY_SLUGS.includes(selectedSlug));
+  const showMileage =
+    selectedSlug != null && YEAR_AND_MILEAGE_SLUGS.includes(selectedSlug);
 
   function handleStateChange(stateId: string) {
     if (!stateId) {
@@ -182,6 +211,7 @@ export default function EditClassifiedForm({
           required
           defaultValue={classified.categoryId}
           className={inputClass}
+          onChange={(e) => setSelectedCategoryId(e.target.value)}
         >
           <option value="">Selecione...</option>
           {categories.map((c) => (
@@ -208,6 +238,48 @@ export default function EditClassifiedForm({
           className={inputClass}
         />
       </div>
+
+      {/* Year + Mileage (conditional) */}
+      {showYear && (
+        <div
+          className={`grid grid-cols-1 ${showMileage ? "sm:grid-cols-2" : ""} gap-4`}
+        >
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="year" className="text-xs text-white/60 font-medium">
+              Ano
+            </label>
+            <input
+              id="year"
+              name="year"
+              type="number"
+              min={1900}
+              max={new Date().getFullYear() + 1}
+              defaultValue={classified.year ?? undefined}
+              placeholder="Ex: 2020"
+              className={inputClass}
+            />
+          </div>
+          {showMileage && (
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="mileage"
+                className="text-xs text-white/60 font-medium"
+              >
+                Quilometragem (km)
+              </label>
+              <input
+                id="mileage"
+                name="mileage"
+                type="number"
+                min={0}
+                defaultValue={classified.mileage ?? undefined}
+                placeholder="Ex: 85000"
+                className={inputClass}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Location */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -266,14 +338,13 @@ export default function EditClassifiedForm({
         >
           Descrição *
         </label>
-        <textarea
+        <MarkdownEditor
           id="description"
           name="description"
           required
-          rows={5}
           maxLength={5000}
           defaultValue={classified.description}
-          className={inputClass}
+          inputClassName={inputClass}
         />
       </div>
 

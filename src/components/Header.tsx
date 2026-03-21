@@ -13,10 +13,10 @@ export default async function Header() {
   return (
     <header className="sticky z-50 top-0 bg-alt-background">
       {/* Top row: logo + user actions */}
-      <div className="flex items-center justify-between gap-2 sm:gap-4 px-2 md:px-0 py-3 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between gap-2 md:gap-6 px-2 md:px-0 py-3 max-w-7xl mx-auto">
         <Link
           href="/"
-          className="flex items-center gap-2 text-2xl md:text-3xl font-bold shrink-0"
+          className="flex items-center gap-2 text-2xl font-bold shrink-0"
         >
           <Image src="/images/logo.svg" alt="AgroComm" width={36} height={36} />
           AgroComm

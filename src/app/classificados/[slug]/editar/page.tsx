@@ -58,6 +58,8 @@ export default async function EditarClassificadoPage({ params }: Props) {
           categoryId: item.categoryId,
           stateId: item.stateId,
           cityId: item.cityId,
+          year: item.year,
+          mileage: item.mileage,
           images: item.images,
         }}
         categories={categories}

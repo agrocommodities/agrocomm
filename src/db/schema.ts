@@ -347,6 +347,8 @@ export const classifieds = sqliteTable("classifieds", {
   cityId: int("city_id")
     .notNull()
     .references(() => cities.id),
+  year: int(),
+  mileage: int(),
   status: text().notNull().default("pending"), // "pending" | "approved" | "rejected" | "blocked"
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
   updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
