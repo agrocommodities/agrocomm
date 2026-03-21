@@ -14,7 +14,7 @@
 
 html,
 body {
-  background: var(--background);
+  background: var(--alt-background);
   color: var(--foreground);
   color-scheme: dark;
   font-family: var(--font-nunito), Arial, Helvetica, sans-serif;
