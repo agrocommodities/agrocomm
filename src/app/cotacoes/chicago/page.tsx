@@ -5,9 +5,17 @@ import Breadcrumb from "@/components/Breadcrumb";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Bolsa de Chicago (CBOT) — AgroComm",
+  title: "Bolsa de Chicago (CBOT) — Cotações em Tempo Real",
   description:
-    "Acompanhe em tempo real as cotações das principais commodities agropecuárias na Bolsa de Chicago (CBOT/CME Group), com valores em dólar e real.",
+    "Acompanhe em tempo real as cotações das principais commodities agropecuárias na Bolsa de Chicago (CBOT/CME Group): soja, milho e boi gordo, com valores em dólar e real.",
+  openGraph: {
+    title: "Bolsa de Chicago (CBOT) — Cotações em Tempo Real",
+    description:
+      "Cotações em tempo real de commodities agropecuárias na CBOT: soja, milho e boi gordo.",
+  },
+  alternates: {
+    canonical: "https://agrocomm.com.br/cotacoes/chicago",
+  },
 };
 
 export default function ChicagoPage() {

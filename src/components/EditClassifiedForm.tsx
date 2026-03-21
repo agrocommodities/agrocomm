@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createClassified, getCitiesForState } from "@/actions/classifieds";
+import { editUserClassified, getCitiesForState } from "@/actions/classifieds";
 import { ImagePlus, X } from "lucide-react";
 
 interface Category {
@@ -22,6 +22,23 @@ interface City {
   name: string;
 }
 
+interface ExistingImage {
+  id: number;
+  url: string;
+  position: number;
+}
+
+interface ClassifiedData {
+  id: number;
+  title: string;
+  description: string;
+  price: number;
+  categoryId: number;
+  stateId: number;
+  cityId: number;
+  images: ExistingImage[];
+}
+
 const inputClass =
   "w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-400/50 transition";
 
@@ -31,31 +48,46 @@ function formatPrice(value: string): string {
   return Number(digits).toLocaleString("pt-BR");
 }
 
-export default function NewClassifiedForm({
+export default function EditClassifiedForm({
+  classified,
   categories,
   states,
+  initialCities,
 }: {
+  classified: ClassifiedData;
   categories: Category[];
   states: State[];
+  initialCities: City[];
 }) {
   const router = useRouter();
-  const [citiesList, setCities] = useState<City[]>([]);
+  const [citiesList, setCities] = useState<City[]>(initialCities);
   const [loadingCities, startCities] = useTransition();
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const [priceDisplay, setPriceDisplay] = useState("");
+  const [existingImages, setExistingImages] = useState<ExistingImage[]>(
+    classified.images,
+  );
+  const [removedIds, setRemovedIds] = useState<number[]>([]);
+  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [newPreviews, setNewPreviews] = useState<string[]>([]);
+  const [priceDisplay, setPriceDisplay] = useState(
+    classified.price.toLocaleString("pt-BR"),
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [state, formAction, isPending] = useActionState(
     async (
       prev: { error?: string; success?: boolean } | null,
       formData: FormData,
     ) => {
-      // Replace the native file input entries with our managed files
+      formData.set("classifiedId", String(classified.id));
+      // Replace native file input with managed files
       formData.delete("images");
-      for (const file of imageFiles) {
+      for (const file of newFiles) {
         formData.append("images", file);
       }
-      const result = await createClassified(prev, formData);
+      // Append removed image ids
+      for (const id of removedIds) {
+        formData.append("removedImageIds", String(id));
+      }
+      const result = await editUserClassified(prev, formData);
       if (result.success && result.slug) {
         router.push(`/classificados/${result.slug}`);
       }
@@ -75,25 +107,30 @@ export default function NewClassifiedForm({
     });
   }
 
+  const totalImages = existingImages.length + newFiles.length;
+
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    const newFiles = Array.from(files);
-    setImageFiles((prev) => {
-      const combined = [...prev, ...newFiles].slice(0, 6);
-      setPreviews(combined.map((f) => URL.createObjectURL(f)));
+    const added = Array.from(files);
+    setNewFiles((prev) => {
+      const combined = [...prev, ...added].slice(0, 6 - existingImages.length);
+      setNewPreviews(combined.map((f) => URL.createObjectURL(f)));
       return combined;
     });
-    // Reset file input so the same file can be re-selected
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  function removeImage(index: number) {
-    setImageFiles((prev) => {
+  function removeExistingImage(imgId: number) {
+    setExistingImages((prev) => prev.filter((img) => img.id !== imgId));
+    setRemovedIds((prev) => [...prev, imgId]);
+  }
+
+  function removeNewImage(index: number) {
+    setNewFiles((prev) => {
       const next = prev.filter((_, i) => i !== index);
-      // Revoke old preview URL
-      URL.revokeObjectURL(previews[index]);
-      setPreviews(next.map((f) => URL.createObjectURL(f)));
+      URL.revokeObjectURL(newPreviews[index]);
+      setNewPreviews(next.map((f) => URL.createObjectURL(f)));
       return next;
     });
   }
@@ -111,7 +148,7 @@ export default function NewClassifiedForm({
 
       {state?.success && (
         <div className="bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3 text-sm text-green-400">
-          Anúncio criado! Aguardando aprovação do administrador.
+          Anúncio atualizado com sucesso!
         </div>
       )}
 
@@ -126,7 +163,7 @@ export default function NewClassifiedForm({
           type="text"
           required
           maxLength={120}
-          placeholder="Ex: Trator John Deere 6110J 2020"
+          defaultValue={classified.title}
           className={inputClass}
         />
       </div>
@@ -143,6 +180,7 @@ export default function NewClassifiedForm({
           id="categoryId"
           name="categoryId"
           required
+          defaultValue={classified.categoryId}
           className={inputClass}
         >
           <option value="">Selecione...</option>
@@ -165,7 +203,6 @@ export default function NewClassifiedForm({
           type="text"
           inputMode="numeric"
           required
-          placeholder="Ex: 150.000"
           value={priceDisplay}
           onChange={(e) => setPriceDisplay(formatPrice(e.target.value))}
           className={inputClass}
@@ -185,6 +222,7 @@ export default function NewClassifiedForm({
             id="stateId"
             name="stateId"
             required
+            defaultValue={classified.stateId}
             className={inputClass}
             onChange={(e) => handleStateChange(e.target.value)}
           >
@@ -204,11 +242,12 @@ export default function NewClassifiedForm({
             id="cityId"
             name="cityId"
             required
+            defaultValue={classified.cityId}
             className={inputClass}
             disabled={loadingCities || citiesList.length === 0}
           >
             <option value="">
-              {loadingCities ? "Carregando..." : "Selecione o estado primeiro"}
+              {loadingCities ? "Carregando..." : "Selecione..."}
             </option>
             {citiesList.map((c) => (
               <option key={c.id} value={c.id}>
@@ -233,25 +272,79 @@ export default function NewClassifiedForm({
           required
           rows={5}
           maxLength={5000}
-          placeholder="Descreva o produto, estado de conservação, ano, horas de uso, etc."
+          defaultValue={classified.description}
           className={inputClass}
         />
       </div>
 
       {/* Images */}
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="images" className="text-xs text-white/60 font-medium">
-          Imagens (até 6, máx. 5MB cada) — {imageFiles.length}/6
-        </label>
-        {imageFiles.length < 6 && (
+        <span className="text-xs text-white/60 font-medium">
+          Imagens (até 6, máx. 5MB cada) — {totalImages}/6
+        </span>
+
+        {/* Existing images */}
+        {existingImages.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto">
+            {existingImages.map((img) => (
+              <div
+                key={img.id}
+                className="relative shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-white/10 group"
+              >
+                {/* biome-ignore lint/performance/noImgElement: preview */}
+                <img
+                  src={img.url}
+                  alt="Imagem do anúncio"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeExistingImage(img.id)}
+                  className="absolute top-0.5 right-0.5 bg-black/70 hover:bg-red-600 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-3.5 h-3.5 text-white" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* New image previews */}
+        {newPreviews.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto">
+            {newPreviews.map((url, i) => (
+              <div
+                key={newFiles[i]?.name ?? url}
+                className="relative shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-green-400/20 group"
+              >
+                {/* biome-ignore lint/performance/noImgElement: preview */}
+                <img
+                  src={url}
+                  alt={`Nova imagem ${i + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-green-600/80 text-[9px] text-center text-white py-0.5">
+                  Nova
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeNewImage(i)}
+                  className="absolute top-0.5 right-0.5 bg-black/70 hover:bg-red-600 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-3.5 h-3.5 text-white" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add more */}
+        {totalImages < 6 && (
           <label className="flex items-center justify-center gap-2 border-2 border-dashed border-white/20 rounded-xl py-6 cursor-pointer hover:border-green-400/40 transition">
             <ImagePlus className="w-5 h-5 text-white/40" />
-            <span className="text-sm text-white/40">
-              Clique para adicionar imagens
-            </span>
+            <span className="text-sm text-white/40">Adicionar imagens</span>
             <input
               ref={fileInputRef}
-              id="images"
               type="file"
               name="images"
               accept="image/*"
@@ -261,30 +354,6 @@ export default function NewClassifiedForm({
             />
           </label>
         )}
-        {previews.length > 0 && (
-          <div className="flex gap-2 mt-2 overflow-x-auto">
-            {previews.map((url, i) => (
-              <div
-                key={imageFiles[i]?.name ?? url}
-                className="relative shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-white/10 group"
-              >
-                {/* biome-ignore lint/performance/noImgElement: preview */}
-                <img
-                  src={url}
-                  alt={`Preview ${i + 1}`}
-                  className="w-full h-full object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeImage(i)}
-                  className="absolute top-0.5 right-0.5 bg-black/70 hover:bg-red-600 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X className="w-3.5 h-3.5 text-white" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Submit */}
@@ -293,12 +362,8 @@ export default function NewClassifiedForm({
         disabled={isPending}
         className="bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-semibold text-sm px-6 py-3 rounded-lg transition-colors"
       >
-        {isPending ? "Publicando..." : "Publicar Anúncio"}
+        {isPending ? "Salvando..." : "Salvar Alterações"}
       </button>
-
-      <p className="text-xs text-white/30 text-center">
-        Seu anúncio será revisado antes de ser publicado.
-      </p>
     </form>
   );
 }

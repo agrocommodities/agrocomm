@@ -19,9 +19,17 @@ import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Classificados — AgroComm",
+  title: "Classificados Agrícolas — Tratores, Máquinas e Implementos",
   description:
-    "Classificados de máquinas, tratores, caminhões, implementos agrícolas, gado e fazendas.",
+    "Classificados de máquinas agrícolas, tratores, caminhões, implementos, gado e fazendas. Compre e venda equipamentos para o agronegócio.",
+  openGraph: {
+    title: "Classificados Agrícolas — Tratores, Máquinas e Implementos",
+    description:
+      "Compre e venda tratores, máquinas agrícolas, implementos, gado e fazendas.",
+  },
+  alternates: {
+    canonical: "https://agrocomm.com.br/classificados",
+  },
 };
 
 function formatPrice(price: number) {
@@ -29,10 +37,14 @@ function formatPrice(price: number) {
 }
 
 function timeAgo(dateStr: string) {
+  const normalized = dateStr.includes("T")
+    ? dateStr
+    : `${dateStr.replace(" ", "T")}Z`;
   const now = Date.now();
-  const date = new Date(dateStr).getTime();
+  const date = new Date(normalized).getTime();
   const diff = now - date;
   const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "agora";
   if (minutes < 60) return `${minutes}min`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h`;

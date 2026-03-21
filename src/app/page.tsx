@@ -64,15 +64,60 @@ export default async function HomePage() {
   const graosDate = fmtDate(graos[0]?.quoteDate);
   const pecuariaDate = fmtDate(pecuaria[0]?.quoteDate);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "AgroComm",
+    alternateName: "AgroComm Commodities Agropecuárias",
+    url: "https://agrocomm.com.br",
+    description:
+      "Cotações atualizadas de commodities agrícolas e pecuárias: soja, milho, feijão, boi gordo, vaca gorda. Notícias do agronegócio e classificados agrícolas.",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: "https://agrocomm.com.br/noticias?q={search_term_string}",
+      },
+      "query-input": "required name=search_term_string",
+    },
+  };
+
+  const orgJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "AgroComm",
+    url: "https://agrocomm.com.br",
+    logo: "https://agrocomm.com.br/images/logo.svg",
+    sameAs: [],
+    description:
+      "Portal de cotações de commodities agropecuárias, notícias do agronegócio e classificados agrícolas.",
+  };
+
   return (
     <main className="max-w-7xl mx-auto px-4 py-10">
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+      />
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Main content */}
         <div className="flex-1 min-w-0 flex flex-col gap-10">
           {/* Hero */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold">Cotações do Dia</h1>
+              <h1 className="text-3xl font-bold">
+                Cotações de Commodities Agropecuárias
+              </h1>
+              <p className="text-sm text-white/50 mt-1">
+                Preços atualizados de soja, milho, feijão, boi gordo e vaca
+                gorda
+              </p>
             </div>
             <div className="flex gap-3">
               <Link

@@ -28,6 +28,14 @@ app.prepare().then(() => {
       socket.leave(`commodity:${commodity}`);
     });
 
+    socket.on("subscribe:classified", (classifiedId: number) => {
+      socket.join(`classified:${classifiedId}`);
+    });
+
+    socket.on("unsubscribe:classified", (classifiedId: number) => {
+      socket.leave(`classified:${classifiedId}`);
+    });
+
     socket.on("subscribe:notifications", () => {
       // User room is set via auth token in handshake
       const userId = socket.handshake.auth?.userId;

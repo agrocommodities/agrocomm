@@ -8,7 +8,7 @@ export default async function Header() {
   const session = await getSession();
 
   return (
-    <header className="sticky z-50 top-0 bg-alt-background border-b border-white/10">
+    <header className="sticky z-50 top-0 bg-alt-background">
       {/* Top row: logo + user actions */}
       <div className="flex items-center justify-between gap-2 sm:gap-4 px-4 py-3 max-w-7xl mx-auto">
         <Link

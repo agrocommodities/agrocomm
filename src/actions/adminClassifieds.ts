@@ -219,6 +219,7 @@ export async function deleteComment(id: number) {
       target: `comment:${id}`,
       originalText: comment.content,
     });
+    emitCommentEvent(comment.classifiedId, "comment:deleted", { id });
   }
 
   return { success: true };
@@ -388,6 +389,22 @@ function emitNotification(userId: number) {
     const io = globalThis.__agrocomm_io;
     if (io) {
       io.to(`user:${userId}`).emit("notification:new");
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function emitCommentEvent(
+  classifiedId: number,
+  event: string,
+  data: Record<string, unknown>,
+) {
+  try {
+    // @ts-expect-error global socket.io instance
+    const io = globalThis.__agrocomm_io;
+    if (io) {
+      io.to(`classified:${classifiedId}`).emit(event, data);
     }
   } catch {
     // ignore

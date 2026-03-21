@@ -1,10 +1,23 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getQuotesByCategory } from "@/actions/quotes";
 import CommoditiesTableClient from "@/components/CommoditiesTableClient";
 import Breadcrumb from "@/components/Breadcrumb";
 
 export const revalidate = 300;
-export const metadata = { title: "Grãos — AgroComm" };
+export const metadata: Metadata = {
+  title: "Cotações de Grãos — Soja, Milho e Feijão",
+  description:
+    "Cotações atualizadas de grãos: preço da soja, milho e feijão em R$/saca (60kg) por estado e cidade. Acompanhe a variação diária das commodities agrícolas.",
+  openGraph: {
+    title: "Cotações de Grãos — Soja, Milho e Feijão",
+    description:
+      "Preços atualizados de soja, milho e feijão em R$/saca por estado e cidade.",
+  },
+  alternates: {
+    canonical: "https://agrocomm.com.br/cotacoes/graos",
+  },
+};
 
 const PRODUCTS = [
   { slug: "soja", label: "Soja", emoji: "🟡" },

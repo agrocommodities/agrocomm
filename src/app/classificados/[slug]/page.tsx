@@ -2,10 +2,19 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getClassifiedBySlug } from "@/actions/classifieds";
 import { getSession } from "@/lib/auth";
-import { MapPin, Clock, Tag, ChevronLeft, MessageCircle } from "lucide-react";
+import {
+  MapPin,
+  Clock,
+  Tag,
+  ChevronLeft,
+  MessageCircle,
+  TrendingUp,
+  TrendingDown,
+} from "lucide-react";
 import Breadcrumb from "@/components/Breadcrumb";
 import ClassifiedGallery from "@/components/ClassifiedGallery";
 import ClassifiedComments from "@/components/ClassifiedComments";
+import ClassifiedOwnerActions from "@/components/ClassifiedOwnerActions";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -17,10 +26,18 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const item = await getClassifiedBySlug(slug);
-  if (!item) return { title: "Anúncio não encontrado — AgroComm" };
+  if (!item) return { title: "Anúncio não encontrado" };
   return {
-    title: `${item.title} — Classificados AgroComm`,
+    title: `${item.title} — Classificados`,
     description: item.description.slice(0, 160),
+    openGraph: {
+      title: item.title,
+      description: item.description.slice(0, 160),
+      type: "article",
+    },
+    alternates: {
+      canonical: `https://agrocomm.com.br/classificados/${slug}`,
+    },
   };
 }
 
@@ -29,7 +46,10 @@ function formatPrice(price: number) {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("pt-BR", {
+  const normalized = dateStr.includes("T")
+    ? dateStr
+    : `${dateStr.replace(" ", "T")}Z`;
+  return new Date(normalized).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "long",
     year: "numeric",
@@ -62,15 +82,30 @@ export default async function ClassifiedDetailPage({ params }: Props) {
           className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${
             item.status === "pending"
               ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
-              : item.status === "rejected"
-                ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                : "bg-red-500/10 text-red-400 border border-red-500/20"
+              : item.status === "paused"
+                ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                : item.status === "rejected"
+                  ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                  : "bg-red-500/10 text-red-400 border border-red-500/20"
           }`}
         >
           {item.status === "pending" &&
             "⏳ Aguardando aprovação do administrador"}
+          {item.status === "paused" &&
+            "⏸️ Anúncio pausado — não visível para outros usuários"}
           {item.status === "rejected" && "❌ Anúncio rejeitado"}
           {item.status === "blocked" && "🚫 Anúncio bloqueado"}
+        </div>
+      )}
+
+      {/* Owner actions */}
+      {session && session.userId === item.userId && (
+        <div className="mb-4">
+          <ClassifiedOwnerActions
+            classifiedId={item.id}
+            slug={item.slug}
+            status={item.status}
+          />
         </div>
       )}
 
@@ -99,9 +134,42 @@ export default async function ClassifiedDetailPage({ params }: Props) {
           <h1 className="text-xl sm:text-2xl font-bold mb-4">{item.title}</h1>
 
           {/* Price */}
-          <div className="text-2xl sm:text-3xl font-bold text-green-400 mb-4">
+          <div className="text-2xl sm:text-3xl font-bold text-green-400 mb-1">
             {formatPrice(item.price)}
           </div>
+          {item.previousPrice != null &&
+            item.previousPrice !== item.price &&
+            (() => {
+              const diff = item.price - item.previousPrice;
+              const pct = (diff / item.previousPrice) * 100;
+              const isUp = diff > 0;
+              return (
+                <div
+                  className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full mb-4 ${
+                    isUp
+                      ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                      : "bg-green-500/10 text-green-400 border border-green-500/20"
+                  }`}
+                >
+                  {isUp ? (
+                    <TrendingUp className="w-3.5 h-3.5" />
+                  ) : (
+                    <TrendingDown className="w-3.5 h-3.5" />
+                  )}
+                  <span>
+                    {isUp ? "Subiu" : "Desceu"} {formatPrice(Math.abs(diff))} (
+                    {isUp ? "+" : ""}
+                    {pct.toFixed(1)}%)
+                  </span>
+                  <span className="text-white/30">
+                    — antes: {formatPrice(item.previousPrice)}
+                  </span>
+                </div>
+              );
+            })()}
+          {!(
+            item.previousPrice != null && item.previousPrice !== item.price
+          ) && <div className="mb-4" />}
 
           {/* Location */}
           <div className="flex items-center gap-2 text-sm text-white/60 mb-6">
@@ -157,6 +225,7 @@ export default async function ClassifiedDetailPage({ params }: Props) {
           classifiedId={item.id}
           comments={item.comments}
           isLoggedIn={!!session}
+          currentUserId={session?.userId}
         />
       </div>
 

@@ -68,9 +68,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const article = await getNewsBySlug(slug);
-  if (!article) return { title: "Notícia não encontrada — AgroComm" };
+  if (!article) return { title: "Notícia não encontrada" };
   return {
-    title: `${article.title} — AgroComm`,
+    title: article.title,
     description: article.excerpt,
     openGraph: {
       title: article.title,
@@ -78,6 +78,9 @@ export async function generateMetadata({
       type: "article",
       publishedTime: article.publishedAt,
       ...(article.imageUrl ? { images: [{ url: article.imageUrl }] } : {}),
+    },
+    alternates: {
+      canonical: `https://agrocomm.com.br/noticias/${slug}`,
     },
   };
 }

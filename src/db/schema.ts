@@ -286,6 +286,7 @@ export const classifieds = sqliteTable("classifieds", {
   slug: text().notNull().unique(),
   description: text().notNull(),
   price: real().notNull(),
+  previousPrice: real("previous_price"), // preço anterior (para mostrar variação)
   stateId: int("state_id")
     .notNull()
     .references(() => states.id),
@@ -317,6 +318,7 @@ export const classifiedComments = sqliteTable("classified_comments", {
   content: text().notNull(),
   originalContent: text("original_content"), // before moderation
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at"),
 });
 
 // Relations

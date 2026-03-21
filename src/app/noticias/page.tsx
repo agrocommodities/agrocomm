@@ -8,9 +8,17 @@ import type { Metadata } from "next";
 export const revalidate = 600;
 
 export const metadata: Metadata = {
-  title: "Notícias Agropecuárias — AgroComm",
+  title: "Notícias Agropecuárias — Agronegócio, Grãos e Pecuária",
   description:
-    "Últimas notícias do agronegócio: pecuária, grãos, clima e mercado.",
+    "Últimas notícias do agronegócio brasileiro: pecuária, grãos, soja, milho, clima e mercado agrícola. Fique atualizado sobre o setor agropecuário.",
+  openGraph: {
+    title: "Notícias Agropecuárias",
+    description:
+      "Últimas notícias do agronegócio: pecuária, grãos, clima e mercado agrícola.",
+  },
+  alternates: {
+    canonical: "https://agrocomm.com.br/noticias",
+  },
 };
 
 const CATEGORIES = [

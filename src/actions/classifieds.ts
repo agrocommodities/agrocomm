@@ -15,7 +15,7 @@ import { eq, desc, and, like, inArray, count } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { moderateText } from "@/lib/moderation";
 import { logAction } from "@/lib/moderation";
-import { writeFile, mkdir } from "node:fs/promises";
+import { writeFile, mkdir, unlink, readdir, rmdir } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 
@@ -27,6 +27,7 @@ export interface ClassifiedItem {
   slug: string;
   description: string;
   price: number;
+  previousPrice: number | null;
   status: string;
   createdAt: string;
   userName: string;
@@ -41,12 +42,16 @@ export interface ClassifiedItem {
 }
 
 export interface ClassifiedDetail extends ClassifiedItem {
+  categoryId: number;
+  stateId: number;
+  cityId: number;
   comments: {
     id: number;
     content: string;
     userName: string;
     userId: number;
     createdAt: string;
+    updatedAt: string | null;
   }[];
 }
 
@@ -125,6 +130,7 @@ export async function getClassifieds(
       slug: classifieds.slug,
       description: classifieds.description,
       price: classifieds.price,
+      previousPrice: classifieds.previousPrice,
       status: classifieds.status,
       createdAt: classifieds.createdAt,
       userId: classifieds.userId,
@@ -195,14 +201,18 @@ export async function getClassifiedBySlug(
       slug: classifieds.slug,
       description: classifieds.description,
       price: classifieds.price,
+      previousPrice: classifieds.previousPrice,
       status: classifieds.status,
       createdAt: classifieds.createdAt,
       userId: classifieds.userId,
       userName: users.name,
+      categoryId: classifieds.categoryId,
       categoryName: classifiedCategories.name,
       categorySlug: classifiedCategories.slug,
+      stateId: classifieds.stateId,
       stateName: states.name,
       stateCode: states.code,
+      cityId: classifieds.cityId,
       cityName: cities.name,
     })
     .from(classifieds)
@@ -240,6 +250,7 @@ export async function getClassifiedBySlug(
       userName: users.name,
       userId: classifiedComments.userId,
       createdAt: classifiedComments.createdAt,
+      updatedAt: classifiedComments.updatedAt,
     })
     .from(classifiedComments)
     .innerJoin(users, eq(classifiedComments.userId, users.id))
@@ -287,7 +298,7 @@ export async function createClassified(
     return { error: "Descrição muito longa (máx. 5000 caracteres)." };
 
   const price = Number.parseFloat(
-    priceStr.replace(/[^\d.,]/g, "").replace(",", "."),
+    priceStr.replace(/\./g, "").replace(",", "."),
   );
   if (Number.isNaN(price) || price <= 0) return { error: "Valor inválido." };
 
@@ -404,12 +415,15 @@ export async function addComment(
     };
   }
 
-  await db.insert(classifiedComments).values({
-    classifiedId,
-    userId: session.userId,
-    content: modResult.text,
-    originalContent: modResult.moderated ? content : null,
-  });
+  const [inserted] = await db
+    .insert(classifiedComments)
+    .values({
+      classifiedId,
+      userId: session.userId,
+      content: modResult.text,
+      originalContent: modResult.moderated ? content : null,
+    })
+    .returning({ id: classifiedComments.id });
 
   // Notify if moderated
   if (modResult.shouldNotify) {
@@ -431,7 +445,424 @@ export async function addComment(
       : undefined,
   });
 
+  // Emit real-time update
+  emitCommentEvent(classifiedId, "comment:new", {
+    id: inserted.id,
+    content: modResult.text,
+    userName: session.name,
+    userId: session.userId,
+    createdAt: new Date().toISOString(),
+    updatedAt: null,
+  });
+
   return { success: true };
+}
+
+export async function editComment(
+  _prev: { error?: string; success?: boolean } | null,
+  formData: FormData,
+): Promise<{ error?: string; success?: boolean }> {
+  const session = await getSession();
+  if (!session) return { error: "Faça login para editar." };
+
+  const commentId = Number(formData.get("commentId"));
+  const content = String(formData.get("content") ?? "").trim();
+
+  if (!commentId || !content)
+    return { error: "Comentário não pode ser vazio." };
+  if (content.length > 2000)
+    return { error: "Comentário muito longo (máx. 2000 caracteres)." };
+
+  // Check comment exists and belongs to user
+  const [comment] = await db
+    .select({
+      id: classifiedComments.id,
+      userId: classifiedComments.userId,
+      classifiedId: classifiedComments.classifiedId,
+    })
+    .from(classifiedComments)
+    .where(eq(classifiedComments.id, commentId))
+    .limit(1);
+  if (!comment || comment.userId !== session.userId)
+    return { error: "Comentário não encontrado." };
+
+  // Moderate content
+  const modResult = await moderateText(
+    content,
+    session.userId,
+    `comment:edit:${commentId}`,
+  );
+
+  if (modResult.shouldDelete) {
+    return {
+      error: "Comentário contém informações não permitidas.",
+    };
+  }
+
+  const now = new Date().toISOString();
+  await db
+    .update(classifiedComments)
+    .set({
+      content: modResult.text,
+      originalContent: modResult.moderated ? content : undefined,
+      updatedAt: now,
+    })
+    .where(eq(classifiedComments.id, commentId));
+
+  await logAction("comment_edited", {
+    userId: session.userId,
+    target: `comment:${commentId}`,
+  });
+
+  emitCommentEvent(comment.classifiedId, "comment:updated", {
+    id: commentId,
+    content: modResult.text,
+    userName: session.name,
+    userId: session.userId,
+    createdAt: "", // client already has this
+    updatedAt: now,
+  });
+
+  return { success: true };
+}
+
+export async function deleteUserComment(
+  commentId: number,
+): Promise<{ error?: string; success?: boolean }> {
+  const session = await getSession();
+  if (!session) return { error: "Faça login." };
+
+  const [comment] = await db
+    .select({
+      id: classifiedComments.id,
+      userId: classifiedComments.userId,
+      classifiedId: classifiedComments.classifiedId,
+    })
+    .from(classifiedComments)
+    .where(eq(classifiedComments.id, commentId))
+    .limit(1);
+  if (!comment || comment.userId !== session.userId)
+    return { error: "Comentário não encontrado." };
+
+  await db
+    .delete(classifiedComments)
+    .where(eq(classifiedComments.id, commentId));
+
+  await logAction("comment_deleted_by_user", {
+    userId: session.userId,
+    target: `comment:${commentId}`,
+  });
+
+  emitCommentEvent(comment.classifiedId, "comment:deleted", {
+    id: commentId,
+  });
+
+  return { success: true };
+}
+
+export async function updateClassifiedPrice(
+  classifiedId: number,
+  newPrice: number,
+): Promise<{ error?: string; success?: boolean }> {
+  const session = await getSession();
+  if (!session) return { error: "Faça login." };
+
+  if (!Number.isFinite(newPrice) || newPrice <= 0)
+    return { error: "Valor inválido." };
+
+  const [cl] = await db
+    .select({
+      id: classifieds.id,
+      userId: classifieds.userId,
+      price: classifieds.price,
+    })
+    .from(classifieds)
+    .where(eq(classifieds.id, classifiedId))
+    .limit(1);
+  if (!cl || cl.userId !== session.userId)
+    return { error: "Anúncio não encontrado." };
+
+  await db
+    .update(classifieds)
+    .set({
+      previousPrice: cl.price,
+      price: newPrice,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(classifieds.id, classifiedId));
+
+  await logAction("classified_price_updated", {
+    userId: session.userId,
+    target: `classified:${classifiedId}`,
+    details: JSON.stringify({ oldPrice: cl.price, newPrice }),
+  });
+
+  return { success: true };
+}
+
+// ── User classified management ────────────────────────────────────────────────
+
+export async function deleteUserClassified(
+  classifiedId: number,
+): Promise<{ error?: string; success?: boolean }> {
+  const session = await getSession();
+  if (!session) return { error: "Faça login." };
+
+  const [cl] = await db
+    .select({
+      id: classifieds.id,
+      userId: classifieds.userId,
+      title: classifieds.title,
+    })
+    .from(classifieds)
+    .where(eq(classifieds.id, classifiedId))
+    .limit(1);
+  if (!cl || cl.userId !== session.userId)
+    return { error: "Anúncio não encontrado." };
+
+  // Delete images from db (files cascade-cleaned or kept as orphan is acceptable)
+  await db
+    .delete(classifiedImages)
+    .where(eq(classifiedImages.classifiedId, classifiedId));
+  await db
+    .delete(classifiedComments)
+    .where(eq(classifiedComments.classifiedId, classifiedId));
+  await db.delete(classifieds).where(eq(classifieds.id, classifiedId));
+
+  // Try to remove image directory
+  try {
+    const dir = join(
+      process.cwd(),
+      "public",
+      "images",
+      "classifieds",
+      String(classifiedId),
+    );
+    const entries = await readdir(dir);
+    for (const entry of entries) {
+      await unlink(join(dir, entry));
+    }
+    await rmdir(dir);
+  } catch {
+    // directory may not exist
+  }
+
+  await logAction("classified_deleted_by_user", {
+    userId: session.userId,
+    target: `classified:${classifiedId}`,
+    details: JSON.stringify({ title: cl.title }),
+  });
+
+  return { success: true };
+}
+
+export async function pauseUserClassified(
+  classifiedId: number,
+): Promise<{ error?: string; success?: boolean }> {
+  const session = await getSession();
+  if (!session) return { error: "Faça login." };
+
+  const [cl] = await db
+    .select({
+      id: classifieds.id,
+      userId: classifieds.userId,
+      status: classifieds.status,
+    })
+    .from(classifieds)
+    .where(eq(classifieds.id, classifiedId))
+    .limit(1);
+  if (!cl || cl.userId !== session.userId)
+    return { error: "Anúncio não encontrado." };
+
+  if (cl.status !== "approved" && cl.status !== "paused")
+    return { error: "Não é possível pausar este anúncio." };
+
+  const newStatus = cl.status === "paused" ? "approved" : "paused";
+
+  await db
+    .update(classifieds)
+    .set({ status: newStatus, updatedAt: new Date().toISOString() })
+    .where(eq(classifieds.id, classifiedId));
+
+  await logAction(
+    newStatus === "paused" ? "classified_paused" : "classified_unpaused",
+    {
+      userId: session.userId,
+      target: `classified:${classifiedId}`,
+    },
+  );
+
+  return { success: true };
+}
+
+export async function editUserClassified(
+  _prev: { error?: string; success?: boolean } | null,
+  formData: FormData,
+): Promise<{ error?: string; success?: boolean; slug?: string }> {
+  const session = await getSession();
+  if (!session) return { error: "Faça login." };
+
+  const classifiedId = Number(formData.get("classifiedId"));
+  if (!classifiedId) return { error: "Anúncio inválido." };
+
+  const [cl] = await db
+    .select({
+      id: classifieds.id,
+      userId: classifieds.userId,
+      slug: classifieds.slug,
+      price: classifieds.price,
+    })
+    .from(classifieds)
+    .where(eq(classifieds.id, classifiedId))
+    .limit(1);
+  if (!cl || cl.userId !== session.userId)
+    return { error: "Anúncio não encontrado." };
+
+  const title = String(formData.get("title") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const priceStr = String(formData.get("price") ?? "").trim();
+  const categoryId = Number(formData.get("categoryId"));
+  const stateId = Number(formData.get("stateId"));
+  const cityId = Number(formData.get("cityId"));
+
+  if (
+    !title ||
+    !description ||
+    !priceStr ||
+    !categoryId ||
+    !stateId ||
+    !cityId
+  ) {
+    return { error: "Preencha todos os campos obrigatórios." };
+  }
+
+  if (title.length > 120)
+    return { error: "Título muito longo (máx. 120 caracteres)." };
+  if (description.length > 5000)
+    return { error: "Descrição muito longa (máx. 5000 caracteres)." };
+
+  const price = Number.parseFloat(
+    priceStr.replace(/\./g, "").replace(",", "."),
+  );
+  if (Number.isNaN(price) || price <= 0) return { error: "Valor inválido." };
+
+  // Moderate description
+  const modResult = await moderateText(
+    description,
+    session.userId,
+    `classified:edit:${classifiedId}`,
+  );
+
+  const updateData: Record<string, unknown> = {
+    title,
+    description: modResult.text,
+    categoryId,
+    stateId,
+    cityId,
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Track price change
+  if (price !== cl.price) {
+    updateData.previousPrice = cl.price;
+    updateData.price = price;
+  }
+
+  await db
+    .update(classifieds)
+    .set(updateData)
+    .where(eq(classifieds.id, classifiedId));
+
+  // Handle removed images
+  const removedImageIds = formData.getAll("removedImageIds");
+  for (const idStr of removedImageIds) {
+    const imgId = Number(idStr);
+    if (!imgId) continue;
+    const [img] = await db
+      .select({
+        id: classifiedImages.id,
+        url: classifiedImages.url,
+        classifiedId: classifiedImages.classifiedId,
+      })
+      .from(classifiedImages)
+      .where(eq(classifiedImages.id, imgId))
+      .limit(1);
+    if (img && img.classifiedId === classifiedId) {
+      await db.delete(classifiedImages).where(eq(classifiedImages.id, imgId));
+      try {
+        await unlink(join(process.cwd(), "public", img.url));
+      } catch {
+        // file may not exist
+      }
+    }
+  }
+
+  // Handle new image uploads
+  const existingImages = await db
+    .select({ id: classifiedImages.id })
+    .from(classifiedImages)
+    .where(eq(classifiedImages.classifiedId, classifiedId));
+
+  let position = existingImages.length;
+  const files = formData.getAll("images");
+  for (const file of files) {
+    if (!(file instanceof File) || file.size === 0) continue;
+    if (position >= 6) break;
+    if (file.size > 5 * 1024 * 1024) continue;
+    if (!file.type.startsWith("image/")) continue;
+
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const filename = `${randomUUID()}.${ext}`;
+    const dir = join(
+      process.cwd(),
+      "public",
+      "images",
+      "classifieds",
+      String(classifiedId),
+    );
+    await mkdir(dir, { recursive: true });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(join(dir, filename), buffer);
+
+    await db.insert(classifiedImages).values({
+      classifiedId,
+      url: `/images/classifieds/${classifiedId}/${filename}`,
+      position: position++,
+    });
+  }
+
+  await logAction("classified_edited_by_user", {
+    userId: session.userId,
+    target: `classified:${classifiedId}`,
+    details: JSON.stringify({ title, price }),
+  });
+
+  return { success: true, slug: cl.slug };
+}
+
+export async function getUserClassifieds() {
+  const session = await getSession();
+  if (!session) return [];
+
+  const rows = await db
+    .select({
+      id: classifieds.id,
+      title: classifieds.title,
+      slug: classifieds.slug,
+      price: classifieds.price,
+      status: classifieds.status,
+      createdAt: classifieds.createdAt,
+      categoryName: classifiedCategories.name,
+    })
+    .from(classifieds)
+    .innerJoin(
+      classifiedCategories,
+      eq(classifieds.categoryId, classifiedCategories.id),
+    )
+    .where(eq(classifieds.userId, session.userId))
+    .orderBy(desc(classifieds.createdAt));
+
+  return rows;
 }
 
 export async function getStatesForClassifieds() {
@@ -506,6 +937,22 @@ function emitNotification(userId: number) {
     const io = globalThis.__agrocomm_io;
     if (io) {
       io.to(`user:${userId}`).emit("notification:new");
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function emitCommentEvent(
+  classifiedId: number,
+  event: string,
+  data: Record<string, unknown>,
+) {
+  try {
+    // @ts-expect-error global socket.io instance
+    const io = globalThis.__agrocomm_io;
+    if (io) {
+      io.to(`classified:${classifiedId}`).emit(event, data);
     }
   } catch {
     // ignore

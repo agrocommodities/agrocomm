@@ -1,10 +1,23 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getQuotesByCategory } from "@/actions/quotes";
 import CommoditiesTableClient from "@/components/CommoditiesTableClient";
 import Breadcrumb from "@/components/Breadcrumb";
 
 export const revalidate = 300;
-export const metadata = { title: "Pecuária — AgroComm" };
+export const metadata: Metadata = {
+  title: "Cotações de Pecuária — Boi Gordo e Vaca Gorda",
+  description:
+    "Cotações atualizadas de pecuária: preço do boi gordo e vaca gorda em R$/arroba por estado e cidade. Acompanhe a variação diária do mercado pecuário brasileiro.",
+  openGraph: {
+    title: "Cotações de Pecuária — Boi Gordo e Vaca Gorda",
+    description:
+      "Preços atualizados de boi gordo e vaca gorda em R$/arroba por estado e cidade.",
+  },
+  alternates: {
+    canonical: "https://agrocomm.com.br/cotacoes/pecuaria",
+  },
+};
 
 const PRODUCTS = [
   { slug: "boi-gordo", label: "Boi Gordo", emoji: "🐂" },

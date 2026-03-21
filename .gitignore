@@ -48,3 +48,7 @@ drizzle/**
 # news
 public/images/posts/**
 !public/images/posts/.gitkeep
+
+# classifieds
+public/images/classifieds/**
+!public/images/classifieds/.gitkeep

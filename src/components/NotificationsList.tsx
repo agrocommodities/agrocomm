@@ -67,10 +67,14 @@ export default function NotificationsList({
   const unreadCount = notifications.filter((n) => n.read === 0).length;
 
   function timeAgo(dateStr: string) {
+    const normalized = dateStr.includes("T")
+      ? dateStr
+      : `${dateStr.replace(" ", "T")}Z`;
     const now = Date.now();
-    const date = new Date(dateStr).getTime();
+    const date = new Date(normalized).getTime();
     const diff = now - date;
     const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return "agora";
     if (minutes < 60) return `${minutes}min atrás`;
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}h atrás`;
