@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getTodayQuotes } from "@/actions/quotes";
+import { getTodayQuotes, type QuoteRow } from "@/actions/quotes";
 import { getLatestNews } from "@/actions/news";
 import CommoditiesTableClient from "@/components/CommoditiesTableClient";
 import CommoditySidebar from "@/components/CommoditySidebar";
@@ -41,14 +41,49 @@ function formatDate(dateStr: string) {
   return `${day} ${months[Number(month)]} ${year}`;
 }
 
+/**
+ * Amostra cotações: 1 cidade por produto por estado.
+ * Usa hash simples baseado na data para variar a cidade selecionada diariamente.
+ */
+function sampleQuotes(rows: QuoteRow[]): QuoteRow[] {
+  const grouped = new Map<string, QuoteRow[]>();
+  for (const row of rows) {
+    const key = `${row.productSlug}::${row.state}`;
+    const arr = grouped.get(key);
+    if (arr) arr.push(row);
+    else grouped.set(key, [row]);
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  let hash = 0;
+  for (let i = 0; i < today.length; i++) {
+    hash = (hash * 31 + today.charCodeAt(i)) | 0;
+  }
+
+  const sampled: QuoteRow[] = [];
+  for (const [, cities] of grouped) {
+    const idx = Math.abs(hash) % cities.length;
+    sampled.push(cities[idx]);
+  }
+
+  sampled.sort(
+    (a, b) =>
+      a.productName.localeCompare(b.productName) ||
+      a.state.localeCompare(b.state),
+  );
+  return sampled;
+}
+
 export default async function HomePage() {
   const [allQuotes, news] = await Promise.all([
     getTodayQuotes(),
     getLatestNews(6),
   ]);
 
-  const pecuaria = allQuotes.filter((q) => q.category === "pecuaria");
-  const graos = allQuotes.filter((q) => q.category === "graos");
+  const pecuaria = sampleQuotes(
+    allQuotes.filter((q) => q.category === "pecuaria"),
+  );
+  const graos = sampleQuotes(allQuotes.filter((q) => q.category === "graos"));
 
   // Formata a data real de cada categoria
   function fmtDate(dateStr: string | undefined) {

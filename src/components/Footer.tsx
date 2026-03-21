@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="sticky z-50 bottom-0 bg-alt-background text-sm">
+    <footer className="bg-alt-background text-sm">
       <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-2">
         <p className="text-white/50">
           &copy; {new Date().getFullYear()} AgroComm

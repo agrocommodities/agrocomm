@@ -49,9 +49,11 @@ function safeRemoveItem(key: string): void {
 }
 
 const selectClass =
-  "w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm " +
+  "w-full bg-[#2a3925] border border-white/20 rounded-xl px-4 py-3 text-sm " +
   "focus:outline-none focus:ring-2 focus:ring-green-400/50 transition appearance-none " +
   "text-white placeholder-white/40 cursor-pointer";
+
+const optionClass = "bg-[#2a3925] text-white";
 
 export default function LocationPriceSelector({
   todayQuotes,
@@ -206,9 +208,11 @@ export default function LocationPriceSelector({
               className={selectClass}
               aria-label="Selecionar estado"
             >
-              <option value="">Estado</option>
+              <option value="" className={optionClass}>
+                Estado
+              </option>
               {allStates.map((s) => (
-                <option key={s.code} value={s.code}>
+                <option key={s.code} value={s.code} className={optionClass}>
                   {s.code} — {s.name}
                 </option>
               ))}
@@ -224,9 +228,11 @@ export default function LocationPriceSelector({
               className={`${selectClass} disabled:opacity-40`}
               aria-label="Selecionar cidade"
             >
-              <option value="">Cidade</option>
+              <option value="" className={optionClass}>
+                Cidade
+              </option>
               {availableCities.map((c) => (
-                <option key={c.id} value={c.id}>
+                <option key={c.id} value={c.id} className={optionClass}>
                   {c.name}
                 </option>
               ))}

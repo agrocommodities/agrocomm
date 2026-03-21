@@ -998,7 +998,7 @@ async function downloadImage(
 
     const [year, month] = publishedAt.split("-");
     const uuid = randomUUID();
-    const dir = join(process.cwd(), "public", "posts", year, month);
+    const dir = join(process.cwd(), "public", "images", "posts", year, month);
     await mkdir(dir, { recursive: true });
 
     const fileName = `${uuid}${ext}`;
@@ -1020,7 +1020,7 @@ async function downloadImage(
       await writeFile(filePath, buffer);
     }
 
-    return `/posts/${year}/${month}/${fileName}`;
+    return `/images/posts/${year}/${month}/${fileName}`;
   } catch (err) {
     console.error(
       "[news] Erro ao baixar imagem:",

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "PORT=3000 tsx src/server.ts",
+    "dev": "tsx src/server.ts",
     "build": "next build",
     "start": "NODE_ENV=production tsx src/server.ts",
     "push": "drizzle-kit push",
@@ -32,7 +32,7 @@
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.0",
+    "@biomejs/biome": "2.4.7",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/nodemailer": "^7.0.11",
