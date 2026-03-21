@@ -46,9 +46,9 @@ select option {
   animation: slide-up 0.3s ease-out;
 }
 
-footer::after {
+/* footer::after {
   content: "";
   display: block;
   height: 100px;
   background: var(--alt-background);
-}
+} */

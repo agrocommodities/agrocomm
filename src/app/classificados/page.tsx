@@ -210,7 +210,7 @@ export default async function ClassificadosPage({
       )}
 
       {/* Categories quick access */}
-      <div className="flex overflow-x-auto gap-2 pb-2 mb-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex overflow-x-auto md:overflow-x-scroll gap-2 pb-2 mb-6">
         <Link
           href="/classificados"
           className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition ${

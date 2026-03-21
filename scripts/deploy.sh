@@ -10,13 +10,12 @@ PROJECT_DIR=/var/www/$NAME
 cp -a "$PROJECT_DIR" "$TEMP_DIR"
 cd "$TEMP_DIR" || exit 1
 
-#git clean -fxd -e .env -e drizzle/agrocomm.db -e public/images/posts
-git clean -fxd -e .env
+git clean -fxd -e .env -e drizzle/agrocomm.db -e public/images/posts -e public/images/avatars -e public/images/classifieds
 cp -f .env .env.production
 
 pnpm install
 
-pnpm tsx scripts/create-reset-table.ts || exit 1
+#pnpm tsx scripts/create-reset-table.ts || exit 1
 
 if pnpm run push; then
   pnpm run seed

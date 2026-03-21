@@ -1,4 +1,6 @@
 import "dotenv/config";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { drizzle } from "drizzle-orm/libsql";
 import { eq, sql } from "drizzle-orm";
 import { hashPassword } from "../lib/password";
@@ -18,6 +20,40 @@ import {
 
 const db = drizzle(process.env.DB_FILE_NAME!);
 
+// ── Load states and cities from JSON ──────────────────────────────────────────
+
+interface EstadoJSON {
+  id: number;
+  name: string;
+  iso2: string;
+}
+
+interface CidadeJSON {
+  id: number;
+  name: string;
+  state_id: number;
+  state_code: string;
+}
+
+const jsonDir = resolve(import.meta.dirname, "../../json");
+
+const estadosJSON: EstadoJSON[] = JSON.parse(
+  readFileSync(resolve(jsonDir, "estados.json"), "utf-8"),
+);
+
+const cidadesJSON: CidadeJSON[] = JSON.parse(
+  readFileSync(resolve(jsonDir, "cidades.json"), "utf-8"),
+);
+
+function slugify(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 const PRODUCTS = [
   {
     slug: "boi-gordo",
@@ -36,227 +72,16 @@ const PRODUCTS = [
   { slug: "feijao", name: "Feijão", category: "graos", unit: "R$/saca 60kg" },
 ];
 
-const STATES = [
-  { code: "AC", name: "Acre" },
-  { code: "AL", name: "Alagoas" },
-  { code: "AM", name: "Amazonas" },
-  { code: "AP", name: "Amapá" },
-  { code: "BA", name: "Bahia" },
-  { code: "CE", name: "Ceará" },
-  { code: "DF", name: "Distrito Federal" },
-  { code: "ES", name: "Espírito Santo" },
-  { code: "GO", name: "Goiás" },
-  { code: "MA", name: "Maranhão" },
-  { code: "MG", name: "Minas Gerais" },
-  { code: "MS", name: "Mato Grosso do Sul" },
-  { code: "MT", name: "Mato Grosso" },
-  { code: "PA", name: "Pará" },
-  { code: "PB", name: "Paraíba" },
-  { code: "PE", name: "Pernambuco" },
-  { code: "PI", name: "Piauí" },
-  { code: "PR", name: "Paraná" },
-  { code: "RJ", name: "Rio de Janeiro" },
-  { code: "RN", name: "Rio Grande do Norte" },
-  { code: "RO", name: "Rondônia" },
-  { code: "RR", name: "Roraima" },
-  { code: "RS", name: "Rio Grande do Sul" },
-  { code: "SC", name: "Santa Catarina" },
-  { code: "SE", name: "Sergipe" },
-  { code: "SP", name: "São Paulo" },
-  { code: "TO", name: "Tocantins" },
-];
+const STATES = estadosJSON.map((e) => ({
+  code: e.iso2,
+  name: e.name,
+}));
 
-// Cities: [stateCode, cityName, slug]
-const CITIES: [string, string, string][] = [
-  // Acre
-  ["AC", "Rio Branco", "rio-branco"],
-  ["AC", "Cruzeiro do Sul", "cruzeiro-do-sul"],
-  ["AC", "Sena Madureira", "sena-madureira"],
-  ["AC", "Tarauacá", "tarauaca"],
-  // Alagoas
-  ["AL", "Maceió", "maceio"],
-  ["AL", "Arapiraca", "arapiraca"],
-  ["AL", "Palmeira dos Índios", "palmeira-dos-indios"],
-  ["AL", "Rio Largo", "rio-largo"],
-  // Amazonas
-  ["AM", "Manaus", "manaus"],
-  ["AM", "Parintins", "parintins"],
-  ["AM", "Itacoatiara", "itacoatiara"],
-  ["AM", "Manacapuru", "manacapuru"],
-  ["AM", "Tefé", "tefe"],
-  // Amapá
-  ["AP", "Macapá", "macapa"],
-  ["AP", "Santana", "santana-ap"],
-  ["AP", "Laranjal do Jari", "laranjal-do-jari"],
-  // Bahia
-  ["BA", "Salvador", "salvador"],
-  ["BA", "Feira de Santana", "feira-de-santana"],
-  ["BA", "Vitória da Conquista", "vitoria-da-conquista"],
-  ["BA", "Barreiras", "barreiras"],
-  ["BA", "Luís Eduardo Magalhães", "luis-eduardo-magalhaes"],
-  ["BA", "Itapetinga", "itapetinga"],
-  ["BA", "Ilhéus", "ilheus"],
-  ["BA", "Juazeiro", "juazeiro-ba"],
-  // Ceará
-  ["CE", "Fortaleza", "fortaleza"],
-  ["CE", "Juazeiro do Norte", "juazeiro-do-norte"],
-  ["CE", "Sobral", "sobral"],
-  ["CE", "Maracanaú", "maracanau"],
-  ["CE", "Crato", "crato"],
-  ["CE", "Quixadá", "quixada"],
-  // Distrito Federal
-  ["DF", "Brasília", "brasilia"],
-  // Espírito Santo
-  ["ES", "Vitória", "vitoria"],
-  ["ES", "Vila Velha", "vila-velha"],
-  ["ES", "Serra", "serra-es"],
-  ["ES", "Linhares", "linhares"],
-  ["ES", "Colatina", "colatina"],
-  // Goiás
-  ["GO", "Goiânia", "goiania"],
-  ["GO", "Aparecida de Goiânia", "aparecida-de-goiania"],
-  ["GO", "Anápolis", "anapolis"],
-  ["GO", "Rio Verde", "rio-verde"],
-  ["GO", "Jataí", "jatai"],
-  ["GO", "Catalão", "catalao"],
-  // Maranhão
-  ["MA", "São Luís", "sao-luis"],
-  ["MA", "Imperatriz", "imperatriz"],
-  ["MA", "Balsas", "balsas"],
-  ["MA", "Açailândia", "acailandia"],
-  ["MA", "Timon", "timon"],
-  // Minas Gerais
-  ["MG", "Belo Horizonte", "belo-horizonte"],
-  ["MG", "Uberlândia", "uberlandia"],
-  ["MG", "Uberaba", "uberaba"],
-  ["MG", "Patos de Minas", "patos-de-minas"],
-  ["MG", "Sete Lagoas", "sete-lagoas"],
-  ["MG", "Montes Claros", "montes-claros"],
-  ["MG", "Varginha", "varginha"],
-  ["MG", "Juiz de Fora", "juiz-de-fora"],
-  ["MG", "Governador Valadares", "governador-valadares"],
-  ["MG", "Lavras", "lavras"],
-  // Mato Grosso do Sul
-  ["MS", "Campo Grande", "campo-grande"],
-  ["MS", "Dourados", "dourados"],
-  ["MS", "Três Lagoas", "tres-lagoas"],
-  ["MS", "Maracaju", "maracaju"],
-  ["MS", "Rio Brilhante", "rio-brilhante"],
-  ["MS", "Sidrolândia", "sidrolandia"],
-  ["MS", "Chapadão do Sul", "chapadao-do-sul"],
-  ["MS", "São Gabriel do Oeste", "sao-gabriel-do-oeste"],
-  ["MS", "Naviraí", "navirai"],
-  ["MS", "Ponta Porã", "ponta-pora"],
-  // Mato Grosso
-  ["MT", "Cuiabá", "cuiaba"],
-  ["MT", "Rondonópolis", "rondonopolis"],
-  ["MT", "Sorriso", "sorriso"],
-  ["MT", "Sinop", "sinop"],
-  ["MT", "Lucas do Rio Verde", "lucas-do-rio-verde"],
-  ["MT", "Campo Verde", "campo-verde"],
-  ["MT", "Nova Mutum", "nova-mutum"],
-  ["MT", "Cáceres", "caceres"],
-  ["MT", "Primavera do Leste", "primavera-do-leste"],
-  ["MT", "Tangará da Serra", "tangara-da-serra"],
-  // Pará
-  ["PA", "Belém", "belem"],
-  ["PA", "Ananindeua", "ananindeua"],
-  ["PA", "Santarém", "santarem"],
-  ["PA", "Marabá", "maraba"],
-  ["PA", "Paragominas", "paragominas"],
-  ["PA", "Redenção", "redencao"],
-  ["PA", "Altamira", "altamira"],
-  ["PA", "Castanhal", "castanhal"],
-  // Paraíba
-  ["PB", "João Pessoa", "joao-pessoa"],
-  ["PB", "Campina Grande", "campina-grande"],
-  ["PB", "Patos", "patos-pb"],
-  ["PB", "Sousa", "sousa"],
-  ["PB", "Cajazeiras", "cajazeiras"],
-  // Pernambuco
-  ["PE", "Recife", "recife"],
-  ["PE", "Caruaru", "caruaru"],
-  ["PE", "Petrolina", "petrolina"],
-  ["PE", "Garanhuns", "garanhuns"],
-  ["PE", "Vitória de Santo Antão", "vitoria-de-santo-antao"],
-  ["PE", "Serra Talhada", "serra-talhada"],
-  // Piauí
-  ["PI", "Teresina", "teresina"],
-  ["PI", "Parnaíba", "parnaiba"],
-  ["PI", "Uruçuí", "urucui"],
-  ["PI", "Bom Jesus", "bom-jesus-pi"],
-  ["PI", "Floriano", "floriano"],
-  ["PI", "Picos", "picos"],
-  // Paraná
-  ["PR", "Curitiba", "curitiba"],
-  ["PR", "Maringá", "maringa"],
-  ["PR", "Cascavel", "cascavel"],
-  ["PR", "Londrina", "londrina"],
-  ["PR", "Ponta Grossa", "ponta-grossa"],
-  ["PR", "Paranaguá", "paranagua"],
-  ["PR", "Toledo", "toledo"],
-  ["PR", "Guarapuava", "guarapuava"],
-  // Rio de Janeiro
-  ["RJ", "Rio de Janeiro", "rio-de-janeiro"],
-  ["RJ", "Campos dos Goytacazes", "campos-dos-goytacazes"],
-  ["RJ", "Nova Iguaçu", "nova-iguacu"],
-  ["RJ", "Niterói", "niteroi"],
-  ["RJ", "Petrópolis", "petropolis"],
-  // Rio Grande do Norte
-  ["RN", "Natal", "natal"],
-  ["RN", "Mossoró", "mossoro"],
-  ["RN", "Parnamirim", "parnamirim"],
-  ["RN", "Caicó", "caico"],
-  ["RN", "Açu", "acu"],
-  // Rondônia
-  ["RO", "Porto Velho", "porto-velho"],
-  ["RO", "Ji-Paraná", "ji-parana"],
-  ["RO", "Vilhena", "vilhena"],
-  ["RO", "Cacoal", "cacoal"],
-  ["RO", "Ariquemes", "ariquemes"],
-  // Roraima
-  ["RR", "Boa Vista", "boa-vista"],
-  ["RR", "Rorainópolis", "rorainopolis"],
-  // Rio Grande do Sul
-  ["RS", "Porto Alegre", "porto-alegre"],
-  ["RS", "Passo Fundo", "passo-fundo"],
-  ["RS", "Cruz Alta", "cruz-alta"],
-  ["RS", "Santa Rosa", "santa-rosa"],
-  ["RS", "Ijuí", "ijui"],
-  ["RS", "Pelotas", "pelotas"],
-  ["RS", "Caxias do Sul", "caxias-do-sul"],
-  ["RS", "Santa Maria", "santa-maria"],
-  ["RS", "Rio Grande", "rio-grande-rs"],
-  // Santa Catarina
-  ["SC", "Florianópolis", "florianopolis"],
-  ["SC", "Chapecó", "chapeco"],
-  ["SC", "Xanxerê", "xanxere"],
-  ["SC", "Lages", "lages"],
-  ["SC", "Joinville", "joinville"],
-  ["SC", "Blumenau", "blumenau"],
-  // Sergipe
-  ["SE", "Aracaju", "aracaju"],
-  ["SE", "Lagarto", "lagarto"],
-  ["SE", "Itabaiana", "itabaiana-se"],
-  ["SE", "Nossa Senhora do Socorro", "nossa-senhora-do-socorro"],
-  // São Paulo
-  ["SP", "São Paulo", "sao-paulo"],
-  ["SP", "Ribeirão Preto", "ribeirao-preto"],
-  ["SP", "Barretos", "barretos"],
-  ["SP", "Araçatuba", "aracatuba"],
-  ["SP", "Presidente Prudente", "presidente-prudente"],
-  ["SP", "São José do Rio Preto", "sao-jose-do-rio-preto"],
-  ["SP", "Campinas", "campinas"],
-  ["SP", "Sorocaba", "sorocaba"],
-  ["SP", "Piracicaba", "piracicaba"],
-  ["SP", "Marília", "marilia"],
-  // Tocantins
-  ["TO", "Palmas", "palmas"],
-  ["TO", "Araguaína", "araguaina"],
-  ["TO", "Gurupi", "gurupi"],
-  ["TO", "Pedro Afonso", "pedro-afonso"],
-  ["TO", "Porto Nacional", "porto-nacional"],
-];
+const CITIES = cidadesJSON.map((c) => ({
+  stateCode: c.state_code,
+  name: c.name,
+  slug: `${c.state_code.toLowerCase()}-${slugify(c.name)}`,
+}));
 
 const SOURCES = [
   {
@@ -370,16 +195,19 @@ async function main() {
   }
 
   console.log("Seeding cities…");
-  for (const [stateCode, cityName, slug] of CITIES) {
-    const [stateRow] = await db
-      .select({ id: states.id })
-      .from(states)
-      .where(eq(states.code, stateCode))
-      .limit(1);
-    if (!stateRow) continue;
+  const stateIdByCode = new Map<string, number>();
+  const allStates = await db
+    .select({ id: states.id, code: states.code })
+    .from(states);
+  for (const s of allStates) {
+    stateIdByCode.set(s.code, s.id);
+  }
+  for (const city of CITIES) {
+    const stateId = stateIdByCode.get(city.stateCode);
+    if (!stateId) continue;
     await db
       .insert(cities)
-      .values({ stateId: stateRow.id, name: cityName, slug })
+      .values({ stateId, name: city.name, slug: city.slug })
       .onConflictDoNothing();
   }
 
@@ -548,7 +376,7 @@ async function main() {
       category: "classificados",
     },
   ];
-  
+
   for (const p of PERMISSIONS) {
     await db.insert(permissions).values(p).onConflictDoNothing();
   }

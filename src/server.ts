@@ -5,7 +5,7 @@ import { Server as SocketIOServer } from "socket.io";
 const dev = process.env.NODE_ENV !== "production";
 const port = dev ? 3000 : 4000;
 const hostname = dev ? "localhost" : "agrocomm.com.br";
-const app = next({ hostname, port, dev });
+const app = next({ hostname, port, dev, turbo: dev });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {

@@ -56,7 +56,7 @@ export async function sendPasswordResetEmail(
       userName,
       resetUrl,
       logoUrl,
-      expiresInMinutes: 30,
+      expiresInMinutes: 60,
     },
   });
 }

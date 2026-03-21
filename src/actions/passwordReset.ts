@@ -34,7 +34,7 @@ export async function requestPasswordReset(
 
   if (!user) return { success: true };
 
-  // Invalidate existing unused tokens for this user
+  // Rate limit: max 3 active tokens
   const now = new Date().toISOString();
   const existingTokens = await db
     .select({ id: passwordResetTokens.id })
@@ -48,12 +48,24 @@ export async function requestPasswordReset(
     );
 
   if (existingTokens.length >= 3) {
-    // Rate limit: max 3 active tokens
     return { success: true };
   }
 
+  // Invalidate previous unused tokens so only the latest link works
+  if (existingTokens.length > 0) {
+    await db
+      .update(passwordResetTokens)
+      .set({ usedAt: now })
+      .where(
+        and(
+          eq(passwordResetTokens.userId, user.id),
+          isNull(passwordResetTokens.usedAt),
+        ),
+      );
+  }
+
   const token = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 minutes
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 60 minutes
 
   await db.insert(passwordResetTokens).values({
     userId: user.id,
@@ -85,6 +97,7 @@ export async function resetPassword(
   if (password !== confirm) return { error: "As senhas não coincidem." };
 
   const now = new Date().toISOString();
+
   const [resetToken] = await db
     .select()
     .from(passwordResetTokens)
@@ -98,7 +111,25 @@ export async function resetPassword(
     .limit(1);
 
   if (!resetToken) {
-    return { error: "Link expirado ou inválido. Solicite um novo." };
+    // Check why the token wasn't found to give a specific error
+    const [existingToken] = await db
+      .select({
+        usedAt: passwordResetTokens.usedAt,
+        expiresAt: passwordResetTokens.expiresAt,
+      })
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.token, token))
+      .limit(1);
+
+    if (!existingToken) {
+      return { error: "Link de redefinição inválido. Solicite um novo." };
+    }
+    if (existingToken.usedAt) {
+      return {
+        error: "Este link já foi utilizado. Solicite um novo se necessário.",
+      };
+    }
+    return { error: "Link expirado. Solicite um novo." };
   }
 
   const passwordHash = await hashPassword(password);
