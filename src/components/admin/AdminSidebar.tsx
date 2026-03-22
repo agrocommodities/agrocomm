@@ -46,19 +46,27 @@ export default function AdminSidebar() {
   return (
     <>
       {/* Mobile header bar */}
-      <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-[#1a2218] border-b border-white/10 shrink-0">
+      <div className="lg:hidden flex items-center justify-between px-3 py-2.5 bg-[#1a2218] border-b border-white/10 shrink-0">
         <Link
           href="/"
-          className="text-sm text-white/50 hover:text-white flex items-center gap-1"
+          className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          aria-label="Voltar ao site"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Voltar ao site
+          <ArrowLeft className="w-5 h-5" />
         </Link>
-        <span className="font-semibold text-sm">Admin</span>
+        <div className="flex flex-col items-center leading-tight">
+          <span className="font-bold text-base tracking-tight">
+            🌾 AgroComm
+          </span>
+          <span className="text-[10px] text-white/40 uppercase tracking-widest font-medium">
+            Painel Admin
+          </span>
+        </div>
         <button
           type="button"
           onClick={() => setOpen(!open)}
           className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+          aria-label={open ? "Fechar menu" : "Abrir menu"}
         >
           {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>

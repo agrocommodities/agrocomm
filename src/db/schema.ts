@@ -49,6 +49,7 @@ export const users = sqliteTable("users", {
   name: text().notNull(),
   email: text().notNull().unique(),
   passwordHash: text("password_hash").notNull(),
+  emailVerified: int("email_verified").notNull().default(0),
   role: text().notNull().default("user"),
   roleId: int("role_id").references(() => roles.id, { onDelete: "set null" }),
   avatarUrl: text("avatar_url"),
@@ -64,6 +65,20 @@ export const refreshTokens = sqliteTable("refresh_tokens", {
   expiresAt: text("expires_at").notNull(),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
+
+export const emailVerificationTokens = sqliteTable(
+  "email_verification_tokens",
+  {
+    id: int().primaryKey({ autoIncrement: true }),
+    userId: int("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    token: text().notNull().unique(),
+    expiresAt: text("expires_at").notNull(),
+    usedAt: text("used_at"),
+    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  },
+);
 
 export const passwordResetTokens = sqliteTable("password_reset_tokens", {
   id: int().primaryKey({ autoIncrement: true }),
@@ -338,7 +353,7 @@ export const classifieds = sqliteTable("classifieds", {
     .references(() => classifiedCategories.id),
   title: text().notNull(),
   slug: text().notNull().unique(),
-  description: text().notNull(),
+  description: text(),
   price: real().notNull(),
   previousPrice: real("previous_price"), // preço anterior (para mostrar variação)
   stateId: int("state_id")

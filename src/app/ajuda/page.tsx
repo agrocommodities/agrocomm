@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 
 export default function AjudaPage() {
   return (
-    <main className="max-w-4xl mx-auto px-4 py-10 flex flex-col gap-10">
+    <main className="max-w-4xl mx-auto flex flex-col gap-10">
       <div>
         <Breadcrumb items={[{ label: "Ajuda" }]} />
         <h1 className="text-3xl sm:text-4xl font-extrabold flex items-center gap-3 mt-1">

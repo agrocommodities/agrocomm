@@ -21,7 +21,7 @@ export default async function AjustesPage() {
     .limit(1);
 
   return (
-    <main className="min-h-[80vh] flex items-center justify-center px-4 py-8">
+    <main className="min-h-[80vh] flex items-center justify-center">
       <div className="w-full max-w-md">
         <Breadcrumb items={[{ label: "Ajustes" }]} />
         <h1 className="text-2xl font-bold mb-8 mt-1">Minha conta</h1>

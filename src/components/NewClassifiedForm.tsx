@@ -292,12 +292,11 @@ export default function NewClassifiedForm({
           htmlFor="description"
           className="text-xs text-white/60 font-medium"
         >
-          Descrição *
+          Descrição
         </label>
         <MarkdownEditor
           id="description"
           name="description"
-          required
           maxLength={5000}
           placeholder="Descreva o produto, estado de conservação, ano, horas de uso, etc."
           inputClassName={inputClass}

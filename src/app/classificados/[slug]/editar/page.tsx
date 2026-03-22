@@ -53,7 +53,7 @@ export default async function EditarClassificadoPage({ params }: Props) {
         classified={{
           id: item.id,
           title: item.title,
-          description: item.description,
+          description: item.description ?? "",
           price: item.price,
           categoryId: item.categoryId,
           stateId: item.stateId,

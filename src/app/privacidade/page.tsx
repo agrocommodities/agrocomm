@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function PrivacidadePage() {
   return (
-    <main className="max-w-4xl mx-auto px-4 py-10 flex flex-col gap-8">
+    <main className="max-w-4xl mx-auto flex flex-col gap-8">
       <div>
         <Breadcrumb items={[{ label: "Política de Privacidade" }]} />
         <h1 className="text-3xl sm:text-4xl font-extrabold flex items-center gap-3 mt-1">

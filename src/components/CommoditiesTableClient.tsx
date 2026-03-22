@@ -53,7 +53,7 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   );
 }
 
-export default function CommoditiesTableClient({ quotes, title }: Props) {
+export default function CommoditiesTableClient({ quotes }: Props) {
   const [selected, setSelected] = useState<QuoteRow | null>(null);
   const [historyData, setHistoryData] = useState<HistoryPoint[]>([]);
   const [isPending, startTransition] = useTransition();
@@ -112,9 +112,9 @@ export default function CommoditiesTableClient({ quotes, title }: Props) {
   return (
     <>
       <section className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-white/10">
-          <h2 className="font-semibold text-base">{title}</h2>
-        </div>
+        {/* <div className="px-5 py-4 border-b border-white/10">
+          <h2 className="font-semibold text-base">@@@{title}</h2>
+        </div> */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

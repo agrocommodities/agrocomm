@@ -124,7 +124,9 @@ export default async function RootLayout({
         )}
         <div className="flex flex-col min-h-screen">
           <Header />
-          <main className="grow bg-background px-2 md:px-4">{children}</main>
+          <main className="grow bg-background px-2 md:px-4 pb-4">
+            {children}
+          </main>
           <Footer />
         </div>
         {modal}

@@ -32,10 +32,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!item) return { title: "Anúncio não encontrado" };
   return {
     title: `${item.title} — Classificados`,
-    description: item.description.slice(0, 160),
+    description: item.description?.slice(0, 160),
     openGraph: {
       title: item.title,
-      description: item.description.slice(0, 160),
+      description: item.description?.slice(0, 160),
       type: "article",
     },
     alternates: {
@@ -221,15 +221,17 @@ export default async function ClassifiedDetailPage({ params }: Props) {
           </div>
 
           {/* Description */}
-          <div className="border-t border-white/10 pt-6">
-            <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">
-              Descrição
-            </h2>
-            <MarkdownContent
-              content={item.description}
-              className="text-sm text-white/80 leading-relaxed markdown-preview"
-            />
-          </div>
+          {item.description && (
+            <div className="border-t border-white/10 pt-6">
+              <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">
+                Descrição
+              </h2>
+              <MarkdownContent
+                content={item.description}
+                className="text-sm text-white/80 leading-relaxed markdown-preview"
+              />
+            </div>
+          )}
 
           {/* Seller info */}
           <div className="border-t border-white/10 pt-6 mt-6">

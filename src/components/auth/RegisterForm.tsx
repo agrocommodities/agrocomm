@@ -1,21 +1,50 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState } from "react";
 import Link from "next/link";
 import { Turnstile } from "next-turnstile";
 import { registerAction } from "@/actions/auth";
+import ResendVerificationForm from "@/components/auth/ResendVerificationForm";
 
 export default function RegisterForm() {
   const [state, action, pending] = useActionState(registerAction, null);
-  const router = useRouter();
 
-  useEffect(() => {
-    if (state && "success" in state) {
-      router.refresh();
-      router.push("/");
-    }
-  }, [state, router]);
+  if (state && "pendingVerification" in state) {
+    return (
+      <div className="flex flex-col gap-4 text-center">
+        <div className="bg-green-400/10 border border-green-400/20 rounded-lg p-6">
+          <svg
+            className="w-12 h-12 text-green-400 mx-auto mb-3"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+            />
+          </svg>
+          <h2 className="text-lg font-semibold text-white mb-2">
+            Verifique seu e-mail
+          </h2>
+          <p className="text-sm text-white/60 leading-relaxed">
+            Enviamos um link de ativação para{" "}
+            <strong className="text-white/80">{state.email}</strong>. Verifique
+            sua caixa de entrada e spam.
+          </p>
+        </div>
+        <div className="border-t border-white/10 pt-4">
+          <p className="text-sm text-white/50 mb-3">Não recebeu o e-mail?</p>
+          <ResendVerificationForm defaultEmail={state.email} />
+        </div>
+        <Link href="/login" className="text-sm text-green-400 hover:underline">
+          Voltar ao login
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <form action={action} className="flex flex-col gap-5">

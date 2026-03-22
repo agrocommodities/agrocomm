@@ -336,12 +336,11 @@ export default function EditClassifiedForm({
           htmlFor="description"
           className="text-xs text-white/60 font-medium"
         >
-          Descrição *
+          Descrição
         </label>
         <MarkdownEditor
           id="description"
           name="description"
-          required
           maxLength={5000}
           defaultValue={classified.description}
           inputClassName={inputClass}

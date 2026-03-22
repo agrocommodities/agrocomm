@@ -2,19 +2,21 @@
 
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { mkdir, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { validateTurnstileToken } from "next-turnstile";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, emailVerificationTokens } from "@/db/schema";
 import { signSession } from "@/lib/auth";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { logAction } from "@/lib/moderation";
+import { sendEmailVerificationEmail } from "@/lib/email";
 
 type AuthState =
   | { error: string; fields?: Record<string, string> }
   | { success: true }
+  | { pendingVerification: true; email: string }
   | null;
 type ProfileState = { error?: string; success?: boolean } | null;
 
@@ -60,6 +62,14 @@ export async function loginAction(
       details: JSON.stringify({ email }),
     });
     return { error: "E-mail ou senha inválidos.", fields };
+  }
+
+  if (!user.emailVerified) {
+    return {
+      error:
+        "Sua conta ainda não foi ativada. Verifique seu e-mail para ativar a conta.",
+      fields,
+    };
   }
 
   const token = await signSession({
@@ -128,20 +138,27 @@ export async function registerAction(
     .values({ name, email, passwordHash })
     .returning({ id: users.id });
 
-  const token = await signSession({
+  // Generate email verification token (24h expiry)
+  const verificationToken = randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  await db.insert(emailVerificationTokens).values({
     userId: newUser.id,
-    email,
-    name,
-    role: "user",
-    roleId: null,
-    avatarUrl: null,
+    token: verificationToken,
+    expiresAt,
   });
-  await setSessionCookie(token);
+
+  try {
+    await sendEmailVerificationEmail(email, name, verificationToken);
+  } catch {
+    // Email sending failed but account was created
+  }
+
   await logAction("register", {
     userId: newUser.id,
     details: JSON.stringify({ name, email }),
   });
-  return { success: true };
+  return { pendingVerification: true, email };
 }
 
 export async function logoutAction() {

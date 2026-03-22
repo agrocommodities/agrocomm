@@ -60,3 +60,24 @@ export async function sendPasswordResetEmail(
     },
   });
 }
+
+export async function sendEmailVerificationEmail(
+  to: string,
+  userName: string,
+  token: string,
+) {
+  const appUrl = getAppUrl();
+  const activationUrl = `${appUrl}/ativar-conta?token=${token}`;
+  const logoUrl = `${appUrl}/images/logo.svg`;
+
+  await emailClient.send({
+    template: "email-verification",
+    message: { to },
+    locals: {
+      userName,
+      activationUrl,
+      logoUrl,
+      expiresInHours: 24,
+    },
+  });
+}

@@ -25,7 +25,7 @@ export interface ClassifiedItem {
   id: number;
   title: string;
   slug: string;
-  description: string;
+  description: string | null;
   price: number;
   previousPrice: number | null;
   year: number | null;
@@ -283,26 +283,19 @@ export async function createClassified(
   if (!session) return { error: "Faça login para publicar um anúncio." };
 
   const title = String(formData.get("title") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
+  const descriptionRaw = String(formData.get("description") ?? "").trim();
   const priceStr = String(formData.get("price") ?? "").trim();
   const categoryId = Number(formData.get("categoryId"));
   const stateId = Number(formData.get("stateId"));
   const cityId = Number(formData.get("cityId"));
 
-  if (
-    !title ||
-    !description ||
-    !priceStr ||
-    !categoryId ||
-    !stateId ||
-    !cityId
-  ) {
+  if (!title || !priceStr || !categoryId || !stateId || !cityId) {
     return { error: "Preencha todos os campos obrigatórios." };
   }
 
   if (title.length > 120)
     return { error: "Título muito longo (máx. 120 caracteres)." };
-  if (description.length > 5000)
+  if (descriptionRaw.length > 5000)
     return { error: "Descrição muito longa (máx. 5000 caracteres)." };
 
   const price = Number.parseFloat(
@@ -318,12 +311,11 @@ export async function createClassified(
   const mileageRaw = formData.get("mileage");
   const mileage = mileageRaw ? Number(mileageRaw) : null;
 
-  // Moderate description
-  const modResult = await moderateText(
-    description,
-    session.userId,
-    `classified:new`,
-  );
+  // Moderate description (only if provided)
+  const description = descriptionRaw
+    ? (await moderateText(descriptionRaw, session.userId, `classified:new`))
+        .text
+    : null;
 
   const [inserted] = await db
     .insert(classifieds)
@@ -332,7 +324,7 @@ export async function createClassified(
       categoryId,
       title,
       slug,
-      description: modResult.text,
+      description,
       price,
       year,
       mileage,
@@ -735,26 +727,19 @@ export async function editUserClassified(
     return { error: "Anúncio não encontrado." };
 
   const title = String(formData.get("title") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
+  const descriptionRaw = String(formData.get("description") ?? "").trim();
   const priceStr = String(formData.get("price") ?? "").trim();
   const categoryId = Number(formData.get("categoryId"));
   const stateId = Number(formData.get("stateId"));
   const cityId = Number(formData.get("cityId"));
 
-  if (
-    !title ||
-    !description ||
-    !priceStr ||
-    !categoryId ||
-    !stateId ||
-    !cityId
-  ) {
+  if (!title || !priceStr || !categoryId || !stateId || !cityId) {
     return { error: "Preencha todos os campos obrigatórios." };
   }
 
   if (title.length > 120)
     return { error: "Título muito longo (máx. 120 caracteres)." };
-  if (description.length > 5000)
+  if (descriptionRaw.length > 5000)
     return { error: "Descrição muito longa (máx. 5000 caracteres)." };
 
   const price = Number.parseFloat(
@@ -762,12 +747,16 @@ export async function editUserClassified(
   );
   if (Number.isNaN(price) || price <= 0) return { error: "Valor inválido." };
 
-  // Moderate description
-  const modResult = await moderateText(
-    description,
-    session.userId,
-    `classified:edit:${classifiedId}`,
-  );
+  // Moderate description (only if provided)
+  const description = descriptionRaw
+    ? (
+        await moderateText(
+          descriptionRaw,
+          session.userId,
+          `classified:edit:${classifiedId}`,
+        )
+      ).text
+    : null;
 
   // Parse optional year / mileage
   const yearRaw = formData.get("year");
@@ -777,7 +766,7 @@ export async function editUserClassified(
 
   const updateData: Record<string, unknown> = {
     title,
-    description: modResult.text,
+    description,
     categoryId,
     stateId,
     cityId,
