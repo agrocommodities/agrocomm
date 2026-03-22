@@ -181,10 +181,10 @@ async function main() {
   const passwordHash = await hashPassword(adminPassword);
   await db
     .insert(users)
-    .values({ name: "Admin", email: adminEmail, passwordHash, role: "admin" })
+    .values({ name: "Admin", email: adminEmail, passwordHash, role: "admin", emailVerified: 1 })
     .onConflictDoUpdate({
       target: users.email,
-      set: { passwordHash, role: "admin" },
+      set: { passwordHash, role: "admin", emailVerified: 1 },
     });
 
   console.log("Seeding products…");
