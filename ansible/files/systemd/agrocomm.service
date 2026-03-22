@@ -6,8 +6,9 @@ After=network.target
 Type=simple
 User=nginx
 MemoryAccounting=true
-MemoryHigh=512M
+MemoryHigh=768M
 MemoryMax=1024M
+Environment=NODE_OPTIONS=--max-old-space-size=512
 WorkingDirectory=/var/www/agrocomm
 ExecStart=/home/nginx/.local/share/pnpm/pnpm run start
 ExecStop=/bin/kill -TERM $MAINPID
