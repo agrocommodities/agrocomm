@@ -13,11 +13,15 @@ import {
   Lock,
   Eye,
   UserX,
+  Pencil,
+  Mail,
+  MailCheck,
 } from "lucide-react";
 import {
   deleteUserAction,
   updateUserRoleAction,
   createUserAction,
+  updateUserAction,
   createRoleAction,
   deleteRoleAction,
   updateRolePermissionsAction,
@@ -32,6 +36,7 @@ interface User {
   id: number;
   name: string;
   email: string;
+  emailVerified: number;
   role: string;
   roleId: number | null;
   roleName: string | null;
@@ -141,6 +146,7 @@ function UsersTab({
 }) {
   const [showForm, setShowForm] = useState(false);
   const [permUserId, setPermUserId] = useState<number | null>(null);
+  const [editUserId, setEditUserId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -205,6 +211,7 @@ function UsersTab({
   }
 
   const permUser = permUserId ? users.find((u) => u.id === permUserId) : null;
+  const editUser = editUserId ? users.find((u) => u.id === editUserId) : null;
 
   return (
     <>
@@ -312,17 +319,20 @@ function UsersTab({
                 <th className="text-left px-5 py-3 font-medium hidden sm:table-cell">
                   E-mail
                 </th>
+                <th className="text-left px-5 py-3 font-medium hidden lg:table-cell">
+                  Verificado
+                </th>
                 <th className="text-left px-5 py-3 font-medium">Cargo</th>
                 <th className="text-left px-5 py-3 font-medium hidden md:table-cell">
                   Cadastro
                 </th>
-                <th className="text-right px-5 py-3 font-medium w-28">Ações</th>
+                <th className="text-right px-5 py-3 font-medium w-36">Ações</th>
               </tr>
             </thead>
             <tbody>
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-10 text-white/30">
+                  <td colSpan={6} className="text-center py-10 text-white/30">
                     Nenhum usuário cadastrado
                   </td>
                 </tr>
@@ -335,6 +345,17 @@ function UsersTab({
                     <td className="px-5 py-3 font-medium">{user.name}</td>
                     <td className="px-5 py-3 text-white/60 hidden sm:table-cell">
                       {user.email}
+                    </td>
+                    <td className="px-5 py-3 hidden lg:table-cell">
+                      {user.emailVerified ? (
+                        <span className="flex items-center gap-1 text-green-400 text-xs">
+                          <MailCheck className="w-3.5 h-3.5" /> Sim
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-white/30 text-xs">
+                          <Mail className="w-3.5 h-3.5" /> Não
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-3">
                       <select
@@ -358,6 +379,15 @@ function UsersTab({
                     </td>
                     <td className="px-3 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setEditUserId(user.id)}
+                          disabled={isPending}
+                          className="p-1.5 rounded-lg hover:bg-green-500/20 text-white/30 hover:text-green-400 transition-colors"
+                          title="Editar usuário"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleImpersonate(user.id, user.name)}
@@ -405,7 +435,124 @@ function UsersTab({
           onClose={() => setPermUserId(null)}
         />
       )}
+
+      {/* Edit user modal */}
+      {editUser && (
+        <EditUserModal user={editUser} onClose={() => setEditUserId(null)} />
+      )}
     </>
+  );
+}
+
+// ── Edit User Modal ───────────────────────────────────────────────────────────
+
+function EditUserModal({ user, onClose }: { user: User; onClose: () => void }) {
+  const [error, setError] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const [emailVerified, setEmailVerified] = useState(user.emailVerified === 1);
+
+  function handleSave(formData: FormData) {
+    setError("");
+    formData.set("emailVerified", emailVerified ? "1" : "0");
+    startTransition(async () => {
+      const result = await updateUserAction(user.id, formData);
+      if ("error" in result && result.error) {
+        setError(result.error);
+      } else {
+        router.refresh();
+        onClose();
+      }
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="bg-[#2a3425] border border-white/10 rounded-2xl w-full max-w-lg">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <div>
+            <h3 className="font-semibold">Editar Usuário</h3>
+            <p className="text-xs text-white/40 mt-0.5">{user.email}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form action={handleSave} className="px-6 py-4 space-y-4">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="editName" className="text-xs text-white/60">
+              Nome *
+            </label>
+            <input
+              id="editName"
+              name="name"
+              type="text"
+              required
+              defaultValue={user.name}
+              className={inputClass}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="editEmail" className="text-xs text-white/60">
+              E-mail *
+            </label>
+            <input
+              id="editEmail"
+              name="email"
+              type="email"
+              required
+              defaultValue={user.email}
+              className={inputClass}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="editPassword" className="text-xs text-white/60">
+              Nova Senha (deixe vazio para manter)
+            </label>
+            <input
+              id="editPassword"
+              name="password"
+              type="password"
+              minLength={8}
+              placeholder="••••••••"
+              className={inputClass}
+            />
+          </div>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={emailVerified}
+              onChange={(e) => setEmailVerified(e.target.checked)}
+              className="accent-green-500 w-4 h-4 rounded"
+            />
+            <span className="text-sm">E-mail verificado</span>
+          </label>
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          <div className="flex justify-end gap-3 pt-2 border-t border-white/10">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm text-white/50 hover:text-white transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-60 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+            >
+              <Save className="w-4 h-4" />
+              {isPending ? "Salvando…" : "Salvar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 

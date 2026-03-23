@@ -211,6 +211,7 @@ export async function getAdminUsers() {
       id: users.id,
       name: users.name,
       email: users.email,
+      emailVerified: users.emailVerified,
       role: users.role,
       roleId: users.roleId,
       roleName: roles.name,
@@ -316,6 +317,55 @@ export async function createUserAction(formData: FormData) {
   await db
     .insert(users)
     .values({ name, email, passwordHash, role: roleSlug, roleId });
+  return { success: true };
+}
+
+export async function updateUserAction(userId: number, formData: FormData) {
+  const session = await requireAdmin();
+
+  const [target] = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (!target) return { error: "Usuário não encontrado." };
+  if (
+    target.email === SUPER_ADMIN_EMAIL &&
+    session.email !== SUPER_ADMIN_EMAIL
+  ) {
+    return { error: "Apenas o Super Admin pode editar sua própria conta." };
+  }
+
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const emailVerified = formData.get("emailVerified") === "1" ? 1 : 0;
+
+  if (!name || !email) {
+    return { error: "Nome e e-mail são obrigatórios." };
+  }
+
+  if (email !== target.email) {
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    if (existing) return { error: "Este e-mail já está cadastrado." };
+  }
+
+  const updates: Record<string, unknown> = { name, email, emailVerified };
+
+  if (password) {
+    if (password.length < 8) {
+      return { error: "A senha deve ter no mínimo 8 caracteres." };
+    }
+    updates.passwordHash = await hashPassword(password);
+  }
+
+  await db.update(users).set(updates).where(eq(users.id, userId));
   return { success: true };
 }
 

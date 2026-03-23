@@ -181,7 +181,13 @@ async function main() {
   const passwordHash = await hashPassword(adminPassword);
   await db
     .insert(users)
-    .values({ name: "Admin", email: adminEmail, passwordHash, role: "admin", emailVerified: 1 })
+    .values({
+      name: "Admin",
+      email: adminEmail,
+      passwordHash,
+      role: "admin",
+      emailVerified: 1,
+    })
     .onConflictDoUpdate({
       target: users.email,
       set: { passwordHash, role: "admin", emailVerified: 1 },

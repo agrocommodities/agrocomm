@@ -938,6 +938,23 @@ async function fetchArticleDetails(articleUrl: string): Promise<{
       $content(
         "script, style, iframe, .ad, .ads, .publicidade, .banner, .grupo-whatsapp",
       ).remove();
+
+      // Resolve relative URLs to absolute based on source domain
+      const baseUrl = new URL(articleUrl);
+      const origin = baseUrl.origin;
+      $content("img").each((_, el) => {
+        const src = $content(el).attr("src");
+        if (src && !src.startsWith("http") && !src.startsWith("data:")) {
+          $content(el).attr("src", new URL(src, origin).href);
+        }
+      });
+      $content("a").each((_, el) => {
+        const href = $content(el).attr("href");
+        if (href?.startsWith("/")) {
+          $content(el).attr("href", new URL(href, origin).href);
+        }
+      });
+
       content = $content.html() ?? undefined;
 
       const firstP = $content("p")
