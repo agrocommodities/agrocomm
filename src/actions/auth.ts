@@ -273,10 +273,14 @@ export async function uploadAvatarAction(
     "avatars",
     String(session.userId),
   );
-  await mkdir(dir, { recursive: true });
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(join(dir, filename), buffer);
+  try {
+    await mkdir(dir, { recursive: true });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(join(dir, filename), buffer);
+  } catch {
+    return { error: "Erro ao salvar imagem. Tente novamente." };
+  }
 
   const avatarUrl = `/images/avatars/${session.userId}/${filename}`;
 

@@ -77,6 +77,7 @@ const STATE_CAPITALS: Record<string, string> = {
 /**
  * Amostra cotações: 1 cidade por estado (preferindo a capital).
  * Mostra todos os produtos disponíveis para a cidade selecionada.
+ * Limita a 8 estados para não poluir o visual.
  */
 function sampleQuotes(rows: QuoteRow[]): QuoteRow[] {
   // Agrupa cidades por estado
@@ -94,8 +95,25 @@ function sampleQuotes(rows: QuoteRow[]): QuoteRow[] {
     hash = (hash * 31 + today.charCodeAt(i)) | 0;
   }
 
+  // Seleciona apenas 8 estados (de forma determinística baseada no dia)
+  const allStates = [...citiesByState.keys()];
+  const selectedStates: string[] = [];
+
+  // Embaralha os estados usando o hash do dia como semente
+  const shuffled = [...allStates].sort((a, b) => {
+    const hashA = a.charCodeAt(0) * hash;
+    const hashB = b.charCodeAt(0) * hash;
+    return hashA - hashB;
+  });
+
+  // Pega os primeiros 8 estados
+  selectedStates.push(...shuffled.slice(0, 8));
+
   const picked = new Map<string, string>(); // state → city
-  for (const [state, citySet] of citiesByState) {
+  for (const state of selectedStates) {
+    const citySet = citiesByState.get(state);
+    if (!citySet) continue;
+
     const capital = STATE_CAPITALS[state];
     if (capital && citySet.has(capital)) {
       picked.set(state, capital);

@@ -58,6 +58,7 @@ export default function AvatarUpload({ currentAvatarUrl, userName }: Props) {
               height={96}
               className="w-full h-full object-cover"
               key={avatarUrl}
+              unoptimized
             />
           ) : (
             <span className="text-3xl font-bold text-white select-none">

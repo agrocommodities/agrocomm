@@ -63,7 +63,7 @@ export default function SettingsForm({ defaultName, defaultEmail }: Props) {
           id="currentPassword"
           name="currentPassword"
           type="password"
-          autoComplete="current-password"
+          autoComplete="new-password"
           placeholder="••••••••"
           className={inputClass}
         />

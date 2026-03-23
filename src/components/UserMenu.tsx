@@ -74,6 +74,7 @@ export default function UserMenu({ session, hasAdminAccess }: Props) {
               width={32}
               height={32}
               className="w-full h-full object-cover"
+              unoptimized
             />
           ) : (
             initial
