@@ -294,7 +294,7 @@ export default async function NewsArticlePage({
           </div>
 
           {related.length > 0 && (
-            <div className="bg-white/3 border border-white/10 rounded-xl p-5 lg:sticky lg:top-8">
+            <div className="bg-white/3 border border-white/10 rounded-xl p-5 lg:sticky lg:top-20">
               <h3 className="font-bold text-sm uppercase tracking-wider text-white/50 mb-4">
                 Notícias relacionadas
               </h3>
