@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { newsArticles, tags, newsArticleTags } from "@/db/schema";
-import { desc, eq, and, sql, inArray } from "drizzle-orm";
+import { newsArticles, tags, newsArticleTags, pageViews } from "@/db/schema";
+import { desc, eq, and, sql, inArray, count } from "drizzle-orm";
 
 export type NewsArticle = {
   id: number;
@@ -144,6 +144,25 @@ export async function getNewsByTag(
 }
 
 export type TagCloud = { name: string; slug: string; count: number };
+
+export async function getArticleViewCount(
+  slug: string,
+): Promise<{ views: number; uniqueVisitors: number }> {
+  const path = `/noticias/${slug}`;
+  const [result] = await db
+    .select({
+      views: count(),
+      uniqueVisitors: sql<number>`count(distinct ${pageViews.sessionId})`.as(
+        "unique_visitors",
+      ),
+    })
+    .from(pageViews)
+    .where(eq(pageViews.path, path));
+  return {
+    views: result?.views ?? 0,
+    uniqueVisitors: result?.uniqueVisitors ?? 0,
+  };
+}
 
 export async function getTagCloud(): Promise<TagCloud[]> {
   const results = await db

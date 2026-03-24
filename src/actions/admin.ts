@@ -642,6 +642,49 @@ export async function getPageViewStats() {
   };
 }
 
+export async function getNewsWithViews(page = 1, limit = 20) {
+  await requireAdmin();
+
+  const offset = (page - 1) * limit;
+
+  const articles = await db
+    .select({
+      id: newsArticles.id,
+      title: newsArticles.title,
+      slug: newsArticles.slug,
+      category: newsArticles.category,
+      publishedAt: newsArticles.publishedAt,
+      views: count(pageViews.id).as("views"),
+      uniqueVisitors: sql<number>`count(distinct ${pageViews.sessionId})`.as(
+        "unique_visitors",
+      ),
+    })
+    .from(newsArticles)
+    .innerJoin(
+      pageViews,
+      sql`${pageViews.path} = '/noticias/' || ${newsArticles.slug}`,
+    )
+    .groupBy(newsArticles.id)
+    .orderBy(desc(count(pageViews.id)))
+    .limit(limit)
+    .offset(offset);
+
+  const [totalResult] = await db
+    .select({ total: sql<number>`count(distinct ${newsArticles.id})` })
+    .from(newsArticles)
+    .innerJoin(
+      pageViews,
+      sql`${pageViews.path} = '/noticias/' || ${newsArticles.slug}`,
+    );
+
+  return {
+    articles,
+    total: totalResult?.total ?? 0,
+    page,
+    limit,
+  };
+}
+
 // ── Conflicts ─────────────────────────────────────────────────────────────────
 
 export async function getConflicts() {

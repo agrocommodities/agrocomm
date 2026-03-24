@@ -1,10 +1,22 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getNewsBySlug, getRelatedNews } from "@/actions/news";
+import {
+  getNewsBySlug,
+  getRelatedNews,
+  getArticleViewCount,
+} from "@/actions/news";
 import type { NewsArticle } from "@/actions/news";
 import ShareButtons from "@/components/ShareButtons";
 import Breadcrumb from "@/components/Breadcrumb";
-import { Newspaper, Clock, ExternalLink, ArrowRight, Tag } from "lucide-react";
+import {
+  Newspaper,
+  Clock,
+  ExternalLink,
+  ArrowRight,
+  Tag,
+  Eye,
+  Users,
+} from "lucide-react";
 import type { Metadata } from "next";
 
 const categoryColors: Record<string, string> = {
@@ -127,7 +139,10 @@ export default async function NewsArticlePage({
   const article = await getNewsBySlug(slug);
   if (!article) notFound();
 
-  const related = await getRelatedNews(article.slug, article.category, 5);
+  const [related, viewCount] = await Promise.all([
+    getRelatedNews(article.slug, article.category, 5),
+    getArticleViewCount(article.slug),
+  ]);
   const articleUrl = `https://agrocomm.com.br/noticias/${article.slug}`;
 
   return (
@@ -250,8 +265,35 @@ export default async function NewsArticlePage({
         </article>
 
         {/* Sidebar */}
-        {related.length > 0 && (
-          <aside className="lg:w-80 shrink-0">
+        <aside className="lg:w-80 shrink-0">
+          {/* View counter */}
+          <div className="bg-white/3 border border-white/10 rounded-xl p-5 mb-4">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-white/40 mb-4">
+              Estatísticas
+            </h3>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-sm text-white/60">
+                  <Eye className="w-4 h-4 text-green-400" />
+                  Total de visitas
+                </span>
+                <span className="font-bold tabular-nums">
+                  {viewCount.views.toLocaleString("pt-BR")}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-sm text-white/60">
+                  <Users className="w-4 h-4 text-purple-400" />
+                  Visitantes únicos
+                </span>
+                <span className="font-bold tabular-nums">
+                  {viewCount.uniqueVisitors.toLocaleString("pt-BR")}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {related.length > 0 && (
             <div className="bg-white/3 border border-white/10 rounded-xl p-5 lg:sticky lg:top-8">
               <h3 className="font-bold text-sm uppercase tracking-wider text-white/50 mb-4">
                 Notícias relacionadas
@@ -269,8 +311,8 @@ export default async function NewsArticlePage({
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
-          </aside>
-        )}
+          )}
+        </aside>
       </div>
     </main>
   );

@@ -20,6 +20,9 @@ app.prepare().then(() => {
   });
 
   io.on("connection", (socket) => {
+    // Notify admin stats room of new connection
+    io.to("admin:stats").emit("stats:online_count", io.engine.clientsCount);
+
     socket.on("subscribe:commodity", (commodity: string) => {
       socket.join(`commodity:${commodity}`);
     });
@@ -46,6 +49,21 @@ app.prepare().then(() => {
 
     socket.on("subscribe:user", (userId: number) => {
       socket.join(`user:${userId}`);
+    });
+
+    socket.on("subscribe:admin_stats", () => {
+      socket.join("admin:stats");
+      socket.emit("stats:online_count", io.engine.clientsCount);
+    });
+
+    socket.on("unsubscribe:admin_stats", () => {
+      socket.leave("admin:stats");
+    });
+
+    socket.on("disconnect", () => {
+      setTimeout(() => {
+        io.to("admin:stats").emit("stats:online_count", io.engine.clientsCount);
+      }, 200);
     });
   });
 
