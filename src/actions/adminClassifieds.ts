@@ -370,6 +370,7 @@ export async function getAuditLogs(
       originalText: auditLogs.originalText,
       replacedText: auditLogs.replacedText,
       ipAddress: auditLogs.ipAddress,
+      userAgent: auditLogs.userAgent,
       createdAt: auditLogs.createdAt,
       userName: users.name,
     })

@@ -474,6 +474,7 @@ export const auditLogs = sqliteTable("audit_logs", {
   originalText: text("original_text"), // for moderation: the original content
   replacedText: text("replaced_text"), // for moderation: what it was replaced with
   ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 

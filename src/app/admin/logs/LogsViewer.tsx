@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { getAuditLogs } from "@/actions/adminClassifieds";
+import { UAParser } from "ua-parser-js";
 import {
   Search,
   ChevronLeft,
@@ -9,6 +10,9 @@ import {
   FileText,
   Eye,
   EyeOff,
+  Monitor,
+  Smartphone,
+  Tablet,
 } from "lucide-react";
 
 interface LogRow {
@@ -20,6 +24,7 @@ interface LogRow {
   originalText: string | null;
   replacedText: string | null;
   ipAddress: string | null;
+  userAgent: string | null;
   createdAt: string;
   userName: string | null;
 }
@@ -71,6 +76,31 @@ const ACTION_FILTER = [
 
 const inputClass =
   "bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400/50 transition";
+
+function parseUA(uaString: string) {
+  const parser = new UAParser(uaString);
+  const result = parser.getResult();
+  return {
+    browser: result.browser.name
+      ? `${result.browser.name}${result.browser.version ? ` ${result.browser.version.split(".")[0]}` : ""}`
+      : null,
+    os: result.os.name
+      ? `${result.os.name}${result.os.version ? ` ${result.os.version}` : ""}`
+      : null,
+    device: result.device.type ?? "desktop",
+    deviceModel:
+      result.device.vendor && result.device.model
+        ? `${result.device.vendor} ${result.device.model}`
+        : null,
+  };
+}
+
+function DeviceIcon({ type }: { type: string }) {
+  if (type === "mobile")
+    return <Smartphone className="w-3 h-3 text-white/40" />;
+  if (type === "tablet") return <Tablet className="w-3 h-3 text-white/40" />;
+  return <Monitor className="w-3 h-3 text-white/40" />;
+}
 
 export default function LogsViewer({ initialData }: { initialData: Data }) {
   const [data, setData] = useState(initialData);
@@ -139,6 +169,7 @@ export default function LogsViewer({ initialData }: { initialData: Data }) {
             color: "text-white/50",
           };
           const isExpanded = expanded === log.id;
+          const uaParsed = log.userAgent ? parseUA(log.userAgent) : null;
 
           return (
             <div
@@ -164,13 +195,23 @@ export default function LogsViewer({ initialData }: { initialData: Data }) {
                         </span>
                       )}
                     </div>
-                    <div className="text-[10px] text-white/30 mt-0.5">
+                    <div className="text-[10px] text-white/30 mt-0.5 flex items-center gap-1.5">
                       {formatDate(log.createdAt)}
+                      {uaParsed && (
+                        <>
+                          <span className="text-white/20">·</span>
+                          <DeviceIcon type={uaParsed.device} />
+                          {log.ipAddress && <span>{log.ipAddress}</span>}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {(log.details || log.originalText) && (
+                {(log.details ||
+                  log.originalText ||
+                  log.ipAddress ||
+                  log.userAgent) && (
                   <button
                     type="button"
                     onClick={() => setExpanded(isExpanded ? null : log.id)}
@@ -211,10 +252,45 @@ export default function LogsViewer({ initialData }: { initialData: Data }) {
                       </code>
                     </div>
                   )}
-                  {log.ipAddress && (
+                  {log.ipAddress && !log.userAgent && (
                     <div>
                       <span className="text-white/40">IP:</span>{" "}
                       <code className="text-white/60">{log.ipAddress}</code>
+                    </div>
+                  )}
+                  {uaParsed && (
+                    <div className="flex flex-col gap-1">
+                      {log.ipAddress && (
+                        <div>
+                          <span className="text-white/40">IP:</span>{" "}
+                          <code className="text-white/60">{log.ipAddress}</code>
+                        </div>
+                      )}
+                      {uaParsed.browser && (
+                        <div>
+                          <span className="text-white/40">Navegador:</span>{" "}
+                          <code className="text-white/60">
+                            {uaParsed.browser}
+                          </code>
+                        </div>
+                      )}
+                      {uaParsed.os && (
+                        <div>
+                          <span className="text-white/40">Sistema:</span>{" "}
+                          <code className="text-white/60">{uaParsed.os}</code>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-white/40">Dispositivo:</span>{" "}
+                        <code className="text-white/60">
+                          {uaParsed.deviceModel ??
+                            (uaParsed.device === "mobile"
+                              ? "Celular"
+                              : uaParsed.device === "tablet"
+                                ? "Tablet"
+                                : "Desktop")}
+                        </code>
+                      </div>
                     </div>
                   )}
                 </div>

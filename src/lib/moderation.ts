@@ -141,6 +141,7 @@ export async function logAction(
     originalText?: string;
     replacedText?: string;
     ipAddress?: string;
+    userAgent?: string;
   } = {},
 ) {
   await db.insert(auditLogs).values({
@@ -151,5 +152,6 @@ export async function logAction(
     originalText: opts.originalText ?? null,
     replacedText: opts.replacedText ?? null,
     ipAddress: opts.ipAddress ?? null,
+    userAgent: opts.userAgent ?? null,
   });
 }

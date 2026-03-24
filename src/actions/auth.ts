@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { randomBytes, randomUUID } from "node:crypto";
 import { mkdir, writeFile, rm } from "node:fs/promises";
@@ -44,6 +44,13 @@ export async function loginAction(
   if (!email || !password)
     return { error: "Preencha todos os campos.", fields };
 
+  const reqHeaders = await headers();
+  const ipAddress =
+    reqHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    reqHeaders.get("x-real-ip") ??
+    undefined;
+  const userAgent = reqHeaders.get("user-agent") ?? undefined;
+
   const [user] = await db
     .select()
     .from(users)
@@ -51,7 +58,11 @@ export async function loginAction(
     .limit(1);
 
   if (!user) {
-    await logAction("login_failed", { details: JSON.stringify({ email }) });
+    await logAction("login_failed", {
+      details: JSON.stringify({ email }),
+      ipAddress,
+      userAgent,
+    });
     return { error: "E-mail ou senha inválidos.", fields };
   }
 
@@ -60,6 +71,8 @@ export async function loginAction(
     await logAction("login_failed", {
       userId: user.id,
       details: JSON.stringify({ email }),
+      ipAddress,
+      userAgent,
     });
     return { error: "E-mail ou senha inválidos.", fields };
   }
@@ -81,7 +94,7 @@ export async function loginAction(
     avatarUrl: user.avatarUrl ?? null,
   });
   await setSessionCookie(token);
-  await logAction("login_success", { userId: user.id });
+  await logAction("login_success", { userId: user.id, ipAddress, userAgent });
   return { success: true };
 }
 
