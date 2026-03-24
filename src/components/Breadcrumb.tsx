@@ -43,8 +43,8 @@ function ChevronIcon() {
 
 export default function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
   return (
-    <nav className="my-4" aria-label="Breadcrumb">
-      <ol className="flex items-center gap-1 text-white/40">
+    <nav className="my-4 overflow-hidden" aria-label="Breadcrumb">
+      <ol className="flex items-center gap-1 text-white/40 overflow-hidden min-w-0">
         <li>
           <Link
             href="/"
@@ -63,11 +63,13 @@ export default function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
                 <ChevronIcon />
               </span>
               {isLast || !item.href ? (
-                <span className="block">{item.label}</span>
+                <span className="block max-w-[calc(100vw-5rem)] truncate whitespace-nowrap overflow-hidden">
+                  {item.label}
+                </span>
               ) : (
                 <Link
                   href={item.href}
-                  className="block transition-colors hover:text-white/70"
+                  className="block max-w-[calc(100vw-5rem)] truncate whitespace-nowrap overflow-hidden transition-colors hover:text-white/70"
                 >
                   {item.label}
                 </Link>

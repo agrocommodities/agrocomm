@@ -146,7 +146,7 @@ export default async function NewsArticlePage({
   const articleUrl = `https://agrocomm.com.br/noticias/${article.slug}`;
 
   return (
-    <main className="max-w-5xl mx-auto px-4 py-8">
+    <main className="max-w-5xl mx-auto px-2 md:px-4 py-4 md:py-8">
       {/* Breadcrumb */}
       <div className="mb-6">
         <Breadcrumb
@@ -176,7 +176,7 @@ export default async function NewsArticlePage({
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold leading-tight mb-6">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold leading-tight mb-6">
             {article.title}
           </h1>
 
@@ -194,7 +194,7 @@ export default async function NewsArticlePage({
           )}
 
           {/* Content */}
-          <div className="bg-white/3 border border-white/10 rounded-xl p-6 sm:p-8 mb-6">
+          <div className="bg-white/3 border border-white/10 rounded-lg p-3 md:p-6 mb-6">
             {article.content ? (
               <div
                 className="prose prose-invert prose-green max-w-none text-white/70
@@ -240,23 +240,27 @@ export default async function NewsArticlePage({
           {/* Tags */}
           {article.tags && article.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-6">
-              {article.tags.map((tag) => (
-                <Link
-                  key={tag}
-                  href={`/noticias?tag=${tag
-                    .toLowerCase()
-                    .normalize("NFD")
-                    .replace(/[\u0300-\u036f]/g, "")
-                    .replace(/[^a-z0-9\s-]/g, "")
-                    .replace(/\s+/g, "-")}`}
-                  className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 hover:border-green-500/30 hover:text-green-300 transition-colors"
-                >
+              {Array.from(new Set(article.tags)).map((tag) => {
+                const normalizedTag = tag
+                  .toLowerCase()
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .replace(/[^a-z0-9\s-]/g, "")
+                  .replace(/\s+/g, "-");
+
+                return (
+                  <Link
+                    key={normalizedTag}
+                    href={`/noticias?tag=${normalizedTag}`}
+                    className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 hover:border-green-500/30 hover:text-green-300 transition-colors"
+                  >
                   <Tag className="w-3 h-3" />
                   {tag}
                 </Link>
-              ))}
-            </div>
-          )}
+              );
+            })}
+          </div>
+        )}
 
           {/* Share */}
           <div className="bg-white/3 border border-white/10 rounded-xl p-5">
