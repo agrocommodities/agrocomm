@@ -254,13 +254,13 @@ export default async function NewsArticlePage({
                     href={`/noticias?tag=${normalizedTag}`}
                     className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 hover:border-green-500/30 hover:text-green-300 transition-colors"
                   >
-                  <Tag className="w-3 h-3" />
-                  {tag}
-                </Link>
-              );
-            })}
-          </div>
-        )}
+                    <Tag className="w-3 h-3" />
+                    {tag}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
 
           {/* Share */}
           <div className="bg-white/3 border border-white/10 rounded-xl p-5">
