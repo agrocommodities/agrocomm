@@ -1,7 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { TrendingUp, TrendingDown, Minus, RefreshCw } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  RefreshCw,
+  Lock,
+  ArrowRight,
+} from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import QuoteChart from "@/components/QuoteChart";
+import { getChicagoHistory } from "@/actions/quotes";
+import type { HistoryPoint } from "@/actions/quotes";
 
 interface CommodityData {
   name: string;
@@ -19,15 +31,15 @@ interface CommodityData {
 
 const CATEGORIES = [
   { key: "all", label: "Todos" },
-  { key: "graos", label: "🌾 Grãos" },
-  { key: "pecuaria", label: "🐄 Pecuária" },
-  { key: "outros", label: "📦 Outros" },
+  { key: "graos", label: "Grãos" },
+  { key: "pecuaria", label: "Pecuária" },
+  { key: "outros", label: "Outros" },
 ];
 
 function MiniChart({
   data,
   width = 120,
-  height = 40,
+  height = 50,
 }: {
   data: number[];
   width?: number;
@@ -50,6 +62,15 @@ function MiniChart({
 
   const isUp = data[data.length - 1] >= data[0];
   const color = isUp ? "#4ade80" : "#f87171";
+  const gradientId = `mini-grad-${isUp ? "up" : "down"}`;
+
+  const firstX = padding;
+  const lastX =
+    padding + ((data.length - 1) / (data.length - 1)) * (width - padding * 2);
+  const areaPath = `M ${firstX},${height} L ${points
+    .split(" ")
+    .map((p) => p)
+    .join(" L ")} L ${lastX},${height} Z`;
 
   return (
     <svg
@@ -59,11 +80,18 @@ function MiniChart({
       role="img"
       aria-label="Gráfico de tendência"
     >
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={`url(#${gradientId})`} />
       <polyline
         points={points}
         fill="none"
         stroke={color}
-        strokeWidth="1.5"
+        strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -71,13 +99,29 @@ function MiniChart({
   );
 }
 
-export default function ChicagoClient() {
+interface ChicagoClientProps {
+  hasActivePlan: boolean;
+}
+
+export default function ChicagoClient({ hasActivePlan }: ChicagoClientProps) {
+  const searchParams = useSearchParams();
+  const commodityParam = searchParams.get("commodity");
+  const tipoParam = searchParams.get("tipo");
+
+  const initialCategory = tipoParam ?? "all";
+
   const [prices, setPrices] = useState<Record<string, CommodityData | null>>(
     {},
   );
   const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState("all");
+  const [category, setCategory] = useState(initialCategory);
   const [showBrl, setShowBrl] = useState(true);
+  const [selectedCommodity, setSelectedCommodity] = useState<string | null>(
+    commodityParam,
+  );
+  const [historyData, setHistoryData] = useState<HistoryPoint[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const highlightRef = useRef<HTMLDivElement>(null);
 
   const fetchPrices = useCallback(async () => {
     setLoading(true);
@@ -98,6 +142,27 @@ export default function ChicagoClient() {
     return () => clearInterval(interval);
   }, [fetchPrices]);
 
+  // Auto-scroll to highlighted commodity
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll after data loads
+  useEffect(() => {
+    if (commodityParam && highlightRef.current) {
+      highlightRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [commodityParam, loading]);
+
+  // Load history when commodity is selected
+  useEffect(() => {
+    if (selectedCommodity && hasActivePlan) {
+      setHistoryLoading(true);
+      getChicagoHistory(selectedCommodity, 30)
+        .then(setHistoryData)
+        .finally(() => setHistoryLoading(false));
+    }
+  }, [selectedCommodity, hasActivePlan]);
+
   const entries = Object.entries(prices).filter(([, v]) => v != null) as [
     string,
     CommodityData,
@@ -109,6 +174,11 @@ export default function ChicagoClient() {
       : entries.filter(([, v]) => v.category === category);
 
   const exchangeRate = entries[0]?.[1]?.exchangeRate ?? null;
+
+  const selectedData =
+    selectedCommodity && prices[selectedCommodity]
+      ? prices[selectedCommodity]
+      : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -162,7 +232,7 @@ export default function ChicagoClient() {
       {exchangeRate && (
         <div className="bg-white/3 border border-white/10 rounded-xl px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-sm text-white/50">💵 Dólar comercial:</span>
+            <span className="text-sm text-white/50">Dólar comercial:</span>
             <span className="text-lg font-bold tabular-nums text-green-300">
               R${" "}
               {exchangeRate.toLocaleString("pt-BR", {
@@ -189,7 +259,20 @@ export default function ChicagoClient() {
       {filtered.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(([key, data]) => (
-            <CommodityCard key={key} data={data} showBrl={showBrl} />
+            <div
+              key={key}
+              ref={key === commodityParam ? highlightRef : undefined}
+            >
+              <CommodityCard
+                data={data}
+                showBrl={showBrl}
+                highlighted={key === commodityParam}
+                selected={key === selectedCommodity}
+                onSelect={() =>
+                  setSelectedCommodity(selectedCommodity === key ? null : key)
+                }
+              />
+            </div>
           ))}
         </div>
       )}
@@ -201,12 +284,66 @@ export default function ChicagoClient() {
         </div>
       )}
 
+      {/* Subscriber history section */}
+      {selectedCommodity && (
+        <div className="flex flex-col gap-4">
+          {hasActivePlan ? (
+            <section className="bg-white/3 border border-white/10 rounded-2xl p-4 sm:p-5">
+              <h2 className="font-semibold text-sm text-white/60 mb-4">
+                Histórico — {selectedData?.name ?? selectedCommodity}
+              </h2>
+              {historyLoading ? (
+                <div className="flex items-center justify-center h-48 text-white/30 text-sm">
+                  Carregando...
+                </div>
+              ) : (
+                <QuoteChart
+                  data={historyData}
+                  unit={selectedData?.unit ?? "USD"}
+                  color="#4ade80"
+                  chicagoKey={selectedCommodity}
+                  showRangeSelector
+                  initialRange={30}
+                  height={320}
+                />
+              )}
+            </section>
+          ) : (
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Lock className="w-5 h-5 text-white/30" />
+                <div>
+                  <p className="text-sm font-medium text-white/60">
+                    Histórico de {selectedData?.name ?? "cotações"}
+                  </p>
+                  <p className="text-xs text-white/30">
+                    Disponível para assinantes
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/planos"
+                className="text-sm font-medium text-green-400 hover:text-green-300 flex items-center gap-1"
+              >
+                Assinar
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Footer */}
       <div className="text-center text-xs text-white/25 mt-4">
         <p>
           Dados de futuros da CME Group / Chicago Board of Trade (CBOT).
           Cotações com atraso de até 15 minutos.
         </p>
+        {!selectedCommodity && (
+          <p className="mt-1 text-white/15">
+            Clique em uma commodity para ver o histórico detalhado.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -215,9 +352,15 @@ export default function ChicagoClient() {
 function CommodityCard({
   data,
   showBrl,
+  highlighted,
+  selected,
+  onSelect,
 }: {
   data: CommodityData;
   showBrl: boolean;
+  highlighted: boolean;
+  selected: boolean;
+  onSelect: () => void;
 }) {
   const isUp = data.change > 0;
   const isDown = data.change < 0;
@@ -226,11 +369,15 @@ function CommodityCard({
     : isDown
       ? "text-red-400"
       : "text-white/40";
-  const borderColor = isUp
-    ? "border-green-500/20"
-    : isDown
-      ? "border-red-500/20"
-      : "border-white/10";
+  const borderColor = highlighted
+    ? "border-green-400/50 ring-1 ring-green-400/20"
+    : selected
+      ? "border-green-500/30"
+      : isUp
+        ? "border-green-500/20"
+        : isDown
+          ? "border-red-500/20"
+          : "border-white/10";
 
   const priceUsd = data.price.toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -244,8 +391,12 @@ function CommodityCard({
     : null;
 
   return (
-    <div
-      className={`bg-white/3 border ${borderColor} rounded-xl p-4 flex flex-col gap-3 hover:bg-white/5 transition-colors`}
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`w-full text-left bg-white/3 border ${borderColor} rounded-xl p-4 flex flex-col gap-3 hover:bg-white/5 transition-all cursor-pointer ${
+        selected ? "bg-white/5" : ""
+      }`}
     >
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -313,6 +464,6 @@ function CommodityCard({
           minute: "2-digit",
         })}
       </p>
-    </div>
+    </button>
   );
 }

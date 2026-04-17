@@ -4,6 +4,8 @@ import { getSession, getUserPermissions } from "@/lib/auth";
 import { getUserSubscription } from "@/actions/subscriptions";
 import { navLinks } from "@/config";
 import UserMenu from "@/components/UserMenu";
+import NavDropdown from "@/components/NavDropdown";
+import MobileNavDropdown from "@/components/MobileNavDropdown";
 import { Crown } from "lucide-react";
 
 export default async function Header() {
@@ -34,15 +36,19 @@ export default async function Header() {
 
         {/* Desktop: nav links inline */}
         <nav className="hidden md:flex items-center gap-6 flex-1">
-          {navLinks.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="text-sm font-medium hover:text-green-300 transition-colors"
-            >
-              {l.name}
-            </Link>
-          ))}
+          {navLinks.map((l) =>
+            l.children ? (
+              <NavDropdown key={l.href} link={l} />
+            ) : (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="text-sm font-medium hover:text-green-300 transition-colors"
+              >
+                {l.name}
+              </Link>
+            ),
+          )}
           {showSubscribeLink && (
             <Link
               href="/planos"
@@ -63,15 +69,19 @@ export default async function Header() {
       {/* Mobile: horizontal scrollable nav (hidden scrollbar) */}
       <nav className="md:hidden overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex justify-between gap-4 px-4 pb-3 min-w-full w-max">
-          {navLinks.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="text-sm font-medium whitespace-nowrap hover:text-green-300 transition-colors"
-            >
-              {l.name}
-            </Link>
-          ))}
+          {navLinks.map((l) =>
+            l.children ? (
+              <MobileNavDropdown key={l.href} link={l} />
+            ) : (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="text-sm font-medium whitespace-nowrap hover:text-green-300 transition-colors"
+              >
+                {l.name}
+              </Link>
+            ),
+          )}
           {showSubscribeLink && (
             <Link
               href="/planos"

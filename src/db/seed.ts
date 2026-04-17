@@ -19,6 +19,9 @@ import {
   rolePermissions,
   subscriptionPlans,
   subscriptionAlertSettings,
+  geoCountries,
+  geoStates,
+  geoCities,
 } from "./schema";
 
 const db = drizzle(process.env.DB_FILE_NAME!);
@@ -608,7 +611,142 @@ async function main() {
       .onConflictDoNothing();
   }
 
-  console.log("✅ Seed concluído!");
+  // ── Seed geo data (countries, states, cities) ────────────────────────────────
+  await seedGeoData();
+
+  console.log("Seed concluído!");
+}
+
+interface GeoCountryJSON {
+  id: number;
+  name: string;
+  iso2: string;
+  iso3: string;
+  phonecode: string;
+  currency: string;
+  emoji: string;
+}
+
+interface GeoStateJSON {
+  id: number;
+  name: string;
+  country_id: number;
+  country_code: string;
+  iso2: string;
+}
+
+interface GeoCityJSON {
+  id: number;
+  name: string;
+  state_id: number;
+}
+
+async function seedGeoData() {
+  // Check if already seeded
+  const [existing] = await db
+    .select({ id: geoCountries.id })
+    .from(geoCountries)
+    .limit(1);
+  if (existing) {
+    console.log("Geo data already seeded, skipping.");
+    return;
+  }
+
+  console.log("Seeding geo data from CDN (this may take a while)...");
+
+  // Fetch countries
+  console.log("  Fetching countries...");
+  const countriesRes = await fetch(
+    "https://cdn.agrocomm.com.br/json/countries.json",
+    { signal: AbortSignal.timeout(30_000) },
+  );
+  const countriesJSON: GeoCountryJSON[] = await countriesRes.json();
+
+  // Fetch states
+  console.log("  Fetching states...");
+  const statesRes = await fetch(
+    "https://cdn.agrocomm.com.br/json/states.json",
+    { signal: AbortSignal.timeout(30_000) },
+  );
+  const statesJSON: GeoStateJSON[] = await statesRes.json();
+
+  // Fetch cities (large file)
+  console.log("  Fetching cities (large file)...");
+  const citiesRes = await fetch(
+    "https://cdn.agrocomm.com.br/json/cities.json",
+    { signal: AbortSignal.timeout(120_000) },
+  );
+  const citiesJSON: GeoCityJSON[] = await citiesRes.json();
+
+  // Insert countries
+  console.log(`  Inserting ${countriesJSON.length} countries...`);
+  const countryIdMap = new Map<number, number>(); // original id -> db id
+  for (const c of countriesJSON) {
+    const [inserted] = await db
+      .insert(geoCountries)
+      .values({
+        name: c.name,
+        iso2: c.iso2,
+        iso3: c.iso3,
+        phonecode: c.phonecode,
+        currency: c.currency,
+        emoji: c.emoji,
+      })
+      .onConflictDoNothing()
+      .returning({ id: geoCountries.id });
+    if (inserted) countryIdMap.set(c.id, inserted.id);
+  }
+
+  // Insert states
+  console.log(`  Inserting ${statesJSON.length} states...`);
+  const stateIdMap = new Map<number, number>(); // original id -> db id
+  const BATCH_SIZE = 500;
+  for (let i = 0; i < statesJSON.length; i += BATCH_SIZE) {
+    const batch = statesJSON.slice(i, i + BATCH_SIZE);
+    const values = batch
+      .filter((s) => countryIdMap.has(s.country_id))
+      .map((s) => ({
+        countryId: countryIdMap.get(s.country_id)!,
+        name: s.name,
+        iso2: s.iso2 || null,
+      }));
+    if (values.length === 0) continue;
+    const inserted = await db
+      .insert(geoStates)
+      .values(values)
+      .returning({ id: geoStates.id });
+    // Map original IDs
+    let idx = 0;
+    for (const s of batch) {
+      if (countryIdMap.has(s.country_id) && idx < inserted.length) {
+        stateIdMap.set(s.id, inserted[idx].id);
+        idx++;
+      }
+    }
+  }
+
+  // Insert cities in batches
+  console.log(`  Inserting ${citiesJSON.length} cities (batched)...`);
+  let citiesInserted = 0;
+  for (let i = 0; i < citiesJSON.length; i += BATCH_SIZE) {
+    const batch = citiesJSON.slice(i, i + BATCH_SIZE);
+    const values = batch
+      .filter((c) => stateIdMap.has(c.state_id))
+      .map((c) => ({
+        stateId: stateIdMap.get(c.state_id)!,
+        name: c.name,
+      }));
+    if (values.length === 0) continue;
+    await db.insert(geoCities).values(values);
+    citiesInserted += values.length;
+    if ((i / BATCH_SIZE) % 20 === 0 && i > 0) {
+      console.log(`    ${citiesInserted} cities inserted...`);
+    }
+  }
+
+  console.log(
+    `  Geo data seeded: ${countriesJSON.length} countries, ${statesJSON.length} states, ${citiesInserted} cities.`,
+  );
 }
 
 main().catch(console.error);

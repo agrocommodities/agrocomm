@@ -34,6 +34,7 @@ export default function HistoryQuotesClient({
       <HistoryDatePicker
         hasActivePlan={hasActivePlan}
         historyDays={historyDays}
+        productSlug={productSlug}
         onDateSelect={handleDateSelect}
       />
 

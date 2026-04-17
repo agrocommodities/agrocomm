@@ -11,6 +11,7 @@ import LocationPriceSelector from "@/components/LocationPriceSelector";
 import ShareSidebar from "@/components/ShareSidebar";
 import ProductQuotesTable from "@/components/ProductQuotesTable";
 import HistoryQuotesClient from "@/components/HistoryQuotesClient";
+import DateRangeCompare from "@/components/DateRangeCompare";
 import Breadcrumb from "@/components/Breadcrumb";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
@@ -224,6 +225,13 @@ export default async function ProdutoPage({
 
       {/* Historical query */}
       <HistoryQuotesClient
+        productSlug={produto}
+        hasActivePlan={hasActivePlan}
+        historyDays={historyDays}
+      />
+
+      {/* Date range comparison */}
+      <DateRangeCompare
         productSlug={produto}
         hasActivePlan={hasActivePlan}
         historyDays={historyDays}

@@ -14,6 +14,7 @@ import {
   newsArticles,
   quoteConflicts,
   newsSources,
+  chicagoQuotes,
 } from "./schema";
 
 const db = drizzle(process.env.DB_FILE_NAME!);
@@ -1327,6 +1328,183 @@ async function main() {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[news] Erro: ${message}`);
   }
+  // Scraping de cotações da Bolsa de Chicago (CBOT)
+  try {
+    console.log("[chicago] Iniciando scraping de cotações CBOT…");
+    const chicagoInserted = await scrapeAndPersistChicago(dateStr);
+    console.log(`[chicago] ${chicagoInserted} cotações processadas.`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[chicago] Erro: ${message}`);
+  }
+}
+
+const CHICAGO_COMMODITIES = [
+  {
+    key: "soja",
+    symbol: "ZS=F",
+    name: "Soja",
+    unit: "USD/bushel",
+    category: "graos",
+  },
+  {
+    key: "milho",
+    symbol: "ZC=F",
+    name: "Milho",
+    unit: "USD/bushel",
+    category: "graos",
+  },
+  {
+    key: "trigo",
+    symbol: "ZW=F",
+    name: "Trigo",
+    unit: "USD/bushel",
+    category: "graos",
+  },
+  {
+    key: "farelo-soja",
+    symbol: "ZM=F",
+    name: "Farelo de Soja",
+    unit: "USD/ton",
+    category: "graos",
+  },
+  {
+    key: "oleo-soja",
+    symbol: "ZL=F",
+    name: "Óleo de Soja",
+    unit: "USD/lb",
+    category: "graos",
+  },
+  {
+    key: "boi",
+    symbol: "LE=F",
+    name: "Boi Gordo",
+    unit: "USD/lb",
+    category: "pecuaria",
+  },
+  {
+    key: "porco",
+    symbol: "HE=F",
+    name: "Suíno Magro",
+    unit: "USD/lb",
+    category: "pecuaria",
+  },
+  {
+    key: "boi-alimentacao",
+    symbol: "GF=F",
+    name: "Boi de Engorda",
+    unit: "USD/lb",
+    category: "pecuaria",
+  },
+  {
+    key: "cafe",
+    symbol: "KC=F",
+    name: "Café Arábica",
+    unit: "USD/lb",
+    category: "outros",
+  },
+  {
+    key: "acucar",
+    symbol: "SB=F",
+    name: "Açúcar",
+    unit: "USD/lb",
+    category: "outros",
+  },
+  {
+    key: "algodao",
+    symbol: "CT=F",
+    name: "Algodão",
+    unit: "USD/lb",
+    category: "outros",
+  },
+];
+
+async function scrapeAndPersistChicago(dateStr: string): Promise<number> {
+  let exchangeRate: number | null = null;
+  try {
+    const rateRes = await fetch(
+      "https://query1.finance.yahoo.com/v8/finance/chart/BRL=X?range=1d&interval=1d",
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
+    if (rateRes.ok) {
+      const rateData = await rateRes.json();
+      const rate = rateData.chart?.result?.[0]?.meta?.regularMarketPrice;
+      if (typeof rate === "number")
+        exchangeRate = Math.round(rate * 10000) / 10000;
+    }
+  } catch {
+    // ignore
+  }
+
+  let inserted = 0;
+
+  for (const c of CHICAGO_COMMODITIES) {
+    try {
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${c.symbol}?range=1d&interval=1d`;
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!res.ok) continue;
+
+      const data = await res.json();
+      const meta = data.chart?.result?.[0]?.meta;
+      if (!meta) continue;
+
+      const isUSX = meta.currency === "USX";
+      const divisor = isUSX ? 100 : 1;
+      const rawPrice = meta.regularMarketPrice;
+      const rawPrevClose = meta.previousClose ?? meta.chartPreviousClose;
+      if (typeof rawPrice !== "number") continue;
+
+      const price = Math.round((rawPrice / divisor) * 100) / 100;
+      const prevClose =
+        typeof rawPrevClose === "number" ? rawPrevClose / divisor : price;
+      const change = Math.round((price - prevClose) * 10000) / 10000;
+      const changePercent = prevClose
+        ? Math.round(((price - prevClose) / prevClose) * 10000) / 100
+        : 0;
+
+      await db
+        .insert(chicagoQuotes)
+        .values({
+          symbol: c.symbol,
+          key: c.key,
+          name: c.name,
+          category: c.category,
+          price,
+          change,
+          changePercent,
+          currency: "USD",
+          unit: c.unit,
+          exchangeRate,
+          quoteDate: dateStr,
+        })
+        .onConflictDoUpdate({
+          target: [chicagoQuotes.symbol, chicagoQuotes.quoteDate],
+          set: {
+            price,
+            change,
+            changePercent,
+            exchangeRate,
+          },
+        });
+      inserted++;
+    } catch {
+      // skip individual commodity errors
+    }
+  }
+
+  return inserted;
 }
 
 main();

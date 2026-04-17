@@ -1,8 +1,15 @@
 "use server";
 
 import { db } from "@/db";
-import { quotes, products, cities, states, sources } from "@/db/schema";
-import { eq, and, gte, desc, sql } from "drizzle-orm";
+import {
+  quotes,
+  products,
+  cities,
+  states,
+  sources,
+  chicagoQuotes,
+} from "@/db/schema";
+import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 
 export type QuoteRow = {
   id: number;
@@ -275,4 +282,110 @@ export async function getQuotesByDate(
     .innerJoin(sources, eq(quotes.sourceId, sources.id))
     .where(and(eq(products.slug, productSlug), eq(quotes.quoteDate, date)))
     .orderBy(states.code, cities.name);
+}
+
+/** Returns dates that have quotes for a product in a given year/month */
+export async function getAvailableQuoteDates(
+  productSlug: string,
+  year: number,
+  month: number,
+): Promise<string[]> {
+  const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+  const endMonth = month === 12 ? 1 : month + 1;
+  const endYear = month === 12 ? year + 1 : year;
+  const endDate = `${endYear}-${String(endMonth).padStart(2, "0")}-01`;
+
+  const rows = await db
+    .selectDistinct({ date: quotes.quoteDate })
+    .from(quotes)
+    .innerJoin(products, eq(quotes.productId, products.id))
+    .where(
+      and(
+        eq(products.slug, productSlug),
+        gte(quotes.quoteDate, startDate),
+        sql`${quotes.quoteDate} < ${endDate}`,
+      ),
+    )
+    .orderBy(quotes.quoteDate);
+  return rows.map((r) => r.date);
+}
+
+/** Returns distinct years that have quotes for a product */
+export async function getAvailableQuoteYears(
+  productSlug: string,
+): Promise<number[]> {
+  const rows = await db
+    .selectDistinct({
+      year: sql<string>`substr(${quotes.quoteDate}, 1, 4)`,
+    })
+    .from(quotes)
+    .innerJoin(products, eq(quotes.productId, products.id))
+    .where(eq(products.slug, productSlug))
+    .orderBy(sql`substr(${quotes.quoteDate}, 1, 4)`);
+  return rows.map((r) => Number(r.year));
+}
+
+/** Returns quotes for a product between two dates */
+export async function getQuotesByDateRange(
+  productSlug: string,
+  startDate: string,
+  endDate: string,
+): Promise<QuoteRow[]> {
+  return db
+    .select(BASE_SELECT)
+    .from(quotes)
+    .innerJoin(products, eq(quotes.productId, products.id))
+    .innerJoin(cities, eq(quotes.cityId, cities.id))
+    .innerJoin(states, eq(cities.stateId, states.id))
+    .innerJoin(sources, eq(quotes.sourceId, sources.id))
+    .where(
+      and(
+        eq(products.slug, productSlug),
+        gte(quotes.quoteDate, startDate),
+        lte(quotes.quoteDate, endDate),
+      ),
+    )
+    .orderBy(quotes.quoteDate, states.code, cities.name);
+}
+
+/**
+ * Returns historical Chicago (CBOT) quotes for a given commodity key.
+ * @param key commodity key, e.g. "soja", "milho", "boi"
+ * @param days 0 = all, otherwise days back from today
+ */
+export async function getChicagoHistory(
+  key: string,
+  days: number,
+): Promise<HistoryPoint[]> {
+  const conditions = [eq(chicagoQuotes.key, key)];
+
+  if (days > 0) {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    const sinceStr = since.toISOString().slice(0, 10);
+    conditions.push(gte(chicagoQuotes.quoteDate, sinceStr));
+  }
+
+  const rows = await db
+    .select({
+      date: chicagoQuotes.quoteDate,
+      price: chicagoQuotes.price,
+    })
+    .from(chicagoQuotes)
+    .where(and(...conditions))
+    .orderBy(chicagoQuotes.quoteDate);
+
+  return rows;
+}
+
+/**
+ * Returns historical Chicago (CBOT) quotes with a custom date range.
+ * @param key commodity key
+ * @param days number of days back
+ */
+export async function getChicagoHistoryByRange(
+  key: string,
+  days: number,
+): Promise<HistoryPoint[]> {
+  return getChicagoHistory(key, days);
 }

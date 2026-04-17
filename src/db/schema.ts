@@ -59,6 +59,9 @@ export const users = sqliteTable("users", {
   role: text().notNull().default("user"),
   roleId: int("role_id").references(() => roles.id, { onDelete: "set null" }),
   avatarUrl: text("avatar_url"),
+  countryId: int("country_id"),
+  geoStateId: int("geo_state_id"),
+  geoCityId: int("geo_city_id"),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 
@@ -735,6 +738,81 @@ export const auditLogs = sqliteTable("audit_logs", {
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 
+// ── Cotações Chicago (CBOT) ──────────────────────────────────────────────────
+
+export const chicagoQuotes = sqliteTable(
+  "chicago_quotes",
+  {
+    id: int().primaryKey({ autoIncrement: true }),
+    symbol: text().notNull(), // e.g. "ZS=F"
+    key: text().notNull(), // e.g. "soja"
+    name: text().notNull(), // e.g. "Soja"
+    category: text().notNull(), // "graos" | "pecuaria" | "outros"
+    price: real().notNull(),
+    change: real().notNull().default(0),
+    changePercent: real("change_percent").notNull().default(0),
+    currency: text().notNull().default("USD"),
+    unit: text().notNull(),
+    exchangeRate: real("exchange_rate"),
+    quoteDate: text("quote_date").notNull(), // "YYYY-MM-DD"
+    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => [
+    uniqueIndex("chicago_quotes_symbol_date_idx").on(
+      table.symbol,
+      table.quoteDate,
+    ),
+  ],
+);
+
+// ── Geografia Mundial (para endereço de usuários) ────────────────────────────
+
+export const geoCountries = sqliteTable("geo_countries", {
+  id: int().primaryKey({ autoIncrement: true }),
+  name: text().notNull(),
+  iso2: text().notNull().unique(),
+  iso3: text().notNull(),
+  phonecode: text(),
+  currency: text(),
+  emoji: text(),
+});
+
+export const geoStates = sqliteTable("geo_states", {
+  id: int().primaryKey({ autoIncrement: true }),
+  countryId: int("country_id")
+    .notNull()
+    .references(() => geoCountries.id, { onDelete: "cascade" }),
+  name: text().notNull(),
+  iso2: text(),
+});
+
+export const geoCities = sqliteTable("geo_cities", {
+  id: int().primaryKey({ autoIncrement: true }),
+  stateId: int("state_id")
+    .notNull()
+    .references(() => geoStates.id, { onDelete: "cascade" }),
+  name: text().notNull(),
+});
+
+export const geoCountriesRelations = relations(geoCountries, ({ many }) => ({
+  states: many(geoStates),
+}));
+
+export const geoStatesRelations = relations(geoStates, ({ one, many }) => ({
+  country: one(geoCountries, {
+    fields: [geoStates.countryId],
+    references: [geoCountries.id],
+  }),
+  cities: many(geoCities),
+}));
+
+export const geoCitiesRelations = relations(geoCities, ({ one }) => ({
+  state: one(geoStates, {
+    fields: [geoCities.stateId],
+    references: [geoStates.id],
+  }),
+}));
+
 // ── Relations de Cargos/Permissões ────────────────────────────────────────────
 
 export const rolesRelations = relations(roles, ({ many }) => ({
@@ -776,6 +854,18 @@ export const userPermissionsRelations = relations(
 
 export const usersRelations = relations(users, ({ one, many }) => ({
   userRole: one(roles, { fields: [users.roleId], references: [roles.id] }),
+  country: one(geoCountries, {
+    fields: [users.countryId],
+    references: [geoCountries.id],
+  }),
+  geoState: one(geoStates, {
+    fields: [users.geoStateId],
+    references: [geoStates.id],
+  }),
+  geoCity: one(geoCities, {
+    fields: [users.geoCityId],
+    references: [geoCities.id],
+  }),
   notifications: many(notifications),
   classifieds: many(classifieds),
   classifiedComments: many(classifiedComments),

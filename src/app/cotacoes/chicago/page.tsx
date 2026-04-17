@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import ChicagoClient from "./ChicagoClient";
 import Breadcrumb from "@/components/Breadcrumb";
+import { getSession } from "@/lib/auth";
+import { getUserSubscription } from "@/actions/subscriptions";
 
 export const revalidate = 60;
 
@@ -18,14 +21,25 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ChicagoPage() {
+export default async function ChicagoPage() {
+  const session = await getSession();
+
+  let hasActivePlan = false;
+
+  if (session) {
+    const sub = await getUserSubscription();
+    if (sub?.status === "active" && sub.priceHistory) {
+      hasActivePlan = true;
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-8">
       {/* Header */}
       <div className="flex flex-col gap-1">
         <Breadcrumb items={[{ label: "Bolsa de Chicago" }]} />
         <h1 className="text-xl md:text-3xl font-bold">
-          📊 Bolsa de Chicago (CBOT)
+          Bolsa de Chicago (CBOT)
         </h1>
         <div className="text-white/50 text-sm">
           Cotações em tempo real das principais commodities agropecuárias —
@@ -33,7 +47,9 @@ export default function ChicagoPage() {
         </div>
       </div>
 
-      <ChicagoClient />
+      <Suspense>
+        <ChicagoClient hasActivePlan={hasActivePlan} />
+      </Suspense>
     </div>
   );
 }

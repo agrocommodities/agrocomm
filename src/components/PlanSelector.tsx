@@ -9,6 +9,7 @@ import {
   ShoppingBag,
   Check,
   Sparkles,
+  CalendarRange,
 } from "lucide-react";
 import type { PlanRow, UserSubscription } from "@/actions/subscriptions";
 
@@ -144,6 +145,12 @@ export default function PlanSelector({
                   <BarChart3 className="w-4 h-4 text-green-400 shrink-0" />
                   <span className="text-white/70">
                     Histórico de {plan.historyDays} dias
+                  </span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <CalendarRange className="w-4 h-4 text-green-400 shrink-0" />
+                  <span className="text-white/70">
+                    Comparação de preços por período
                   </span>
                 </li>
                 <li className="flex items-center gap-2 text-sm">

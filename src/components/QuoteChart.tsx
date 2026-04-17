@@ -13,7 +13,10 @@ import {
 } from "recharts";
 import { Minus, ArrowDown, ArrowUp, Activity, Loader2 } from "lucide-react";
 import type { HistoryPoint } from "@/actions/quotes";
-import { getCityHistoryByRange } from "@/actions/quotes";
+import {
+  getCityHistoryByRange,
+  getChicagoHistoryByRange,
+} from "@/actions/quotes";
 
 // ── Range options ─────────────────────────────────────────────────────────────
 
@@ -185,9 +188,11 @@ interface QuoteChartProps {
   data: HistoryPoint[];
   unit: string;
   color?: string;
-  /** If provided, enables dynamic range fetching */
+  /** If provided, enables dynamic range fetching for domestic quotes */
   productSlug?: string;
   cityId?: number;
+  /** If provided, enables dynamic range fetching for Chicago quotes */
+  chicagoKey?: string;
   /** Show range selector */
   showRangeSelector?: boolean;
   /** Initial range in days (default 30) */
@@ -202,6 +207,7 @@ export default function QuoteChart({
   color = "#4ade80",
   productSlug,
   cityId,
+  chicagoKey,
   showRangeSelector = true,
   initialRange = 30,
   height = 280,
@@ -213,7 +219,12 @@ export default function QuoteChart({
   const handleRangeChange = useCallback(
     (newRange: RangeValue) => {
       setRange(newRange);
-      if (productSlug && cityId) {
+      if (chicagoKey) {
+        startTransition(async () => {
+          const history = await getChicagoHistoryByRange(chicagoKey, newRange);
+          setData(history);
+        });
+      } else if (productSlug && cityId) {
         startTransition(async () => {
           const history = await getCityHistoryByRange(
             productSlug,
@@ -224,7 +235,7 @@ export default function QuoteChart({
         });
       }
     },
-    [productSlug, cityId],
+    [productSlug, cityId, chicagoKey],
   );
 
   const stats = computeStats(data);
@@ -322,7 +333,7 @@ export default function QuoteChart({
               type="monotone"
               dataKey="price"
               stroke={color}
-              strokeWidth={2}
+              strokeWidth={2.5}
               fill={`url(#${gradientId})`}
               dot={false}
               activeDot={{

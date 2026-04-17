@@ -218,10 +218,25 @@ export async function updateProfileAction(
     if (existing) return { error: "Este e-mail já está cadastrado." };
   }
 
-  const updates: { name: string; email: string; passwordHash?: string } = {
+  const updates: {
+    name: string;
+    email: string;
+    passwordHash?: string;
+    countryId?: number | null;
+    geoStateId?: number | null;
+    geoCityId?: number | null;
+  } = {
     name,
     email,
   };
+
+  // Address fields
+  const countryIdRaw = formData.get("countryId");
+  const geoStateIdRaw = formData.get("geoStateId");
+  const geoCityIdRaw = formData.get("geoCityId");
+  updates.countryId = countryIdRaw ? Number(countryIdRaw) : null;
+  updates.geoStateId = geoStateIdRaw ? Number(geoStateIdRaw) : null;
+  updates.geoCityId = geoCityIdRaw ? Number(geoCityIdRaw) : null;
 
   if (newPassword) {
     if (!currentPassword)

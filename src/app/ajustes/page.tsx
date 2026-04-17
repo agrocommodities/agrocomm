@@ -21,7 +21,12 @@ export default async function AjustesPage() {
   if (!session) redirect("/login");
 
   const [user] = await db
-    .select({ avatarUrl: users.avatarUrl })
+    .select({
+      avatarUrl: users.avatarUrl,
+      countryId: users.countryId,
+      geoStateId: users.geoStateId,
+      geoCityId: users.geoCityId,
+    })
     .from(users)
     .where(eq(users.id, session.userId))
     .limit(1);
@@ -62,6 +67,9 @@ export default async function AjustesPage() {
           <SettingsForm
             defaultName={session.name}
             defaultEmail={session.email}
+            defaultCountryId={user?.countryId ?? null}
+            defaultGeoStateId={user?.geoStateId ?? null}
+            defaultGeoCityId={user?.geoCityId ?? null}
           />
         </div>
       </div>
