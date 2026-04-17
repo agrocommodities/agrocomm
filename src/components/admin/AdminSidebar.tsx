@@ -19,6 +19,7 @@ import {
   Shield,
   FileText,
   Tag,
+  MessageCircle,
 } from "lucide-react";
 
 const links = [
@@ -30,6 +31,7 @@ const links = [
   { href: "/admin/categorias", label: "Categorias", icon: Tag },
   { href: "/admin/moderacao", label: "Moderação", icon: Shield },
   { href: "/admin/usuarios", label: "Usuários", icon: Users },
+  { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle },
   { href: "/admin/scraping", label: "Scraping", icon: RefreshCw },
   { href: "/admin/armazenamento", label: "Armazenamento", icon: HardDrive },
   { href: "/admin/estatisticas", label: "Estatísticas", icon: BarChart3 },

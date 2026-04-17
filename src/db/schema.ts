@@ -463,6 +463,79 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
+// ── WhatsApp ─────────────────────────────────────────────────────────────────
+
+/**
+ * Assinantes de cotações via WhatsApp
+ */
+export const whatsappSubscribers = sqliteTable("whatsapp_subscribers", {
+  id: int().primaryKey({ autoIncrement: true }),
+  name: text().notNull(),
+  phone: text().notNull().unique(), // formato internacional: 5567998552020
+  active: int().notNull().default(1), // 0 = pausado, 1 = ativo
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+/**
+ * Produtos selecionados por cada assinante
+ */
+export const whatsappSubscriberProducts = sqliteTable(
+  "whatsapp_subscriber_products",
+  {
+    id: int().primaryKey({ autoIncrement: true }),
+    subscriberId: int("subscriber_id")
+      .notNull()
+      .references(() => whatsappSubscribers.id, { onDelete: "cascade" }),
+    productId: int("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+  },
+);
+
+/**
+ * Log de envios WhatsApp
+ */
+export const whatsappLogs = sqliteTable("whatsapp_logs", {
+  id: int().primaryKey({ autoIncrement: true }),
+  subscriberId: int("subscriber_id").references(() => whatsappSubscribers.id, {
+    onDelete: "set null",
+  }),
+  phone: text().notNull(),
+  status: text().notNull(), // "success" | "error"
+  messageId: text("message_id"), // ID retornado pela API do WhatsApp
+  errorMessage: text("error_message"),
+  sentAt: text("sent_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const whatsappSubscribersRelations = relations(
+  whatsappSubscribers,
+  ({ many }) => ({
+    products: many(whatsappSubscriberProducts),
+    logs: many(whatsappLogs),
+  }),
+);
+
+export const whatsappSubscriberProductsRelations = relations(
+  whatsappSubscriberProducts,
+  ({ one }) => ({
+    subscriber: one(whatsappSubscribers, {
+      fields: [whatsappSubscriberProducts.subscriberId],
+      references: [whatsappSubscribers.id],
+    }),
+    product: one(products, {
+      fields: [whatsappSubscriberProducts.productId],
+      references: [products.id],
+    }),
+  }),
+);
+
+export const whatsappLogsRelations = relations(whatsappLogs, ({ one }) => ({
+  subscriber: one(whatsappSubscribers, {
+    fields: [whatsappLogs.subscriberId],
+    references: [whatsappSubscribers.id],
+  }),
+}));
+
 // ── Logs de Auditoria ─────────────────────────────────────────────────────────
 
 export const auditLogs = sqliteTable("audit_logs", {
