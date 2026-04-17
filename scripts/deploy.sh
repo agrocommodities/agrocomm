@@ -18,6 +18,7 @@ pnpm install
 #pnpm tsx scripts/create-reset-table.ts || exit 1
 
 if pnpm run push; then
+  pnpm tsx scripts/fix-city-slugs.ts
   pnpm run seed
   pnpm run scrape
   pnpm run build || exit 1

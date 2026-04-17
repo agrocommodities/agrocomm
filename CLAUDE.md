@@ -9,7 +9,7 @@ AgroComm is a Brazilian agropecuarian commodities platform — a full-stack Next
 ## Commands
 
 ```bash
-pnpm dev          # Start dev server (port 3000)
+pnpm dev          # Start dev server (port 3000) — runs tsx src/server.ts, NOT next dev
 pnpm build        # Build for production
 pnpm start        # Start production server (port 4000)
 pnpm check        # TypeScript type checking (no emit)
@@ -21,23 +21,38 @@ pnpm scrape       # Run scraper manually
 pnpm reset        # Full reset: delete DB → push → seed → scrape
 ```
 
-There are no automated tests. Type checking and linting are the verification tools.
+There are no automated tests. Type checking and linting are the verification tools. Always use **pnpm** — never npm or yarn.
 
 ## Architecture
 
 **Single Next.js application** (not a monorepo) using App Router with a custom server that integrates Socket.IO.
 
 ### Custom Server (`src/server.ts`)
-The app runs via a custom Next.js server — not `next start`. Socket.IO is attached at `/api/socketio` and broadcasts commodity prices every 60 seconds.
+The app runs via a custom Next.js server — not `next start`. Socket.IO is attached at `/api/socketio` and broadcasts commodity prices every 60 seconds. Dev mode also uses this custom server via `tsx`.
 
 ### Data Flow
-- **Server Actions** (`src/actions/`) handle form submissions and data mutations
-- **API Routes** (`src/app/api/`) handle REST endpoints (commodities, health)
+- **Server Actions** (`src/actions/`) handle form submissions and data mutations — use manual FormData parsing with inline validation (no Zod)
+- **API Routes** (`src/app/api/`) handle REST endpoints (commodities, health, admin operations, tracking)
 - **Drizzle ORM** (`src/db/`) provides type-safe SQLite access via libSQL
 - **Real-time**: Socket.IO client in `CommoditySidebar.tsx` connects for live price updates; falls back to `/api/commodities`
 
-### Parallel Routes / Modals
-`src/app/@modal/` uses Next.js parallel routes to intercept `/ajuda`, `/sobre`, and `/suporte` — rendering them as modals when navigated to via the layout, or as full pages when accessed directly.
+### Routing Structure
+- **Route group `(auth)`** — groups auth pages: login, cadastro, esqueci-senha, ativar-conta, redefinir-senha
+- **Parallel routes `@modal`** — intercepts `/ajuda`, `/sobre`, `/suporte`, `/privacidade`, `/termos` as modals via `(.)` convention; also accessible as full pages
+- **Admin panel `/admin`** — full-featured with managers for: users, moderation, conflicts, categories, storage, quotes, news, logs. Each section follows page.tsx + Manager component pattern
+- **Feature routes** — `/classificados`, `/noticias`, `/cotacoes`, `/notificacoes`, `/ajustes`
+
+### Components (`src/components/`)
+Organized with feature subfolders: `admin/` and `auth/`. Root-level components are domain-specific (Header, Footer, ContactForm, etc.) — no generic `ui/` folder.
+
+### Key Libraries (`src/lib/`)
+- `auth.ts` — JWT access + refresh tokens in HTTP-only cookies; email verification and password reset tokens in DB
+- `password.ts` — password hashing/verification
+- `email.ts` — email sending via Nodemailer
+- `scraper.ts` + `src/db/scrape.ts` — commodity and news scraping
+- `markdown.ts` — markdown rendering
+- `moderation.ts` — action logging
+- `whatsapp.ts` — WhatsApp integration
 
 ### Database
 - **ORM**: Drizzle ORM with SQLite/libSQL (`@libsql/client`)
@@ -45,12 +60,10 @@ The app runs via a custom Next.js server — not `next start`. Socket.IO is atta
 - **Rule**: Always use `pnpm push` (`drizzle-kit push`) to sync schema. Never use `drizzle-kit migrate`.
 - **Seed**: `src/db/seed.ts` creates the admin user, roles/permissions, and sample data
 
-### Authentication
-JWT-based with access + refresh tokens stored in HTTP-only cookies. Logic in `src/lib/auth.ts`. Email verification tokens and password reset tokens are stored in the database.
-
 ### Scraping
-- `src/lib/scraper.ts` + `src/db/scrape.ts` — fetches from Scot Consultoria (pecuária), Notícias Agrícolas (grãos), and Yahoo Finance API (CBOT futures: ZS=F, ZC=F, LE=F)
-- News articles store full HTML content; tags are auto-extracted with fallback generation
+- Fetches from Scot Consultoria (pecuária), Notícias Agrícolas (grãos), and Yahoo Finance API (CBOT futures: ZS=F, ZC=F, LE=F)
+- Scraper dynamically constructs URLs per product/state from the base URL stored in `sources` table
+- News articles store full HTML content; tags are auto-extracted with fallback generation from title keywords
 - Deduplication via `sourceUrl` UNIQUE constraint on `news_articles`
 
 ### Email
@@ -58,8 +71,8 @@ Nodemailer with Pug templates in `src/emails/`. Requires `MAIL_ADDR`, `MAIL_USER
 
 ## Key Rules
 
-- **Never use `any`** — enforced as an error by Biome
-- **Styling**: Tailwind CSS v4, dark theme, green accents
+- **Never use `any`** — enforced as an error by Biome (`noExplicitAny: "error"`)
+- **Styling**: Tailwind CSS v4, dark theme, green accents (`--background: #394634`)
 - **Linting/Formatting**: Biome only (not ESLint/Prettier)
 - **Path alias**: `@/*` maps to `src/*`
 - **Server actions body limit**: 35mb (configured in `next.config.ts` for image uploads)

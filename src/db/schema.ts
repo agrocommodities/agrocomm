@@ -1,4 +1,10 @@
-import { int, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  int,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 import { sql, relations } from "drizzle-orm";
 
 // ── Cargos e Permissões ──────────────────────────────────────────────────────
@@ -99,14 +105,20 @@ export const states = sqliteTable("states", {
   name: text().notNull(), // ex: "Mato Grosso do Sul"
 });
 
-export const cities = sqliteTable("cities", {
-  id: int().primaryKey({ autoIncrement: true }),
-  stateId: int("state_id")
-    .notNull()
-    .references(() => states.id, { onDelete: "cascade" }),
-  name: text().notNull(), // ex: "Campo Grande"
-  slug: text().notNull().unique(), // ex: "ms-campo-grande"
-});
+export const cities = sqliteTable(
+  "cities",
+  {
+    id: int().primaryKey({ autoIncrement: true }),
+    stateId: int("state_id")
+      .notNull()
+      .references(() => states.id, { onDelete: "cascade" }),
+    name: text().notNull(),
+    slug: text().notNull(), // ex: "campo-grande"
+  },
+  (table) => [
+    uniqueIndex("cities_state_slug_idx").on(table.stateId, table.slug),
+  ],
+);
 
 export const statesRelations = relations(states, ({ many }) => ({
   cities: many(cities),

@@ -769,7 +769,9 @@ async function persistQuotes(
         .limit(1);
       if (!stateRow) continue;
 
-      const slug = norm(row.city).replace(/\s+/g, "-");
+      const slug = norm(row.city)
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
       await db
         .insert(cities)
         .values({ stateId: stateRow.id, name: row.city, slug })

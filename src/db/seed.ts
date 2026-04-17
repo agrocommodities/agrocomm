@@ -83,7 +83,7 @@ const STATES = estadosJSON.map((e) => ({
 const CITIES = cidadesJSON.map((c) => ({
   stateCode: c.state_code,
   name: c.name,
-  slug: `${c.state_code.toLowerCase()}-${slugify(c.name)}`,
+  slug: slugify(c.name),
 }));
 
 const SOURCES = [
