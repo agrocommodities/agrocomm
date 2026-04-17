@@ -11,7 +11,7 @@ import {
   cities,
   users,
 } from "@/db/schema";
-import { eq, desc, and, like, inArray, count } from "drizzle-orm";
+import { eq, desc, and, like, inArray, count, sql } from "drizzle-orm";
 import { getSession, getUserPermissions } from "@/lib/auth";
 import { moderateText } from "@/lib/moderation";
 import { logAction } from "@/lib/moderation";
@@ -281,6 +281,35 @@ export async function createClassified(
 ): Promise<{ error?: string; success?: boolean; slug?: string }> {
   const session = await getSession();
   if (!session) return { error: "Faça login para publicar um anúncio." };
+
+  // Check subscription limit
+  const { getUserSubscription } = await import("@/actions/subscriptions");
+  const subscription = await getUserSubscription();
+  const maxClassifieds =
+    subscription?.status === "active" ? subscription.maxClassifieds : 0;
+
+  if (maxClassifieds === 0) {
+    return {
+      error:
+        "Você precisa de um plano ativo para publicar anúncios. Acesse /planos para assinar.",
+    };
+  }
+
+  const activeCount = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(classifieds)
+    .where(
+      and(
+        eq(classifieds.userId, session.userId),
+        sql`${classifieds.status} IN ('pending', 'approved')`,
+      ),
+    );
+
+  if ((activeCount[0]?.count ?? 0) >= maxClassifieds) {
+    return {
+      error: `Você atingiu o limite de ${maxClassifieds} anúncio(s) do seu plano. Faça upgrade em /planos para publicar mais.`,
+    };
+  }
 
   const title = String(formData.get("title") ?? "").trim();
   const descriptionRaw = String(formData.get("description") ?? "").trim();

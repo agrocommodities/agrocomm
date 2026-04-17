@@ -17,6 +17,8 @@ import {
   roles,
   permissions,
   rolePermissions,
+  subscriptionPlans,
+  subscriptionAlertSettings,
 } from "./schema";
 
 const db = drizzle(process.env.DB_FILE_NAME!);
@@ -375,6 +377,11 @@ async function main() {
       category: "admin",
     },
     {
+      key: "admin.subscriptions",
+      name: "Gerenciar assinaturas",
+      category: "admin",
+    },
+    {
       key: "classifieds.create",
       name: "Criar classificados",
       category: "classificados",
@@ -491,6 +498,114 @@ async function main() {
       .update(users)
       .set({ roleId: superAdminRole.id, role: "super-admin" })
       .where(eq(users.email, adminEmail));
+  }
+
+  // ── Subscription Plans ──────────────────────────────────────────────────────
+
+  console.log("Seeding subscription plans…");
+  const SUBSCRIPTION_PLANS = [
+    {
+      slug: "bronze",
+      name: "Bronze",
+      description:
+        "Ideal para quem quer acompanhar cotações com alertas por e-mail.",
+      priceMonthly: 19.9,
+      priceWeekly: 6.9,
+      maxClassifieds: 3,
+      emailBulletins: 1,
+      priceHistory: 1,
+      historyDays: 30,
+      active: 1,
+      sortOrder: 1,
+    },
+    {
+      slug: "prata",
+      name: "Prata",
+      description:
+        "Para profissionais que precisam de mais anúncios e histórico estendido.",
+      priceMonthly: 39.9,
+      priceWeekly: 12.9,
+      maxClassifieds: 10,
+      emailBulletins: 1,
+      priceHistory: 1,
+      historyDays: 90,
+      active: 1,
+      sortOrder: 2,
+    },
+    {
+      slug: "ouro",
+      name: "Ouro",
+      description:
+        "Acesso completo com anúncios ilimitados e histórico de 1 ano.",
+      priceMonthly: 79.9,
+      priceWeekly: 24.9,
+      maxClassifieds: 999,
+      emailBulletins: 1,
+      priceHistory: 1,
+      historyDays: 365,
+      active: 1,
+      sortOrder: 3,
+    },
+  ];
+  for (const plan of SUBSCRIPTION_PLANS) {
+    await db.insert(subscriptionPlans).values(plan).onConflictDoNothing();
+  }
+
+  // ── Subscription Alert Settings ─────────────────────────────────────────────
+
+  console.log("Seeding subscription alert settings…");
+  const ALERT_SETTINGS = [
+    {
+      alertType: "card_declined",
+      enabled: 1,
+      emailTemplate: "payment-failed",
+      daysBefore: 0,
+      daysAfter: 0,
+      maxAttempts: 3,
+      intervalHours: 24,
+    },
+    {
+      alertType: "expiring",
+      enabled: 1,
+      emailTemplate: "subscription-expiring",
+      daysBefore: 3,
+      daysAfter: 0,
+      maxAttempts: 1,
+      intervalHours: 0,
+    },
+    {
+      alertType: "expired",
+      enabled: 1,
+      emailTemplate: "subscription-expired",
+      daysBefore: 0,
+      daysAfter: 7,
+      maxAttempts: 3,
+      intervalHours: 48,
+    },
+    {
+      alertType: "pix_pending",
+      enabled: 1,
+      emailTemplate: "pix-payment",
+      daysBefore: 0,
+      daysAfter: 0,
+      maxAttempts: 2,
+      intervalHours: 12,
+    },
+    {
+      alertType: "boleto_pending",
+      enabled: 1,
+      emailTemplate: "boleto-payment",
+      daysBefore: 0,
+      daysAfter: 0,
+      maxAttempts: 2,
+      intervalHours: 24,
+    },
+  ];
+  for (const alert of ALERT_SETTINGS) {
+    await db
+      .insert(subscriptionAlertSettings)
+      .values(alert)
+      .onConflictDoNothing();
   }
 
   console.log("✅ Seed concluído!");

@@ -46,6 +46,84 @@ Cada página funciona como:
 - **Página completa** quando acessada diretamente (ex: `/ajuda`)
 - **Modal** quando navegada a partir de outra página (rotas interceptadas via `@modal/(.)ajuda`)
 
+### 💳 Sistema de Assinaturas (Mercado Pago)
+
+Planos mensais e semanais com checkout transparente (o usuário nunca sai do site).
+
+#### Planos
+
+| Plano  | Mensal   | Semanal  | Anúncios | Histórico | Boletins |
+|--------|----------|----------|----------|-----------|----------|
+| Bronze | R$19,90  | R$6,90   | 3        | 30 dias   | Sim      |
+| Prata  | R$39,90  | R$12,90  | 10       | 90 dias   | Sim      |
+| Ouro   | R$79,90  | R$24,90  | Ilimitado| 365 dias  | Sim      |
+
+Preços e benefícios são configuráveis pelo admin em `/admin/assinaturas`.
+
+#### Métodos de pagamento
+- **Pix** — QR code exibido na tela + código copia-e-cola
+- **Cartão de crédito/débito** — processamento direto via Payment Brick
+- **Boleto** — link gerado para pagamento
+
+#### Checkout transparente
+Usa o **Payment Brick** do Mercado Pago (SDK JS `@mercadopago/sdk-react`). O brick renderiza dentro da página de checkout e coleta os dados de pagamento sem redirecionamento externo.
+
+#### Fluxo de pagamento
+1. Usuário seleciona plano em `/planos` (ou modal)
+2. Vai para `/planos/checkout/[slug]` — Payment Brick renderizado
+3. Brick envia dados → `POST /api/payments/create` cria o pagamento via SDK
+4. Webhook `POST /api/payments/webhook` recebe notificação do MP
+5. Webhook atualiza status da assinatura e dispara emails
+
+#### Benefícios por plano
+- **Boletins por e-mail** — cotações selecionadas + notícias do agro (2x/dia, dias úteis)
+- **Histórico de preços** — datepicker nas páginas de cotação para consultar preços anteriores
+- **Limite de classificados** — controle por plano (Bronze: 3, Prata: 10, Ouro: ilimitado)
+- **Notificação de cotações** — ícone de sino nas tabelas de cotação para acompanhar produtos
+
+#### Admin
+- `/admin/assinaturas` — 3 abas: Assinaturas, Planos, Alertas
+- Conceder plano a usuário (temporário com data ou vitalício)
+- Alterar/cancelar assinaturas
+- Editar preços e benefícios de cada plano
+- Configurar alertas de pagamento (cartão recusado, expiração, pix/boleto pendente)
+
+#### Credenciais do Mercado Pago
+
+Obtenha as credenciais no painel de desenvolvedor do Mercado Pago:
+
+1. Acesse **[https://www.mercadopago.com.br/developers/panel/app](https://www.mercadopago.com.br/developers/panel/app)**
+2. Crie uma nova aplicação (ou selecione uma existente) — tipo **Checkout Transparente**, **API de Pagamentos**
+3. Em **Credenciais de produção**, copie:
+   - **Access Token** → `MERCADOPAGO_ACCESS_TOKEN`
+   - **Public Key** → `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`
+4. Em **Webhooks** (menu lateral):
+   - Configure a URL: `https://seudominio.com.br/api/payments/webhook`
+   - Selecione o evento: **Pagamentos**
+
+Para testes, use as **Credenciais de teste** (sandbox) da mesma página. O Mercado Pago fornece cartões e usuários de teste para simular pagamentos.
+
+> **Importante:** em desenvolvimento, use credenciais de teste. Em produção, troque para as credenciais de produção e configure o webhook com a URL real.
+
+#### Boletins e alertas (systemd timer)
+
+O script `src/db/bulletins.ts` roda via timer systemd (`agrocomm-bulletins.timer`), 2x/dia em dias úteis (07:00 e 17:00):
+
+- **Boletim de cotações** — envia cotações acompanhadas pelo usuário
+- **Boletim de notícias** — últimas notícias das últimas 24h
+- **Alerta de expiração** — avisa N dias antes do vencimento
+- **Alerta de expirado** — lembra quem deixou o plano vencer
+- **Lembrete de Pix/boleto** — reenvia QR code ou link para pagamentos pendentes
+
+```bash
+# Status do timer
+systemctl status agrocomm-bulletins.timer
+journalctl -u agrocomm-bulletins.service -n 50
+
+# Executar manualmente
+pnpm tsx src/db/bulletins.ts
+```
+
 ### 📬 Formulário de Contato
 - Server Action salva mensagem na tabela `contact_messages`
 - Envio de e-mail via **Nodemailer** (quando SMTP configurado)
@@ -67,7 +145,9 @@ agrocomm/
 │       └── systemd/
 │           ├── agrocomm.service
 │           ├── agrocomm-scraper.service
-│           └── agrocomm-scraper.timer
+│           ├── agrocomm-scraper.timer
+│           ├── agrocomm-bulletins.service
+│           └── agrocomm-bulletins.timer
 ├── drizzle/                   # Migrações geradas pelo drizzle-kit
 ├── scripts/
 │   ├── ansible.sh
@@ -77,10 +157,13 @@ agrocomm/
 │   ├── server.ts              # Custom server Next.js + Socket.IO
 │   ├── actions/
 │   │   ├── admin.ts           # Ações de admin (CRUD, stats, scraping)
+│   │   ├── admin-subscriptions.ts  # Admin: gerenciar assinaturas/planos/alertas
 │   │   ├── auth.ts            # Login, registro, logout
+│   │   ├── classifieds.ts     # CRUD classificados (com gate por plano)
 │   │   ├── contact.ts         # Submit formulário de contato + Nodemailer
 │   │   ├── news.ts            # Queries de notícias + tags
-│   │   └── quotes.ts          # Queries de cotações
+│   │   ├── quotes.ts          # Queries de cotações + histórico por data
+│   │   └── subscriptions.ts   # Ações de assinatura do usuário
 │   ├── app/
 │   │   ├── layout.tsx         # Layout raiz (parallel route @modal)
 │   │   ├── page.tsx           # Página inicial (cotações + sidebar CBOT + news drops)
@@ -89,36 +172,71 @@ agrocomm/
 │   │   │   ├── default.tsx
 │   │   │   ├── (.)ajuda/page.tsx
 │   │   │   ├── (.)sobre/page.tsx
-│   │   │   └── (.)suporte/page.tsx
+│   │   │   ├── (.)suporte/page.tsx
+│   │   │   └── (.)planos/
+│   │   │       ├── page.tsx              # Modal: seletor de planos
+│   │   │       └── checkout/[slug]/page.tsx  # Modal: checkout
 │   │   ├── ajuda/page.tsx     # Página completa: Central de Ajuda
 │   │   ├── sobre/page.tsx     # Página completa: Sobre a AgroComm
 │   │   ├── suporte/page.tsx   # Página completa: Formulário de contato
+│   │   ├── planos/
+│   │   │   ├── page.tsx               # Seletor de planos
+│   │   │   ├── resultado/page.tsx     # Resultado do pagamento
+│   │   │   └── checkout/[slug]/page.tsx  # Checkout com Payment Brick
 │   │   ├── admin/             # Dashboard admin (protegido)
+│   │   │   └── assinaturas/page.tsx   # Admin: assinaturas/planos/alertas
 │   │   ├── api/
-│   │   │   ├── commodities/route.ts  # REST API: preços CBOT (SSR fallback)
+│   │   │   ├── commodities/route.ts   # REST API: preços CBOT (SSR fallback)
 │   │   │   ├── health/route.ts
 │   │   │   ├── track/route.ts
+│   │   │   ├── payments/
+│   │   │   │   ├── create/route.ts    # Criar pagamento via MP SDK
+│   │   │   │   ├── webhook/route.ts   # Webhook do Mercado Pago
+│   │   │   │   └── status/[id]/route.ts  # Consultar status (polling Pix)
 │   │   │   └── admin/
 │   │   │       ├── scrape/route.ts
 │   │   │       └── scrape-news/route.ts
 │   │   ├── cotacoes/          # Páginas de cotações por produto
 │   │   └── noticias/          # Lista de notícias + detalhe ([slug])
 │   ├── components/
+│   │   ├── CheckoutClient.tsx       # Fluxo checkout (form → resultado)
 │   │   ├── CommoditiesTableClient.tsx
 │   │   ├── CommoditySidebar.tsx     # Sidebar CBOT com Socket.IO + gráfico
 │   │   ├── ContactForm.tsx          # Formulário de contato (client)
 │   │   ├── Footer.tsx               # Footer com links ajuda/sobre/suporte
 │   │   ├── Header.tsx
+│   │   ├── HistoryDatePicker.tsx    # Datepicker para histórico de preços
+│   │   ├── HistoryQuotesClient.tsx  # Wrapper: datepicker + tabela histórico
 │   │   ├── Modal.tsx                # Modal genérico para parallel routes
+│   │   ├── PaymentBrick.tsx         # Wrapper do Payment Brick MP
+│   │   ├── PlanSelector.tsx         # Cards de planos com toggle mensal/semanal
 │   │   ├── QuoteChart.tsx
-│   │   └── ShareButtons.tsx
+│   │   ├── QuoteNotificationButton.tsx  # Sino de notificação por cotação
+│   │   ├── QuoteSubscriptionManager.tsx # Gerenciar cotações acompanhadas
+│   │   ├── ShareButtons.tsx
+│   │   ├── SubscriptionCard.tsx     # Card do plano atual (/ajustes)
+│   │   └── admin/
+│   │       └── SubscriptionsManager.tsx  # Admin: manager de assinaturas
 │   ├── db/
 │   │   ├── index.ts
-│   │   ├── schema.ts          # Todas as tabelas incluindo tags e contact_messages
-│   │   ├── seed.ts
-│   │   └── scrape.ts
+│   │   ├── schema.ts          # Todas as tabelas (incluindo assinaturas/pagamentos)
+│   │   ├── seed.ts            # Seed: planos, alertas, permissões
+│   │   ├── scrape.ts
+│   │   └── bulletins.ts       # Script de boletins e alertas (systemd timer)
+│   ├── emails/                # Templates Pug para emails
+│   │   ├── subscription-welcome/    # Bem-vindo ao plano
+│   │   ├── payment-success/         # Pagamento confirmado
+│   │   ├── payment-failed/          # Falha no pagamento
+│   │   ├── subscription-expiring/   # Plano expirando
+│   │   ├── subscription-expired/    # Plano expirou
+│   │   ├── quote-bulletin/          # Boletim de cotações
+│   │   ├── news-bulletin/           # Boletim de notícias
+│   │   ├── pix-payment/             # QR code Pix
+│   │   └── boleto-payment/          # Link do boleto
 │   └── lib/
 │       ├── auth.ts
+│       ├── email.ts           # Funções de envio (9 templates de assinatura)
+│       ├── mercadopago.ts     # SDK MP: criar pagamento, webhook, consulta
 │       ├── password.ts
 │       └── scraper.ts         # Scraper com full-content + tags extraction
 ├── drizzle.config.ts
@@ -135,7 +253,7 @@ agrocomm/
 | `users`             | Usuários do sistema (auth)                                   |
 | `refresh_tokens`    | Tokens de refresh JWT vinculados ao usuário                  |
 | `products`          | Produtos cotados (soja, milho, boi gordo, etc.)              |
-| `regions`           | Regiões de referência (MS, SP, PR…)                         |
+| `regions`           | Regiões de referência (MS, SP, PR...)                        |
 | `sources`           | Fontes de scraping com prioridade e flag de ativo/inativo    |
 | `quotes`            | Cotações coletadas (preço, variação, data, produto, região)  |
 | `scraper_logs`      | Log de cada execução do scraper (status, qtd inserida, erro) |
@@ -143,6 +261,12 @@ agrocomm/
 | `tags`              | Tags/categorias (nome único + slug)                          |
 | `news_article_tags` | Tabela de junção notícias ↔ tags                             |
 | `contact_messages`  | Mensagens enviadas pelo formulário de contato                |
+| `subscription_plans`| Planos de assinatura (Bronze, Prata, Ouro) com preços e benefícios |
+| `subscriptions`     | Assinatura do usuário (status, período, MP IDs, admin-granted) |
+| `payments`          | Histórico de pagamentos (MP ID, status, método, Pix/boleto)  |
+| `subscription_alert_settings` | Configuração de alertas de pagamento (admin)         |
+| `subscription_alerts` | Log de alertas enviados por assinatura                     |
+| `user_quote_subscriptions` | Cotações acompanhadas pelo usuário (boletins)         |
 
 ---
 
@@ -192,6 +316,13 @@ systemctl status agrocomm-scraper.timer
 journalctl -u agrocomm-scraper.service -n 50
 ```
 
+Os boletins e alertas de assinatura rodam via `agrocomm-bulletins.timer` + `agrocomm-bulletins.service` (07:00 e 17:00, dias úteis):
+
+```bash
+systemctl status agrocomm-bulletins.timer
+journalctl -u agrocomm-bulletins.service -n 50
+```
+
 ---
 
 ## Deploy
@@ -237,6 +368,8 @@ O script:
 | `SMTP_SECURE`                  | Usar TLS                           | `true`                   |
 | `CONTACT_EMAIL`                | Email destinatário do contato      | `contato@agrocomm.com`   |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID`| Google Analytics Measurement ID    | `G-XXXXXXXXXX`           |
+| `MERCADOPAGO_ACCESS_TOKEN`     | Access Token do Mercado Pago       | `APP_USR-...`            |
+| `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` | Public Key do MP (exposta no client) | `APP_USR-...`      |
 
 Arquivo `.env` na raiz; em produção é copiado como `.env.production`.
 
@@ -297,6 +430,8 @@ pnpm format
 | Lógica de banco          | `src/db/`                                    |
 | Constantes globais       | `src/config.ts`                              |
 | Rota paralela (modal)    | `src/app/@modal/(.)<rota>/page.tsx`          |
+| Template de email        | `src/emails/<nome>/html.pug` + `text.pug`   |
+| Funções de email         | `src/lib/email.ts`                           |
 | Tipos globais            | `src/types.ts` (criar se precisar)           |
 
 ---

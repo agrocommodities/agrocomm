@@ -10,12 +10,16 @@ import {
   ChevronsUpDown,
 } from "lucide-react";
 import QuoteChart from "./QuoteChart";
+import QuoteNotificationButton from "./QuoteNotificationButton";
 import { getCityHistoryByRange } from "@/actions/quotes";
 import type { QuoteRow, HistoryPoint } from "@/actions/quotes";
 
 interface Props {
   quotes: QuoteRow[];
   title: string;
+  subscribedQuotes?: Set<string>; // "productId-cityId" keys
+  hasSession?: boolean;
+  hasActivePlan?: boolean;
 }
 
 function VariationBadge({ value }: { value: number | null }) {
@@ -53,7 +57,12 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   );
 }
 
-export default function CommoditiesTableClient({ quotes }: Props) {
+export default function CommoditiesTableClient({
+  quotes,
+  subscribedQuotes,
+  hasSession = false,
+  hasActivePlan = false,
+}: Props) {
   const [selected, setSelected] = useState<QuoteRow | null>(null);
   const [historyData, setHistoryData] = useState<HistoryPoint[]>([]);
   const [isPending, startTransition] = useTransition();
@@ -139,12 +148,13 @@ export default function CommoditiesTableClient({ quotes }: Props) {
                     </div>
                   </th>
                 ))}
+                <th className="py-3 w-8" />
               </tr>
             </thead>
             <tbody>
               {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-6 text-white/30">
+                  <td colSpan={6} className="text-center py-6 text-white/30">
                     Sem cotações para hoje
                   </td>
                 </tr>
@@ -174,6 +184,19 @@ export default function CommoditiesTableClient({ quotes }: Props) {
                     </td>
                     <td className="px-2 md:px-5 py-3 text-right whitespace-nowrap">
                       <VariationBadge value={row.variation} />
+                    </td>
+                    <td className="px-1 py-3 text-center">
+                      <QuoteNotificationButton
+                        productId={row.productId}
+                        cityId={row.cityId}
+                        isSubscribed={
+                          subscribedQuotes?.has(
+                            `${row.productId}-${row.cityId}`,
+                          ) ?? false
+                        }
+                        hasSession={hasSession}
+                        hasActivePlan={hasActivePlan}
+                      />
                     </td>
                   </tr>
                 ))

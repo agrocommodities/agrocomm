@@ -548,6 +548,178 @@ export const whatsappLogsRelations = relations(whatsappLogs, ({ one }) => ({
   }),
 }));
 
+// ── Assinaturas ──────────────────────────────────────────────────────────────
+
+/**
+ * Planos de assinatura configuráveis pelo admin
+ */
+export const subscriptionPlans = sqliteTable("subscription_plans", {
+  id: int().primaryKey({ autoIncrement: true }),
+  slug: text().notNull().unique(), // "bronze" | "prata" | "ouro"
+  name: text().notNull(),
+  description: text(),
+  priceMonthly: real("price_monthly").notNull(), // R$ mensal
+  priceWeekly: real("price_weekly").notNull(), // R$ semanal
+  maxClassifieds: int("max_classifieds").notNull().default(0),
+  emailBulletins: int("email_bulletins").notNull().default(0), // 0/1
+  priceHistory: int("price_history").notNull().default(0), // 0/1
+  historyDays: int("history_days").notNull().default(0), // dias de histórico
+  active: int().notNull().default(1),
+  sortOrder: int("sort_order").notNull().default(0),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+});
+
+/**
+ * Assinaturas dos usuários
+ */
+export const subscriptions = sqliteTable("subscriptions", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  planId: int("plan_id")
+    .notNull()
+    .references(() => subscriptionPlans.id),
+  status: text().notNull().default("pending"), // "active" | "cancelled" | "expired" | "past_due" | "pending"
+  period: text().notNull().default("monthly"), // "monthly" | "weekly"
+  mpSubscriptionId: text("mp_subscription_id"), // ID no Mercado Pago (null se admin-granted)
+  mpPayerId: text("mp_payer_id"),
+  currentPeriodStart: text("current_period_start"),
+  currentPeriodEnd: text("current_period_end"),
+  grantedByAdmin: int("granted_by_admin").notNull().default(0), // 0/1
+  grantedBy: int("granted_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  grantedUntil: text("granted_until"), // null = vitalício
+  cancelledAt: text("cancelled_at"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+});
+
+/**
+ * Histórico de pagamentos
+ */
+export const payments = sqliteTable("payments", {
+  id: int().primaryKey({ autoIncrement: true }),
+  subscriptionId: int("subscription_id").references(() => subscriptions.id, {
+    onDelete: "set null",
+  }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  mpPaymentId: text("mp_payment_id"),
+  mpStatus: text("mp_status"), // "approved" | "pending" | "rejected" | "cancelled"
+  amount: real().notNull(),
+  paymentMethod: text("payment_method"), // "pix" | "credit_card" | "debit_card" | "boleto"
+  pixQrCode: text("pix_qr_code"),
+  pixQrCodeBase64: text("pix_qr_code_base64"),
+  boletoUrl: text("boleto_url"),
+  paidAt: text("paid_at"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+/**
+ * Configuração de alertas de assinatura (admin)
+ */
+export const subscriptionAlertSettings = sqliteTable(
+  "subscription_alert_settings",
+  {
+    id: int().primaryKey({ autoIncrement: true }),
+    alertType: text("alert_type").notNull().unique(), // "card_declined" | "expiring" | "expired" | "pix_pending" | "boleto_pending"
+    enabled: int().notNull().default(1),
+    emailTemplate: text("email_template"),
+    daysBefore: int("days_before").default(3), // dias antes do vencimento
+    daysAfter: int("days_after").default(7), // dias após vencimento
+    maxAttempts: int("max_attempts").default(3),
+    intervalHours: int("interval_hours").default(24),
+    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+    updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  },
+);
+
+/**
+ * Log de alertas enviados
+ */
+export const subscriptionAlerts = sqliteTable("subscription_alerts", {
+  id: int().primaryKey({ autoIncrement: true }),
+  subscriptionId: int("subscription_id").references(() => subscriptions.id, {
+    onDelete: "cascade",
+  }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  alertType: text("alert_type").notNull(),
+  sentAt: text("sent_at").notNull().default(sql`(datetime('now'))`),
+  status: text().notNull().default("sent"), // "sent" | "failed"
+});
+
+/**
+ * Cotações acompanhadas pelo usuário (para boletins)
+ */
+export const userQuoteSubscriptions = sqliteTable("user_quote_subscriptions", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  productId: int("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  cityId: int("city_id").references(() => cities.id, { onDelete: "cascade" }), // null = todas as cidades
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+// ── Relations de Assinaturas ─────────────────────────────────────────────────
+
+export const subscriptionPlansRelations = relations(
+  subscriptionPlans,
+  ({ many }) => ({
+    subscriptions: many(subscriptions),
+  }),
+);
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [subscriptions.userId],
+    references: [users.id],
+  }),
+  plan: one(subscriptionPlans, {
+    fields: [subscriptions.planId],
+    references: [subscriptionPlans.id],
+  }),
+  granter: one(users, {
+    fields: [subscriptions.grantedBy],
+    references: [users.id],
+    relationName: "grantedSubscriptions",
+  }),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  subscription: one(subscriptions, {
+    fields: [payments.subscriptionId],
+    references: [subscriptions.id],
+  }),
+  user: one(users, { fields: [payments.userId], references: [users.id] }),
+}));
+
+export const userQuoteSubscriptionsRelations = relations(
+  userQuoteSubscriptions,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [userQuoteSubscriptions.userId],
+      references: [users.id],
+    }),
+    product: one(products, {
+      fields: [userQuoteSubscriptions.productId],
+      references: [products.id],
+    }),
+    city: one(cities, {
+      fields: [userQuoteSubscriptions.cityId],
+      references: [cities.id],
+    }),
+  }),
+);
+
 // ── Logs de Auditoria ─────────────────────────────────────────────────────────
 
 export const auditLogs = sqliteTable("audit_logs", {
@@ -608,4 +780,6 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   classifieds: many(classifieds),
   classifiedComments: many(classifiedComments),
   userPermissions: many(userPermissions),
+  subscriptions: many(subscriptions),
+  quoteSubscriptions: many(userQuoteSubscriptions),
 }));

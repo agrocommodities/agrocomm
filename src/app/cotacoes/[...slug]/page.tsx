@@ -5,9 +5,12 @@ import {
   getStatesForProduct,
   getCitiesForProduct,
 } from "@/actions/quotes";
+import { getUserSubscription } from "@/actions/subscriptions";
+import { getSession } from "@/lib/auth";
 import LocationPriceSelector from "@/components/LocationPriceSelector";
 import ShareSidebar from "@/components/ShareSidebar";
 import ProductQuotesTable from "@/components/ProductQuotesTable";
+import HistoryQuotesClient from "@/components/HistoryQuotesClient";
 import Breadcrumb from "@/components/Breadcrumb";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
@@ -107,10 +110,22 @@ export default async function ProdutoPage({
   const meta = PRODUCT_META[produto];
   if (!meta) notFound();
 
-  const [{ today }, allStates] = await Promise.all([
+  const [{ today }, allStates, session] = await Promise.all([
     getProductQuotes(produto),
     getStatesForProduct(produto),
+    getSession(),
   ]);
+
+  let hasActivePlan = false;
+  let historyDays = 0;
+
+  if (session) {
+    const sub = await getUserSubscription();
+    if (sub?.status === "active" && sub.priceHistory) {
+      hasActivePlan = true;
+      historyDays = sub.historyDays;
+    }
+  }
 
   const citiesByState: Record<
     string,
@@ -206,6 +221,13 @@ export default async function ProdutoPage({
 
       {/* Today's table */}
       <ProductQuotesTable rows={today} productSlug={produto} />
+
+      {/* Historical query */}
+      <HistoryQuotesClient
+        productSlug={produto}
+        hasActivePlan={hasActivePlan}
+        historyDays={historyDays}
+      />
 
       {/* Share sidebar */}
       <ShareSidebar url={shareUrl} title={shareTitle} />

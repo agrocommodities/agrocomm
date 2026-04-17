@@ -6,6 +6,7 @@ import { eq, and, gte, desc, sql } from "drizzle-orm";
 
 export type QuoteRow = {
   id: number;
+  productId: number;
   cityId: number;
   citySlug: string;
   productSlug: string;
@@ -58,6 +59,7 @@ async function latestQuoteDateForCategory(category: string): Promise<string> {
 
 const BASE_SELECT = {
   id: quotes.id,
+  productId: products.id,
   cityId: cities.id,
   citySlug: cities.slug,
   productSlug: products.slug,
@@ -258,4 +260,19 @@ export async function getCitiesForProduct(
     .where(and(eq(products.slug, productSlug), eq(states.code, stateCode)))
     .orderBy(cities.name);
   return rows;
+}
+
+export async function getQuotesByDate(
+  productSlug: string,
+  date: string,
+): Promise<QuoteRow[]> {
+  return db
+    .select(BASE_SELECT)
+    .from(quotes)
+    .innerJoin(products, eq(quotes.productId, products.id))
+    .innerJoin(cities, eq(quotes.cityId, cities.id))
+    .innerJoin(states, eq(cities.stateId, states.id))
+    .innerJoin(sources, eq(quotes.sourceId, sources.id))
+    .where(and(eq(products.slug, productSlug), eq(quotes.quoteDate, date)))
+    .orderBy(states.code, cities.name);
 }

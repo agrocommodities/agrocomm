@@ -1,0 +1,11 @@
+| Olá, #{userName}!
+|
+| Boletim de cotações — AgroComm
+|
+each quote in quotes
+  | #{quote.productName} (#{quote.cityName} — #{quote.stateName}): R$ #{quote.price} | Variação: #{quote.variation}%
+  |
+|
+| Gerenciar cotações: #{settingsUrl}
+|
+| — AgroComm

@@ -1,6 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getQuotesByCategory } from "@/actions/quotes";
+import {
+  getUserQuoteSubscriptions,
+  getUserSubscription,
+} from "@/actions/subscriptions";
+import { getSession } from "@/lib/auth";
 import CommoditiesTableClient from "@/components/CommoditiesTableClient";
 import Breadcrumb from "@/components/Breadcrumb";
 
@@ -26,7 +31,24 @@ const PRODUCTS = [
 ];
 
 export default async function GraosPage() {
-  const quotes = await getQuotesByCategory("graos");
+  const [quotes, session] = await Promise.all([
+    getQuotesByCategory("graos"),
+    getSession(),
+  ]);
+
+  let subscribedQuotes = new Set<string>();
+  let hasActivePlan = false;
+
+  if (session) {
+    const [subs, sub] = await Promise.all([
+      getUserQuoteSubscriptions(),
+      getUserSubscription(),
+    ]);
+    subscribedQuotes = new Set(
+      subs.map((s) => `${s.productId}-${s.cityId ?? 0}`),
+    );
+    hasActivePlan = sub?.status === "active";
+  }
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-8">
@@ -55,6 +77,9 @@ export default async function GraosPage() {
       <CommoditiesTableClient
         quotes={quotes}
         title="Cotações de Hoje — Grãos"
+        subscribedQuotes={subscribedQuotes}
+        hasSession={!!session}
+        hasActivePlan={hasActivePlan}
       />
 
       <p className="text-center text-xs text-white/25">

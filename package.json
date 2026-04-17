@@ -23,6 +23,7 @@
     "email-templates": "^13.0.1",
     "jose": "^6.2.1",
     "lucide-react": "^0.577.0",
+    "mercadopago": "^2.12.0",
     "next": "16.1.6",
     "next-turnstile": "^1.0.7",
     "nodemailer": "^8.0.2",

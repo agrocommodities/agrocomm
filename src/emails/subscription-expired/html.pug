@@ -1,0 +1,145 @@
+doctype html
+html(lang="pt-BR")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    title Assinatura expirada — AgroComm
+    style.
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background-color: #1a1a1a;
+        color: #e0e0e0;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrapper {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 40px 20px;
+      }
+      .card {
+        background-color: #2a3925;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.08);
+      }
+      .header {
+        background: linear-gradient(135deg, #394634 0%, #2d3a28 100%);
+        padding: 32px 32px 28px;
+        text-align: center;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+      }
+      .logo-container {
+        display: inline-block;
+        margin-bottom: 8px;
+      }
+      .logo-container img {
+        width: 52px;
+        height: 52px;
+      }
+      .brand-name {
+        font-size: 22px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: -0.3px;
+      }
+      .body {
+        padding: 32px;
+      }
+      .greeting {
+        font-size: 18px;
+        font-weight: 600;
+        color: #ffffff;
+        margin-bottom: 16px;
+      }
+      .text {
+        font-size: 14px;
+        line-height: 1.7;
+        color: rgba(255,255,255,0.7);
+        margin-bottom: 12px;
+      }
+      .highlight {
+        color: #4ade80;
+        font-weight: 600;
+      }
+      .expired-badge {
+        text-align: center;
+        margin: 24px 0;
+      }
+      .expired-badge span {
+        display: inline-block;
+        background: rgba(239,68,68,0.15);
+        border: 1px solid rgba(239,68,68,0.3);
+        color: #ef4444;
+        font-size: 14px;
+        font-weight: 700;
+        padding: 10px 20px;
+        border-radius: 10px;
+      }
+      .btn-wrapper {
+        text-align: center;
+        margin: 28px 0;
+      }
+      .btn {
+        display: inline-block;
+        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+        color: #ffffff !important;
+        text-decoration: none;
+        font-size: 15px;
+        font-weight: 600;
+        padding: 14px 36px;
+        border-radius: 10px;
+        letter-spacing: 0.2px;
+      }
+      .link-fallback {
+        font-size: 12px;
+        color: rgba(255,255,255,0.4);
+        word-break: break-all;
+        margin-top: 8px;
+        text-align: center;
+      }
+      .link-fallback a {
+        color: #4ade80;
+        text-decoration: none;
+      }
+      .divider {
+        border: none;
+        border-top: 1px solid rgba(255,255,255,0.06);
+        margin: 0;
+      }
+      .footer {
+        padding: 24px 32px;
+        text-align: center;
+      }
+      .footer-text {
+        font-size: 12px;
+        color: rgba(255,255,255,0.3);
+        line-height: 1.6;
+      }
+      .footer-text a {
+        color: #4ade80;
+        text-decoration: none;
+      }
+  body
+    .wrapper
+      .card
+        .header
+          .logo-container
+            img(src=logoUrl alt="AgroComm")
+          div.brand-name AgroComm
+        .body
+          p.greeting Olá, #{userName}!
+          p.text Sua assinatura do plano <span class="highlight">#{planName}</span> expirou.
+          .expired-badge
+            span Assinatura expirada
+          p.text Você perdeu acesso aos recursos exclusivos do seu plano. Renove agora para voltar a acompanhar cotações em tempo real, receber boletins personalizados e muito mais.
+          .btn-wrapper
+            a.btn(href=renewUrl target="_blank") Renovar assinatura
+          p.link-fallback Se o botão não funcionar, copie e cole o link abaixo no seu navegador:
+            br
+            a(href=renewUrl)= renewUrl
+        hr.divider
+        .footer
+          p.footer-text © #{new Date().getFullYear()} AgroComm — Cotações agropecuárias em tempo real.
+            br
+            | Este é um e-mail automático, não responda.

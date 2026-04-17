@@ -118,6 +118,32 @@
         state: started
         daemon_reload: true
 
+    # ── Systemd: bulletins ───────────────────────────────────────────────
+    - name: Copiar agrocomm-bulletins.service
+      copy:
+        src: files/systemd/agrocomm-bulletins.service
+        dest: /etc/systemd/system/agrocomm-bulletins.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Recarregar systemd
+
+    - name: Copiar agrocomm-bulletins.timer
+      copy:
+        src: files/systemd/agrocomm-bulletins.timer
+        dest: /etc/systemd/system/agrocomm-bulletins.timer
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Recarregar systemd
+
+    - name: Habilitar timer de boletins
+      systemd:
+        name: agrocomm-bulletins.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+
   handlers:
     - name: Reiniciar nginx
       systemd:
