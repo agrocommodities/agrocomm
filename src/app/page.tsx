@@ -2,10 +2,19 @@ import Link from "next/link";
 import { getTodayQuotes, type QuoteRow } from "@/actions/quotes";
 import { getLatestNews } from "@/actions/news";
 import { getClassifieds } from "@/actions/classifieds";
+import { getUserSubscription } from "@/actions/subscriptions";
 import CommoditiesTableClient from "@/components/CommoditiesTableClient";
 import CommoditySidebar from "@/components/CommoditySidebar";
 import ClassifiedsSidebar from "@/components/ClassifiedsSidebar";
-import { Clock, ArrowRight, Newspaper } from "lucide-react";
+import {
+  Clock,
+  ArrowRight,
+  Newspaper,
+  Crown,
+  TrendingUp,
+  Mail,
+  BarChart3,
+} from "lucide-react";
 
 export const revalidate = 300; // 5 min
 
@@ -135,11 +144,15 @@ function sampleQuotes(rows: QuoteRow[]): QuoteRow[] {
 }
 
 export default async function HomePage() {
-  const [allQuotes, news, classifiedsData] = await Promise.all([
+  const [allQuotes, news, classifiedsData, subscription] = await Promise.all([
     getTodayQuotes(),
     getLatestNews(6),
     getClassifieds({ limit: 5 }),
+    getUserSubscription(),
   ]);
+
+  const planSlug = subscription?.planSlug;
+  const showSubscriptionCTA = planSlug !== "ouro";
 
   const pecuaria = sampleQuotes(
     allQuotes.filter(
@@ -351,6 +364,54 @@ export default async function HomePage() {
                     </div>
                   </Link>
                 ))}
+              </div>
+            </section>
+          )}
+
+          {/* Subscription CTA */}
+          {showSubscriptionCTA && (
+            <section className="relative overflow-hidden rounded-2xl border border-green-500/20 bg-gradient-to-br from-green-900/30 via-emerald-900/20 to-green-950/40">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-green-400/5 via-transparent to-transparent" />
+              <div className="relative px-6 py-8 md:px-10 md:py-10 flex flex-col md:flex-row items-center gap-6 md:gap-10">
+                <div className="flex-1 text-center md:text-left">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-400/10 border border-green-400/20 text-green-400 text-xs font-semibold tracking-wide uppercase mb-4">
+                    <Crown className="w-3.5 h-3.5" />
+                    {planSlug ? "Faça upgrade" : "Planos AgroComm"}
+                  </div>
+                  <h2 className="text-xl md:text-2xl font-bold mb-2">
+                    {planSlug
+                      ? "Desbloqueie todo o potencial"
+                      : "Acompanhe o mercado de perto"}
+                  </h2>
+                  <p className="text-sm text-white/50 max-w-lg">
+                    {planSlug
+                      ? "Faça upgrade para o plano Ouro e tenha acesso ao histórico completo de preços, boletins diários por e-mail e mais classificados."
+                      : "Assine um plano e tenha acesso a histórico de preços, boletins por e-mail, mais classificados e muito mais."}
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-5 text-xs text-white/40">
+                    <span className="flex items-center gap-1.5">
+                      <BarChart3 className="w-3.5 h-3.5 text-green-400/60" />
+                      Histórico de preços
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-green-400/60" />
+                      Boletins por e-mail
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <TrendingUp className="w-3.5 h-3.5 text-green-400/60" />
+                      Mais classificados
+                    </span>
+                  </div>
+                </div>
+                <div className="shrink-0">
+                  <Link
+                    href="/planos"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-green-500 hover:bg-green-400 text-green-950 font-semibold text-sm transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20"
+                  >
+                    {planSlug ? "Fazer upgrade" : "Ver planos"}
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
               </div>
             </section>
           )}

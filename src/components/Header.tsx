@@ -1,14 +1,24 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getSession, getUserPermissions } from "@/lib/auth";
+import { getUserSubscription } from "@/actions/subscriptions";
 import { navLinks } from "@/config";
 import UserMenu from "@/components/UserMenu";
+import { Crown } from "lucide-react";
 
 export default async function Header() {
   const session = await getSession();
-  const hasAdminAccess = session
-    ? (await getUserPermissions(session.userId)).has("admin.access")
-    : false;
+  const [hasAdminAccess, subscription] = await Promise.all([
+    session
+      ? getUserPermissions(session.userId).then((p) => p.has("admin.access"))
+      : Promise.resolve(false),
+    getUserSubscription(),
+  ]);
+
+  const planSlug = subscription?.planSlug;
+  const showSubscribeLink = planSlug !== "ouro";
+  const subscribeLinkLabel =
+    planSlug === "bronze" || planSlug === "prata" ? "Upgrade" : "Assine";
 
   return (
     <header className="sticky z-50 top-0 bg-alt-background">
@@ -33,6 +43,15 @@ export default async function Header() {
               {l.name}
             </Link>
           ))}
+          {showSubscribeLink && (
+            <Link
+              href="/planos"
+              className="text-sm font-semibold text-green-400 hover:text-green-300 transition-colors flex items-center gap-1"
+            >
+              <Crown className="w-3.5 h-3.5" />
+              {subscribeLinkLabel}
+            </Link>
+          )}
         </nav>
 
         {/* User menu */}
@@ -53,6 +72,15 @@ export default async function Header() {
               {l.name}
             </Link>
           ))}
+          {showSubscribeLink && (
+            <Link
+              href="/planos"
+              className="text-sm font-semibold whitespace-nowrap text-green-400 hover:text-green-300 transition-colors flex items-center gap-1"
+            >
+              <Crown className="w-3.5 h-3.5" />
+              {subscribeLinkLabel}
+            </Link>
+          )}
         </div>
       </nav>
     </header>

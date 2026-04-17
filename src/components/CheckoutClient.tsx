@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -8,6 +8,8 @@ import {
   AlertCircle,
   Clock,
   QrCode,
+  Copy,
+  Check,
 } from "lucide-react";
 import PaymentBrick from "@/components/PaymentBrick";
 import type { PlanRow } from "@/actions/subscriptions";
@@ -34,6 +36,8 @@ export default function CheckoutClient({
   const router = useRouter();
   const [result, setResult] = useState<PaymentResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const amount = period === "monthly" ? plan.priceMonthly : plan.priceWeekly;
 
@@ -46,6 +50,40 @@ export default function CheckoutClient({
     setError(err);
   }, []);
 
+  async function copyPixCode(code: string) {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    } catch {
+      // fallback: select the text
+    }
+  }
+
+  // Poll for Pix/boleto payment approval
+  useEffect(() => {
+    if (!result || result.status !== "pending" || !result.paymentId) return;
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/payments/status/${result.paymentId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.status === "approved") {
+          setResult((prev) => (prev ? { ...prev, status: "approved" } : prev));
+        } else if (data.status === "rejected" || data.status === "cancelled") {
+          setResult((prev) => (prev ? { ...prev, status: "rejected" } : prev));
+        }
+      } catch {
+        // ignore polling errors
+      }
+    }, 5000);
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [result]);
+
   // Success state
   if (result) {
     if (result.status === "approved") {
@@ -54,7 +92,7 @@ export default function CheckoutClient({
           <CheckCircle className="w-16 h-16 mx-auto text-green-400 mb-4" />
           <h2 className="text-2xl font-bold mb-2">Pagamento aprovado!</h2>
           <p className="text-white/60 mb-6">
-            Sua assinatura do plano {plan.name} está ativa.
+            Sua assinatura do plano {plan.name} est&aacute; ativa.
           </p>
           <button
             type="button"
@@ -74,7 +112,9 @@ export default function CheckoutClient({
             <Clock className="w-12 h-12 mx-auto text-yellow-400 mb-3" />
             <h2 className="text-xl font-bold mb-1">Pagamento pendente</h2>
             <p className="text-sm text-white/60">
-              Complete o pagamento para ativar sua assinatura.
+              {result.pixQrCode
+                ? "Escaneie o QR Code ou copie o código Pix para pagar."
+                : "Complete o pagamento para ativar sua assinatura."}
             </p>
           </div>
 
@@ -95,10 +135,33 @@ export default function CheckoutClient({
                 <QrCode className="w-3 h-3 inline mr-1" />
                 Código Pix (copie e cole)
               </p>
-              <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-xs break-all text-white/70 select-all">
-                {result.pixQrCode}
+              <div className="relative">
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3 pr-12 text-xs break-all text-white/70 select-all">
+                  {result.pixQrCode}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => copyPixCode(result.pixQrCode!)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
+                  title="Copiar código Pix"
+                >
+                  {copied ? (
+                    <Check className="w-4 h-4 text-green-400" />
+                  ) : (
+                    <Copy className="w-4 h-4 text-white/60" />
+                  )}
+                </button>
               </div>
+              {copied && (
+                <p className="text-xs text-green-400 mt-1">Código copiado!</p>
+              )}
             </div>
+          )}
+
+          {result.pixQrCode && (
+            <p className="text-xs text-white/30 text-center mb-4">
+              Aguardando confirmação do pagamento...
+            </p>
           )}
 
           {result.boletoUrl && (
