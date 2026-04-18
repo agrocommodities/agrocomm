@@ -1027,7 +1027,7 @@ async function downloadImage(
     await mkdir(dir, { recursive: true });
 
     const fileName = `${uuid}${ext}`;
-    const filePath = join(dir, fileName);
+    const filePath = `${dir}/${fileName}`;
     const buffer = Buffer.from(await res.arrayBuffer());
 
     // Resize to max 1080p if larger
