@@ -23,6 +23,8 @@ export interface NavLink {
   children?: NavChild[];
 }
 
+export type NavLinkClient = Omit<NavLink, "icon">;
+
 export const navLinks: NavLink[] = [
   { name: "Início", href: "/", icon: Home },
   {

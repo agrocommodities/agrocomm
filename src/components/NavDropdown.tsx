@@ -3,9 +3,9 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
-import type { NavLink } from "@/config";
+import type { NavLinkClient } from "@/config";
 
-export default function NavDropdown({ link }: { link: NavLink }) {
+export default function NavDropdown({ link }: { link: NavLinkClient }) {
   const [open, setOpen] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

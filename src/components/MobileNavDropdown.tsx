@@ -3,9 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
-import type { NavLink } from "@/config";
+import type { NavLinkClient } from "@/config";
 
-export default function MobileNavDropdown({ link }: { link: NavLink }) {
+export default function MobileNavDropdown({ link }: { link: NavLinkClient }) {
   const [open, setOpen] = useState(false);
 
   if (!link.children) return null;
