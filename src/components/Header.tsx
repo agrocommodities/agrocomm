@@ -36,7 +36,7 @@ export default async function Header() {
 
         {/* Desktop: nav links inline */}
         <nav className="hidden md:flex items-center gap-6 flex-1">
-          {navLinks.map((l) =>
+          {navLinks.map(({ icon: _, ...l }) =>
             l.children ? (
               <NavDropdown key={l.href} link={l} />
             ) : (
@@ -69,7 +69,7 @@ export default async function Header() {
       {/* Mobile: horizontal scrollable nav (hidden scrollbar) */}
       <nav className="md:hidden overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex justify-between gap-4 px-4 pb-3 min-w-full w-max">
-          {navLinks.map((l) =>
+          {navLinks.map(({ icon: _, ...l }) =>
             l.children ? (
               <MobileNavDropdown key={l.href} link={l} />
             ) : (
