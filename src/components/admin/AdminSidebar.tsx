@@ -21,6 +21,7 @@ import {
   Tag,
   MessageCircle,
   CreditCard,
+  Mail,
 } from "lucide-react";
 
 const links = [
@@ -34,6 +35,7 @@ const links = [
   { href: "/admin/usuarios", label: "Usuários", icon: Users },
   { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle },
   { href: "/admin/assinaturas", label: "Assinaturas", icon: CreditCard },
+  { href: "/admin/emails", label: "E-mails", icon: Mail },
   { href: "/admin/scraping", label: "Scraping", icon: RefreshCw },
   { href: "/admin/armazenamento", label: "Armazenamento", icon: HardDrive },
   { href: "/admin/estatisticas", label: "Estatísticas", icon: BarChart3 },

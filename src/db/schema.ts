@@ -938,3 +938,13 @@ export const messagesRelations = relations(messages, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+// ── Configurações de E-mail ───────────────────────────────────────────────────
+
+export const emailTemplateConfigs = sqliteTable("email_template_configs", {
+  id: int().primaryKey({ autoIncrement: true }),
+  templateKey: text("template_key").unique().notNull(),
+  subject: text("subject"),
+  bodyMarkdown: text("body_markdown"),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+});

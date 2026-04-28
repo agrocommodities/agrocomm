@@ -202,7 +202,7 @@ export default async function ClassifiedDetailPage({ params }: Props) {
           <div className="mb-6">
             {session && session.userId !== item.userId ? (
               <Link
-                href={`/mensagens?classified=${item.slug}&message=${encodeURIComponent(`Olá! Vi seu anúncio "${item.title}" no AgroComm e gostaria de mais informações. Link: ${process.env.NEXT_PUBLIC_BASE_URL ?? "https://agrocomm.com.br"}/classificados/${item.slug}`)}`}
+                href={`/mensagens?classified=${item.slug}&message=${encodeURIComponent(`Olá! Vi seu anúncio [${item.title}](${process.env.NEXT_PUBLIC_BASE_URL ?? "https://agrocomm.com.br"}/classificados/${item.slug}) no AgroComm e gostaria de mais informações.`)}`}
                 className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm"
               >
                 <MessageCircle className="w-5 h-5" />

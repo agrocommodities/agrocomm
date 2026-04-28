@@ -102,6 +102,12 @@ html(lang="pt-BR")
         line-height: 1.6;
         color: rgba(255,255,255,0.4);
       }
+      .custom-body p { font-size: 14px; line-height: 1.7; color: rgba(255,255,255,0.7); margin-bottom: 12px; }
+      .custom-body h2 { font-size: 16px; font-weight: 600; color: #ffffff; margin-bottom: 12px; }
+      .custom-body h3 { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.85); margin-bottom: 8px; }
+      .custom-body ul { padding-left: 20px; margin-bottom: 12px; }
+      .custom-body li { font-size: 14px; line-height: 1.7; color: rgba(255,255,255,0.7); }
+      .custom-body strong { color: #ffffff; }
       .divider {
         border: none;
         border-top: 1px solid rgba(255,255,255,0.06);
@@ -129,7 +135,10 @@ html(lang="pt-BR")
           div.brand-name AgroComm
         .body
           p.greeting Olá, #{userName}!
-          p.text Recebemos uma solicitação para redefinir a senha da sua conta no AgroComm. Clique no botão abaixo para criar uma nova senha:
+          if customBody
+            div.custom-body !{customBody}
+          else
+            p.text Recebemos uma solicitação para redefinir a senha da sua conta no AgroComm. Clique no botão abaixo para criar uma nova senha:
           .btn-wrapper
             a.btn(href=resetUrl target="_blank") Redefinir minha senha
           p.link-fallback Se o botão não funcionar, copie e cole o link abaixo no seu navegador:

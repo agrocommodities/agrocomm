@@ -129,10 +129,20 @@ export default function SubscriptionsManager({
   function handleCancel(subId: number) {
     if (!confirm("Cancelar esta assinatura?")) return;
     startTransition(async () => {
-      const result = await adminCancelSubscription(subId);
-      if (result.success) {
-        setSubs((prev) =>
-          prev.map((s) => (s.id === subId ? { ...s, status: "cancelled" } : s)),
+      try {
+        const result = await adminCancelSubscription(subId);
+        if (result.success) {
+          setSubs((prev) =>
+            prev.map((s) =>
+              s.id === subId ? { ...s, status: "cancelled" } : s,
+            ),
+          );
+        } else {
+          alert("Erro ao cancelar assinatura.");
+        }
+      } catch (err) {
+        alert(
+          err instanceof Error ? err.message : "Erro ao cancelar assinatura.",
         );
       }
     });

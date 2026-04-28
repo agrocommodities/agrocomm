@@ -13,17 +13,45 @@ import {
   getOrCreateConversation,
 } from "@/actions/messages";
 import type { ConversationSummary, Message } from "@/actions/messages";
+import { renderChatMarkdown } from "@/lib/markdown";
 import {
   MessageSquare,
   Send,
   ArrowLeft,
   ExternalLink,
   LayoutList,
+  Bold,
+  Italic,
+  Strikethrough,
 } from "lucide-react";
 
 interface Props {
   initialConversations: ConversationSummary[];
   userId: number;
+}
+
+/** Wrap selected text (or insert markers at cursor) in a textarea. */
+function wrapSelection(
+  el: HTMLTextAreaElement,
+  marker: string,
+  value: string,
+  setValue: (v: string) => void,
+) {
+  const start = el.selectionStart;
+  const end = el.selectionEnd;
+  const selected = value.slice(start, end);
+  const newValue =
+    value.slice(0, start) + marker + selected + marker + value.slice(end);
+  setValue(newValue);
+  requestAnimationFrame(() => {
+    el.focus();
+    if (selected) {
+      el.setSelectionRange(start + marker.length, end + marker.length);
+    } else {
+      const pos = start + marker.length;
+      el.setSelectionRange(pos, pos);
+    }
+  });
 }
 
 function formatTime(dateStr: string) {
@@ -94,6 +122,13 @@ export default function MessagesClient({
   const pendingClassifiedSlugRef = useRef<string | null>(null);
   const pendingMessageRef = useRef<string | null>(null);
   const activeConvIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    document.body.style.overflowY = "hidden";
+    return () => {
+      document.body.style.overflowY = "";
+    };
+  }, []);
 
   useEffect(() => {
     const classifiedSlug = searchParams.get("classified");
@@ -268,7 +303,7 @@ export default function MessagesClient({
     : conversations;
 
   return (
-    <div className="flex h-[calc(100vh-120px)] min-h-0">
+    <div className="flex h-[calc(100dvh-92px)] md:h-[calc(100dvh-60px)] min-h-0">
       <aside
         className={`
           flex flex-col w-full md:w-80 shrink-0 border-r border-white/10
@@ -428,9 +463,14 @@ export default function MessagesClient({
                             : "bg-white/10 text-white rounded-bl-sm ml-2"
                         }`}
                       >
-                        <p className="break-words whitespace-pre-wrap">
-                          {msg.content}
-                        </p>
+                        <p
+                          // renderChatMarkdown escapes HTML before applying markdown — safe
+                          // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized by renderChatMarkdown
+                          dangerouslySetInnerHTML={{
+                            __html: renderChatMarkdown(msg.content),
+                          }}
+                          className="break-words [&_a]:underline [&_a]:text-green-300 [&_a]:hover:opacity-80 [&_del]:opacity-70 [&_code]:bg-white/20 [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono"
+                        />
                         <p
                           className={`text-[10px] mt-1 ${
                             isMine ? "text-white/60" : "text-white/40"
@@ -446,14 +486,48 @@ export default function MessagesClient({
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="px-4 py-3 border-t border-white/10 bg-[#2d3a28] shrink-0">
+            <div className="px-4 pt-2 pb-3 border-t border-white/10 bg-[#2d3a28] shrink-0">
+              {/* Formatting toolbar */}
+              <div className="flex items-center gap-0.5 mb-1.5">
+                {(
+                  [
+                    { icon: Bold, marker: "*", title: "Negrito" },
+                    { icon: Italic, marker: "_", title: "Itálico" },
+                    { icon: Strikethrough, marker: "~", title: "Tachado" },
+                  ] as const
+                ).map(({ icon: Icon, marker, title }) => (
+                  <button
+                    key={marker}
+                    type="button"
+                    title={title}
+                    onMouseDown={(e) => {
+                      // prevent textarea blur
+                      e.preventDefault();
+                      if (inputRef.current) {
+                        wrapSelection(
+                          inputRef.current,
+                          marker,
+                          inputValue,
+                          setInputValue,
+                        );
+                      }
+                    }}
+                    className="p-1.5 rounded hover:bg-white/10 transition-colors text-white/50 hover:text-white/80 cursor-pointer"
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                  </button>
+                ))}
+                <span className="ml-2 text-[10px] text-white/25 select-none hidden sm:block">
+                  *negrito* · _itálico_ · ~tachado~
+                </span>
+              </div>
               <div className="flex items-end gap-2">
                 <textarea
                   ref={inputRef}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Digite uma mensagem… (Enter para enviar)"
+                  placeholder="Digite uma mensagem…"
                   rows={1}
                   className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm placeholder:text-white/30 focus:outline-none focus:border-green-500/50 resize-none max-h-32 overflow-y-auto"
                   style={{ minHeight: "44px" }}

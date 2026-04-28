@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Link2, Check, Share2, X } from "lucide-react";
 
 interface ShareSidebarProps {
@@ -11,37 +12,11 @@ interface ShareSidebarProps {
 export default function ShareSidebar({ url, title }: ShareSidebarProps) {
   const [copied, setCopied] = useState(false);
   const [open, setOpen] = useState(false);
-  const [currentUrl, setCurrentUrl] = useState(url);
-
-  useEffect(() => {
-    setCurrentUrl(window.location.href);
-
-    const observer = new MutationObserver(() => {
-      setCurrentUrl(window.location.href);
-    });
-    observer.observe(document, { subtree: true, childList: true });
-
-    const origPushState = history.pushState.bind(history);
-    const origReplaceState = history.replaceState.bind(history);
-    history.pushState = (...args) => {
-      origPushState(...args);
-      setCurrentUrl(window.location.href);
-    };
-    history.replaceState = (...args) => {
-      origReplaceState(...args);
-      setCurrentUrl(window.location.href);
-    };
-
-    const onPopState = () => setCurrentUrl(window.location.href);
-    window.addEventListener("popstate", onPopState);
-
-    return () => {
-      observer.disconnect();
-      history.pushState = origPushState;
-      history.replaceState = origReplaceState;
-      window.removeEventListener("popstate", onPopState);
-    };
-  }, []);
+  const pathname = usePathname();
+  const currentUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${pathname}`
+      : url;
 
   const encodedUrl = encodeURIComponent(currentUrl);
   const encodedTitle = encodeURIComponent(title);

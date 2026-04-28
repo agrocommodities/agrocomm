@@ -203,26 +203,44 @@ async function main() {
     await db.insert(products).values(p).onConflictDoNothing();
   }
 
-  console.log("Seeding states…");
-  for (const s of STATES) {
-    await db.insert(states).values(s).onConflictDoNothing();
+  const [existingState] = await db
+    .select({ id: states.id })
+    .from(states)
+    .limit(1);
+  if (existingState) {
+    console.log("States already seeded, skipping.");
+  } else {
+    console.log("Seeding states…");
+    for (const s of STATES) {
+      await db.insert(states).values(s).onConflictDoNothing();
+    }
   }
 
-  console.log("Seeding cities…");
-  const stateIdByCode = new Map<string, number>();
-  const allStates = await db
-    .select({ id: states.id, code: states.code })
-    .from(states);
-  for (const s of allStates) {
-    stateIdByCode.set(s.code, s.id);
-  }
-  for (const city of CITIES) {
-    const stateId = stateIdByCode.get(city.stateCode);
-    if (!stateId) continue;
-    await db
-      .insert(cities)
-      .values({ stateId, name: city.name, slug: city.slug })
-      .onConflictDoNothing();
+  const [existingCity] = await db
+    .select({ id: cities.id })
+    .from(cities)
+    .limit(1);
+  if (existingCity) {
+    console.log("Cities already seeded, skipping.");
+  } else {
+    console.log("Seeding cities…");
+    const stateIdByCode = new Map<string, number>();
+    const allStates = await db
+      .select({ id: states.id, code: states.code })
+      .from(states);
+
+    for (const s of allStates) {
+      stateIdByCode.set(s.code, s.id);
+    }
+
+    for (const city of CITIES) {
+      const stateId = stateIdByCode.get(city.stateCode);
+      if (!stateId) continue;
+      await db
+        .insert(cities)
+        .values({ stateId, name: city.name, slug: city.slug })
+        .onConflictDoNothing();
+    }
   }
 
   console.log("Seeding sources…");

@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Crown, Sparkles, Calendar, ArrowRight, XCircle } from "lucide-react";
 import type { UserSubscription } from "@/actions/subscriptions";

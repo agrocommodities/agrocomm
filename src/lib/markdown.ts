@@ -71,3 +71,43 @@ export function renderMarkdown(raw: string): string {
 export function setMarkdownHtml(el: HTMLElement, raw: string): void {
   el.innerHTML = renderMarkdown(raw);
 }
+
+/**
+ * WhatsApp-style markdown renderer for chat messages.
+ * Supports: *bold*, _italic_, ~strikethrough~, `code`, [text](url), and newlines.
+ * HTML is escaped first — safe for dangerouslySetInnerHTML.
+ */
+export function renderChatMarkdown(raw: string): string {
+  // 1. Escape HTML
+  let text = raw
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+  // 2. Markdown links [text](url) — only allow http/https
+  text = text.replace(
+    /\[([^\]]{1,200})\]\((https?:\/\/[^)\s]{1,500})\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer" class="underline hover:opacity-80">$1</a>',
+  );
+
+  // 3. Bold: *text*
+  text = text.replace(/\*([^*\n]{1,500})\*/g, "<strong>$1</strong>");
+
+  // 4. Italic: _text_
+  text = text.replace(/_([^_\n]{1,500})_/g, "<em>$1</em>");
+
+  // 5. Strikethrough: ~text~
+  text = text.replace(/~([^~\n]{1,500})~/g, "<del>$1</del>");
+
+  // 6. Inline code: `text`
+  text = text.replace(
+    /`([^`\n]{1,500})`/g,
+    '<code class="bg-white/20 px-1 rounded text-xs font-mono">$1</code>',
+  );
+
+  // 7. Newlines → <br>
+  text = text.replace(/\n/g, "<br>");
+
+  return text;
+}
