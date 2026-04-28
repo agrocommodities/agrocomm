@@ -42,11 +42,13 @@ export type CityOption = { id: number; name: string; slug: string };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Retorna a data mais recente com cotações no banco (fallback para hoje) */
-async function latestQuoteDate(): Promise<string> {
+/** Retorna a data mais recente para um produto específico */
+async function latestQuoteDateForProduct(productSlug: string): Promise<string> {
   const [row] = await db
     .select({ d: quotes.quoteDate })
     .from(quotes)
+    .innerJoin(products, eq(quotes.productId, products.id))
+    .where(eq(products.slug, productSlug))
     .orderBy(desc(quotes.quoteDate))
     .limit(1);
   return row?.d ?? new Date().toISOString().slice(0, 10);
@@ -222,7 +224,7 @@ export async function getCityHistoryByRange(
 export async function getProductQuotes(
   productSlug: string,
 ): Promise<{ today: QuoteRow[]; cityHistories: CityLine[] }> {
-  const date = await latestQuoteDate();
+  const date = await latestQuoteDateForProduct(productSlug);
 
   const today = await db
     .select(BASE_SELECT)

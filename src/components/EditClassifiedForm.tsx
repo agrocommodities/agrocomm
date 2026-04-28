@@ -143,7 +143,7 @@ export default function EditClassifiedForm({
     if (!files || files.length === 0) return;
     const added = Array.from(files);
     setNewFiles((prev) => {
-      const combined = [...prev, ...added].slice(0, 6 - existingImages.length);
+      const combined = [...prev, ...added].slice(0, 10 - existingImages.length);
       setNewPreviews(combined.map((f) => URL.createObjectURL(f)));
       return combined;
     });
@@ -350,7 +350,7 @@ export default function EditClassifiedForm({
       {/* Images */}
       <div className="flex flex-col gap-1.5">
         <span className="text-xs text-white/60 font-medium">
-          Imagens (até 6, máx. 5MB cada) — {totalImages}/6
+          Imagens (até 10, máx. 5MB cada) — {totalImages}/10
         </span>
 
         {/* Existing images */}
@@ -409,7 +409,7 @@ export default function EditClassifiedForm({
         )}
 
         {/* Add more */}
-        {totalImages < 6 && (
+        {totalImages < 10 && (
           <label className="flex items-center justify-center gap-2 border-2 border-dashed border-white/20 rounded-xl py-6 cursor-pointer hover:border-green-400/40 transition">
             <ImagePlus className="w-5 h-5 text-white/40" />
             <span className="text-sm text-white/40">Adicionar imagens</span>

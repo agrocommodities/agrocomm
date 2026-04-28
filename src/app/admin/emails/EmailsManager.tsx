@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import {
   sendTestEmailAction,
+  sendTemplateTestEmailAction,
   saveEmailTemplateConfigAction,
   deleteEmailTemplateConfigAction,
 } from "@/actions/emails";
@@ -74,6 +75,12 @@ export default function EmailsManager({
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [templateTestResults, setTemplateTestResults] = useState<
+    Record<string, { type: "success" | "error"; message: string }>
+  >({});
+  const [templateTestPending, setTemplateTestPending] = useState<Set<string>>(
+    new Set(),
+  );
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editSubject, setEditSubject] = useState("");
   const [editBody, setEditBody] = useState("");
@@ -133,6 +140,32 @@ export default function EmailsManager({
       setTestResult({ type: "error", message: res.error });
     } else {
       setTestResult({ type: "success", message: "E-mail de teste enviado!" });
+    }
+  }
+
+  async function handleSendTemplateTest(templateKey: string) {
+    setTemplateTestResults((prev) => {
+      const next = { ...prev };
+      delete next[templateKey];
+      return next;
+    });
+    setTemplateTestPending((prev) => new Set(prev).add(templateKey));
+    const res = await sendTemplateTestEmailAction(templateKey, testEmail);
+    setTemplateTestPending((prev) => {
+      const next = new Set(prev);
+      next.delete(templateKey);
+      return next;
+    });
+    if (res.error) {
+      setTemplateTestResults((prev) => ({
+        ...prev,
+        [templateKey]: { type: "error", message: res.error as string },
+      }));
+    } else {
+      setTemplateTestResults((prev) => ({
+        ...prev,
+        [templateKey]: { type: "success", message: "Enviado!" },
+      }));
     }
   }
 
@@ -208,8 +241,11 @@ export default function EmailsManager({
 
           {/* Test email */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-            <h2 className="font-semibold mb-4">Enviar e-mail de teste</h2>
-            <div className="flex gap-2">
+            <h2 className="font-semibold mb-1">Enviar e-mail de teste</h2>
+            <p className="text-xs text-white/40 mb-4">
+              Informe o destinatário e envie um teste para cada tipo de e-mail.
+            </p>
+            <div className="flex gap-2 mb-4">
               <input
                 type="email"
                 value={testEmail}
@@ -222,15 +258,15 @@ export default function EmailsManager({
                 type="button"
                 disabled={!config.configured || !testEmail}
                 onClick={handleSendTest}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+                className="flex items-center gap-2 bg-white/10 hover:bg-white/15 disabled:opacity-40 text-white/70 font-semibold text-sm px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
               >
                 <Send className="w-4 h-4" />
-                Enviar
+                Genérico
               </button>
             </div>
             {testResult && (
               <div
-                className={`mt-3 flex items-center gap-2 text-sm px-3 py-2 rounded-lg ${
+                className={`mb-4 flex items-center gap-2 text-sm px-3 py-2 rounded-lg ${
                   testResult.type === "success"
                     ? "bg-green-500/10 text-green-400"
                     : "bg-red-500/10 text-red-400"
@@ -244,6 +280,52 @@ export default function EmailsManager({
                 {testResult.message}
               </div>
             )}
+
+            {/* Per-template test buttons */}
+            <div className="border border-white/10 rounded-xl overflow-hidden">
+              <div className="px-4 py-2.5 bg-white/3 border-b border-white/10">
+                <span className="text-xs font-medium text-white/40 uppercase tracking-wide">
+                  Por template
+                </span>
+              </div>
+              <div className="divide-y divide-white/5">
+                {Object.entries(TEMPLATE_KEY_LABELS).map(([key, label]) => {
+                  const result = templateTestResults[key];
+                  const pending = templateTestPending.has(key);
+                  return (
+                    <div
+                      key={key}
+                      className="flex items-center justify-between px-4 py-2.5 gap-3"
+                    >
+                      <div className="min-w-0">
+                        <span className="text-sm text-white/80">{label}</span>
+                        <span className="ml-2 font-mono text-xs text-white/30">
+                          {key}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {result && (
+                          <span
+                            className={`text-xs ${result.type === "success" ? "text-green-400" : "text-red-400"}`}
+                          >
+                            {result.message}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          disabled={!config.configured || !testEmail || pending}
+                          onClick={() => handleSendTemplateTest(key)}
+                          className="flex items-center gap-1.5 bg-green-600/20 hover:bg-green-600/30 disabled:opacity-40 text-green-400 font-medium text-xs px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          <Send className="w-3 h-3" />
+                          {pending ? "Enviando…" : "Enviar"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       )}

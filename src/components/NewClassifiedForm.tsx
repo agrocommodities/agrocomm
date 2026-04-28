@@ -105,7 +105,7 @@ export default function NewClassifiedForm({
     if (!files || files.length === 0) return;
     const newFiles = Array.from(files);
     setImageFiles((prev) => {
-      const combined = [...prev, ...newFiles].slice(0, 6);
+      const combined = [...prev, ...newFiles].slice(0, 10);
       setPreviews(combined.map((f) => URL.createObjectURL(f)));
       return combined;
     });
@@ -306,9 +306,9 @@ export default function NewClassifiedForm({
       {/* Images */}
       <div className="flex flex-col gap-1.5">
         <label htmlFor="images" className="text-xs text-white/60 font-medium">
-          Imagens (até 6, máx. 5MB cada) — {imageFiles.length}/6
+          Imagens (até 10, máx. 5MB cada) — {imageFiles.length}/10
         </label>
-        {imageFiles.length < 6 && (
+        {imageFiles.length < 10 && (
           <label className="flex items-center justify-center gap-2 border-2 border-dashed border-white/20 rounded-xl py-6 cursor-pointer hover:border-green-400/40 transition">
             <ImagePlus className="w-5 h-5 text-white/40" />
             <span className="text-sm text-white/40">

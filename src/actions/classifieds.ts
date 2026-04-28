@@ -359,7 +359,12 @@ export async function createClassified(
       mileage,
       stateId,
       cityId,
-      status: session.role === "admin" ? "approved" : "pending",
+      status:
+        session.role === "admin" ||
+        session.role === "super-admin" ||
+        session.role === "corretor"
+          ? "approved"
+          : "pending",
     })
     .returning({ id: classifieds.id });
 
@@ -849,7 +854,7 @@ export async function editUserClassified(
   const files = formData.getAll("images");
   for (const file of files) {
     if (!(file instanceof File) || file.size === 0) continue;
-    if (position >= 6) break;
+    if (position >= 10) break;
     if (file.size > 5 * 1024 * 1024) continue;
     if (!file.type.startsWith("image/")) continue;
 

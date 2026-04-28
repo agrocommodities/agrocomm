@@ -302,6 +302,50 @@ export default function MessagesClient({
       )
     : conversations;
 
+  // Group conversations by otherUserId so the same seller doesn't appear multiple times
+  const groupedConversations = filteredConversations.reduce<
+    {
+      otherUserId: number;
+      otherUserName: string;
+      otherUserAvatarUrl: string | null;
+      latestConvId: number;
+      lastMessage: string | null;
+      lastMessageAt: string | null;
+      totalUnread: number;
+      classifiedTitle: string | null;
+      classifiedCount: number;
+    }[]
+  >((acc, conv) => {
+    const existing = acc.find((g) => g.otherUserId === conv.otherUserId);
+    if (existing) {
+      existing.totalUnread += conv.unreadCount;
+      existing.classifiedCount += 1;
+      // Keep the most recent conversation as the "active" one for this group
+      if (
+        !existing.lastMessageAt ||
+        (conv.lastMessageAt && conv.lastMessageAt > existing.lastMessageAt)
+      ) {
+        existing.latestConvId = conv.id;
+        existing.lastMessage = conv.lastMessage;
+        existing.lastMessageAt = conv.lastMessageAt;
+        existing.classifiedTitle = conv.classifiedTitle;
+      }
+      return acc;
+    }
+    acc.push({
+      otherUserId: conv.otherUserId,
+      otherUserName: conv.otherUserName,
+      otherUserAvatarUrl: conv.otherUserAvatarUrl,
+      latestConvId: conv.id,
+      lastMessage: conv.lastMessage,
+      lastMessageAt: conv.lastMessageAt,
+      totalUnread: conv.unreadCount,
+      classifiedTitle: conv.classifiedTitle,
+      classifiedCount: 1,
+    });
+    return acc;
+  }, []);
+
   return (
     <div className="flex h-[calc(100dvh-92px)] md:h-[calc(100dvh-60px)] min-h-0">
       <aside
@@ -323,7 +367,7 @@ export default function MessagesClient({
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {filteredConversations.length === 0 ? (
+          {groupedConversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center">
               <MessageSquare className="w-10 h-10 text-white/20" />
               <p className="text-sm text-white/40">
@@ -341,40 +385,54 @@ export default function MessagesClient({
               )}
             </div>
           ) : (
-            filteredConversations.map((conv) => (
+            groupedConversations.map((group) => (
               <button
-                key={conv.id}
+                key={group.otherUserId}
                 type="button"
-                onClick={() => openConversation(conv.id)}
+                onClick={() => openConversation(group.latestConvId)}
                 className={`w-full flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left border-b border-white/5 cursor-pointer ${
-                  activeConvId === conv.id ? "bg-white/10" : ""
+                  activeConvId === group.latestConvId ||
+                  conversations.some(
+                    (c) =>
+                      c.otherUserId === group.otherUserId &&
+                      c.id === activeConvId,
+                  )
+                    ? "bg-white/10"
+                    : ""
                 }`}
               >
                 <UserAvatar
-                  name={conv.otherUserName}
-                  avatarUrl={conv.otherUserAvatarUrl}
+                  name={group.otherUserName}
+                  avatarUrl={group.otherUserAvatarUrl}
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-medium truncate">
-                      {conv.otherUserName}
+                      {group.otherUserName}
                     </span>
                     <span className="text-xs text-white/40 shrink-0">
-                      {conv.lastMessageAt ? formatTime(conv.lastMessageAt) : ""}
+                      {group.lastMessageAt
+                        ? formatTime(group.lastMessageAt)
+                        : ""}
                     </span>
                   </div>
-                  {conv.classifiedTitle && (
+                  {group.classifiedTitle && (
                     <p className="text-xs text-green-400 truncate">
-                      {conv.classifiedTitle}
+                      {group.classifiedTitle}
+                      {group.classifiedCount > 1 && (
+                        <span className="text-white/30 ml-1">
+                          +{group.classifiedCount - 1}
+                        </span>
+                      )}
                     </p>
                   )}
                   <p className="text-xs text-white/50 truncate mt-0.5">
-                    {conv.lastMessage ?? "Sem mensagens"}
+                    {group.lastMessage ?? "Sem mensagens"}
                   </p>
                 </div>
-                {conv.unreadCount > 0 && (
+                {group.totalUnread > 0 && (
                   <span className="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-600 text-white text-[10px] font-bold mt-0.5">
-                    {conv.unreadCount > 9 ? "9+" : conv.unreadCount}
+                    {group.totalUnread > 9 ? "9+" : group.totalUnread}
                   </span>
                 )}
               </button>
