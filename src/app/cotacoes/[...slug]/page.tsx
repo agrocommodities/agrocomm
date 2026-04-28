@@ -144,11 +144,10 @@ export default async function ProdutoPage({
     ? today.reduce((s, r) => s + r.price, 0) / today.length
     : null;
 
-  const avgVariation = today.length
-    ? today
-        .filter((r) => r.variation !== null)
-        .reduce((s, r) => s + (r.variation ?? 0), 0) /
-      today.filter((r) => r.variation !== null).length
+  const quotesWithVariation = today.filter((r) => r.variation !== null);
+  const avgVariation = quotesWithVariation.length
+    ? quotesWithVariation.reduce((s, r) => s + (r.variation ?? 0), 0) /
+      quotesWithVariation.length
     : null;
 
   const shareUrl =

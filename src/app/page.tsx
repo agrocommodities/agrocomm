@@ -219,8 +219,104 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
       />
       <div className="flex flex-col lg:flex-row gap-4 md:gap-8">
-        {/* Main content */}
-        <div className="flex-1 min-w-0 flex flex-col gap-10">
+        {/* Mobile-only: Planos CTA — order-1 on mobile, hidden on desktop */}
+        {showSubscriptionCTA && (
+          <section className="order-1 lg:hidden relative overflow-hidden rounded-2xl border border-green-500/20 bg-gradient-to-br from-green-900/30 via-emerald-900/20 to-green-950/40">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-green-400/5 via-transparent to-transparent" />
+            <div className="relative px-6 py-8 md:px-10 md:py-10 flex flex-col md:flex-row items-center gap-6 md:gap-10">
+              <div className="flex-1 text-center md:text-left">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-400/10 border border-green-400/20 text-green-400 text-xs font-semibold tracking-wide uppercase mb-4">
+                  <Crown className="w-3.5 h-3.5" />
+                  {planSlug ? "Faça upgrade" : "Planos AgroComm"}
+                </div>
+                <h2 className="text-xl md:text-2xl font-bold mb-2">
+                  {planSlug
+                    ? "Desbloqueie todo o potencial"
+                    : "Acompanhe o mercado de perto"}
+                </h2>
+                <p className="text-sm text-white/50 max-w-lg">
+                  {planSlug
+                    ? "Faça upgrade para o plano Ouro e tenha acesso ao histórico completo de preços, boletins diários por e-mail e mais classificados."
+                    : "Assine um plano e tenha acesso a histórico de preços, boletins por e-mail, mais classificados e muito mais."}
+                </p>
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-5 text-xs text-white/40">
+                  <span className="flex items-center gap-1.5">
+                    <BarChart3 className="w-3.5 h-3.5 text-green-400/60" />
+                    Histórico de preços
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-green-400/60" />
+                    Boletins por e-mail
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-green-400/60" />
+                    Mais classificados
+                  </span>
+                </div>
+              </div>
+              <div className="shrink-0">
+                <Link
+                  href="/planos"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-green-500 hover:bg-green-400 text-green-950 font-semibold text-sm transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20"
+                >
+                  {planSlug ? "Fazer upgrade" : "Ver planos"}
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Main content — order-3 on mobile, left column on desktop */}
+        <div className="flex-1 min-w-0 flex flex-col gap-10 order-3 lg:order-1">
+          {/* Subscription CTA — desktop only */}
+          {showSubscriptionCTA && (
+            <section className="hidden lg:block relative overflow-hidden rounded-2xl border border-green-500/20 bg-gradient-to-br from-green-900/30 via-emerald-900/20 to-green-950/40">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-green-400/5 via-transparent to-transparent" />
+              <div className="relative px-6 py-8 md:px-10 md:py-10 flex flex-col md:flex-row items-center gap-6 md:gap-10">
+                <div className="flex-1 text-center md:text-left">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-400/10 border border-green-400/20 text-green-400 text-xs font-semibold tracking-wide uppercase mb-4">
+                    <Crown className="w-3.5 h-3.5" />
+                    {planSlug ? "Faça upgrade" : "Planos AgroComm"}
+                  </div>
+                  <h2 className="text-xl md:text-2xl font-bold mb-2">
+                    {planSlug
+                      ? "Desbloqueie todo o potencial"
+                      : "Acompanhe o mercado de perto"}
+                  </h2>
+                  <p className="text-sm text-white/50 max-w-lg">
+                    {planSlug
+                      ? "Faça upgrade para o plano Ouro e tenha acesso ao histórico completo de preços, boletins diários por e-mail e mais classificados."
+                      : "Assine um plano e tenha acesso a histórico de preços, boletins por e-mail, mais classificados e muito mais."}
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-5 text-xs text-white/40">
+                    <span className="flex items-center gap-1.5">
+                      <BarChart3 className="w-3.5 h-3.5 text-green-400/60" />
+                      Histórico de preços
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-green-400/60" />
+                      Boletins por e-mail
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <TrendingUp className="w-3.5 h-3.5 text-green-400/60" />
+                      Mais classificados
+                    </span>
+                  </div>
+                </div>
+                <div className="shrink-0">
+                  <Link
+                    href="/planos"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-green-500 hover:bg-green-400 text-green-950 font-semibold text-sm transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20"
+                  >
+                    {planSlug ? "Fazer upgrade" : "Ver planos"}
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Hero */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
             <div>
@@ -367,58 +463,10 @@ export default async function HomePage() {
               </div>
             </section>
           )}
-
-          {/* Subscription CTA */}
-          {showSubscriptionCTA && (
-            <section className="relative overflow-hidden rounded-2xl border border-green-500/20 bg-gradient-to-br from-green-900/30 via-emerald-900/20 to-green-950/40">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-green-400/5 via-transparent to-transparent" />
-              <div className="relative px-6 py-8 md:px-10 md:py-10 flex flex-col md:flex-row items-center gap-6 md:gap-10">
-                <div className="flex-1 text-center md:text-left">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-400/10 border border-green-400/20 text-green-400 text-xs font-semibold tracking-wide uppercase mb-4">
-                    <Crown className="w-3.5 h-3.5" />
-                    {planSlug ? "Faça upgrade" : "Planos AgroComm"}
-                  </div>
-                  <h2 className="text-xl md:text-2xl font-bold mb-2">
-                    {planSlug
-                      ? "Desbloqueie todo o potencial"
-                      : "Acompanhe o mercado de perto"}
-                  </h2>
-                  <p className="text-sm text-white/50 max-w-lg">
-                    {planSlug
-                      ? "Faça upgrade para o plano Ouro e tenha acesso ao histórico completo de preços, boletins diários por e-mail e mais classificados."
-                      : "Assine um plano e tenha acesso a histórico de preços, boletins por e-mail, mais classificados e muito mais."}
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-5 text-xs text-white/40">
-                    <span className="flex items-center gap-1.5">
-                      <BarChart3 className="w-3.5 h-3.5 text-green-400/60" />
-                      Histórico de preços
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Mail className="w-3.5 h-3.5 text-green-400/60" />
-                      Boletins por e-mail
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <TrendingUp className="w-3.5 h-3.5 text-green-400/60" />
-                      Mais classificados
-                    </span>
-                  </div>
-                </div>
-                <div className="shrink-0">
-                  <Link
-                    href="/planos"
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-green-500 hover:bg-green-400 text-green-950 font-semibold text-sm transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20"
-                  >
-                    {planSlug ? "Fazer upgrade" : "Ver planos"}
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
-              </div>
-            </section>
-          )}
         </div>
 
-        {/* Sidebar */}
-        <div className="lg:w-72 shrink-0">
+        {/* Sidebar — order-2 on mobile, right column on desktop */}
+        <div className="order-2 lg:order-2 lg:w-72 shrink-0">
           <div className="lg:sticky lg:top-20 flex flex-col gap-5">
             <ClassifiedsSidebar items={classifiedsData.items} />
             <CommoditySidebar />

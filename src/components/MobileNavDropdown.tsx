@@ -1,21 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import type { NavLinkClient } from "@/config";
 
 export default function MobileNavDropdown({ link }: { link: NavLinkClient }) {
   const [open, setOpen] = useState(false);
+  const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({});
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPanelStyle({
+        position: "fixed",
+        top: rect.bottom + 6,
+        left: Math.max(8, rect.left - 4),
+        zIndex: 9999,
+      });
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent | TouchEvent) => {
+      if (!buttonRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("touchstart", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("touchstart", close);
+    };
+  }, [open]);
 
   if (!link.children) return null;
 
   return (
-    <div className="flex flex-col">
+    <>
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="text-sm font-medium whitespace-nowrap hover:text-green-300 transition-colors inline-flex items-center gap-1 cursor-pointer"
+        className={`text-sm font-medium whitespace-nowrap transition-colors inline-flex items-center gap-1 cursor-pointer
+          ${open ? "text-green-300" : "hover:text-green-300"}`}
       >
         {link.name}
         <ChevronDown
@@ -23,26 +52,30 @@ export default function MobileNavDropdown({ link }: { link: NavLinkClient }) {
         />
       </button>
 
-      <div
-        className={`flex flex-col gap-1 overflow-hidden transition-all duration-200
-          ${open ? "max-h-40 opacity-100 mt-1" : "max-h-0 opacity-0"}`}
-      >
-        <Link
-          href={link.href}
-          className="text-xs whitespace-nowrap text-green-400 hover:text-green-300 transition-colors pl-2"
+      {open && (
+        <div
+          style={panelStyle}
+          className="bg-[#2a3326] border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-40 animate-in fade-in slide-in-from-top-1 duration-150"
         >
-          Ver todos
-        </Link>
-        {link.children.map((child) => (
           <Link
-            key={child.href}
-            href={child.href}
-            className="text-xs whitespace-nowrap hover:text-green-300 transition-colors pl-2"
+            href={link.href}
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-green-400 hover:bg-white/5 hover:text-green-300 transition-colors border-b border-white/10"
           >
-            {child.name}
+            Ver todos
           </Link>
-        ))}
-      </div>
-    </div>
+          {link.children.map((child) => (
+            <Link
+              key={child.href}
+              href={child.href}
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm text-white/80 hover:bg-white/5 hover:text-white transition-colors"
+            >
+              {child.name}
+            </Link>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
