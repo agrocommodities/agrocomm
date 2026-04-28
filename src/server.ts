@@ -60,6 +60,14 @@ app.prepare().then(() => {
       socket.leave("admin:stats");
     });
 
+    socket.on("chat:join", (conversationId: number) => {
+      socket.join(`chat:${conversationId}`);
+    });
+
+    socket.on("chat:leave", (conversationId: number) => {
+      socket.leave(`chat:${conversationId}`);
+    });
+
     socket.on("disconnect", () => {
       setTimeout(() => {
         io.to("admin:stats").emit("stats:online_count", io.engine.clientsCount);

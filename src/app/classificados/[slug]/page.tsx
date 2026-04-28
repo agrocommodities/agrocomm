@@ -200,24 +200,22 @@ export default async function ClassifiedDetailPage({ params }: Props) {
 
           {/* Negotiate button */}
           <div className="mb-6">
-            {session ? (
+            {session && session.userId !== item.userId ? (
               <Link
-                href={`https://wa.me/?text=${encodeURIComponent(`Olá! Vi seu anúncio "${item.title}" no AgroComm e tenho interesse. Link: ${process.env.NEXT_PUBLIC_BASE_URL ?? "https://agrocomm.com.br"}/classificados/${item.slug}`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={`/mensagens?classified=${item.slug}&message=${encodeURIComponent(`Olá! Vi seu anúncio "${item.title}" no AgroComm e gostaria de mais informações. Link: ${process.env.NEXT_PUBLIC_BASE_URL ?? "https://agrocomm.com.br"}/classificados/${item.slug}`)}`}
                 className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm"
               >
                 <MessageCircle className="w-5 h-5" />
                 Negociar
               </Link>
-            ) : (
+            ) : !session ? (
               <Link
                 href="/login"
                 className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm"
               >
                 Faça login para negociar
               </Link>
-            )}
+            ) : null}
           </div>
 
           {/* Description */}

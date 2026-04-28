@@ -872,4 +872,69 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   userPermissions: many(userPermissions),
   subscriptions: many(subscriptions),
   quoteSubscriptions: many(userQuoteSubscriptions),
+  conversationsAsA: many(conversations, { relationName: "participantA" }),
+  conversationsAsB: many(conversations, { relationName: "participantB" }),
+  sentMessages: many(messages),
+}));
+
+// ── Mensagens ─────────────────────────────────────────────────────────────────
+
+export const conversations = sqliteTable("conversations", {
+  id: int().primaryKey({ autoIncrement: true }),
+  participantAId: int("participant_a_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  participantBId: int("participant_b_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  classifiedId: int("classified_id").references(() => classifieds.id, {
+    onDelete: "set null",
+  }),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const messages = sqliteTable("messages", {
+  id: int().primaryKey({ autoIncrement: true }),
+  conversationId: int("conversation_id")
+    .notNull()
+    .references(() => conversations.id, { onDelete: "cascade" }),
+  senderId: int("sender_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  content: text().notNull(),
+  read: int().notNull().default(0), // 0 = unread, 1 = read
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const conversationsRelations = relations(
+  conversations,
+  ({ one, many }) => ({
+    participantA: one(users, {
+      fields: [conversations.participantAId],
+      references: [users.id],
+      relationName: "participantA",
+    }),
+    participantB: one(users, {
+      fields: [conversations.participantBId],
+      references: [users.id],
+      relationName: "participantB",
+    }),
+    classified: one(classifieds, {
+      fields: [conversations.classifiedId],
+      references: [classifieds.id],
+    }),
+    messages: many(messages),
+  }),
+);
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [messages.conversationId],
+    references: [conversations.id],
+  }),
+  sender: one(users, {
+    fields: [messages.senderId],
+    references: [users.id],
+  }),
 }));

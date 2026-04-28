@@ -2,19 +2,22 @@ import Link from "next/link";
 import Image from "next/image";
 import { getSession, getUserPermissions } from "@/lib/auth";
 import { getUserSubscription } from "@/actions/subscriptions";
+import { getTotalUnread } from "@/actions/messages";
 import { navLinks } from "@/config";
 import UserMenu from "@/components/UserMenu";
 import NavDropdown from "@/components/NavDropdown";
 import MobileNavDropdown from "@/components/MobileNavDropdown";
+import MessageIcon from "@/components/MessageIcon";
 import { Crown } from "lucide-react";
 
 export default async function Header() {
   const session = await getSession();
-  const [hasAdminAccess, subscription] = await Promise.all([
+  const [hasAdminAccess, subscription, unreadMessages] = await Promise.all([
     session
       ? getUserPermissions(session.userId).then((p) => p.has("admin.access"))
       : Promise.resolve(false),
     getUserSubscription(),
+    session ? getTotalUnread() : Promise.resolve(0),
   ]);
 
   const planSlug = subscription?.planSlug;
@@ -60,8 +63,14 @@ export default async function Header() {
           )}
         </nav>
 
-        {/* User menu */}
-        <div className="shrink-0">
+        {/* User actions */}
+        <div className="flex items-center gap-1 shrink-0">
+          {session && (
+            <MessageIcon
+              userId={session.userId}
+              initialUnread={unreadMessages}
+            />
+          )}
           <UserMenu session={session} hasAdminAccess={hasAdminAccess} />
         </div>
       </div>
