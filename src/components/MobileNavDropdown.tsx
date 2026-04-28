@@ -10,8 +10,8 @@ export default function MobileNavDropdown({ link }: { link: NavLinkClient }) {
   const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({});
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    if (open && buttonRef.current) {
+  const toggle = () => {
+    if (!open && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       setPanelStyle({
         position: "fixed",
@@ -20,7 +20,8 @@ export default function MobileNavDropdown({ link }: { link: NavLinkClient }) {
         zIndex: 9999,
       });
     }
-  }, [open]);
+    setOpen((o) => !o);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -42,7 +43,7 @@ export default function MobileNavDropdown({ link }: { link: NavLinkClient }) {
       <button
         ref={buttonRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => toggle()}
         className={`text-sm font-medium whitespace-nowrap transition-colors inline-flex items-center gap-1 cursor-pointer
           ${open ? "text-green-300" : "hover:text-green-300"}`}
       >
