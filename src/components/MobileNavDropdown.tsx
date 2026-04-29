@@ -9,6 +9,7 @@ export default function MobileNavDropdown({ link }: { link: NavLinkClient }) {
   const [open, setOpen] = useState(false);
   const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({});
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const toggle = () => {
     if (!open && buttonRef.current) {
@@ -26,7 +27,13 @@ export default function MobileNavDropdown({ link }: { link: NavLinkClient }) {
   useEffect(() => {
     if (!open) return;
     const close = (e: MouseEvent | TouchEvent) => {
-      if (!buttonRef.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (
+        !buttonRef.current?.contains(target) &&
+        !panelRef.current?.contains(target)
+      ) {
+        setOpen(false);
+      }
     };
     document.addEventListener("mousedown", close);
     document.addEventListener("touchstart", close);
@@ -55,6 +62,7 @@ export default function MobileNavDropdown({ link }: { link: NavLinkClient }) {
 
       {open && (
         <div
+          ref={panelRef}
           style={panelStyle}
           className="bg-[#2a3326] border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-40 animate-in fade-in slide-in-from-top-1 duration-150"
         >
