@@ -10,7 +10,7 @@ PROJECT_DIR=/var/www/$NAME
 cp -a "$PROJECT_DIR" "$TEMP_DIR"
 cd "$TEMP_DIR" || exit 1
 
-git clean -fxd -e .env -e drizzle/agrocomm.db -e public/images/posts -e public/images/avatars -e public/images/classifieds
+git clean -fxd -e .env -e drizzle/agrocomm.db -e public/images/posts -e public/images/avatars -e public/images/classifieds -e .next
 cp -f .env .env.production
 
 pnpm install

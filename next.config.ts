@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "35mb",
     },
     turbopackFileSystemCacheForDev: false,
+    turboPersistentCaching: true,
   },
 };
 
