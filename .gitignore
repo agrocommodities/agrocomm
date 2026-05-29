@@ -57,3 +57,8 @@ public/images/classifieds/**
 # avatar
 public/images/avatars/**
 !public/images/avatars/.gitkeep
+
+# docker certs
+docker/certs/*.pem
+docker/certs/*.key
+docker/certs/*.crt

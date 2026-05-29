@@ -22,18 +22,17 @@ if pnpm run push; then
   pnpm run seed
   pnpm run scrape
   pnpm run build || exit 1
+  sudo /usr/bin/systemctl stop $SERVICE
+  rm -rf "$PROJECT_DIR"
+  mv "$TEMP_DIR" "$PROJECT_DIR"
+  sudo /usr/bin/systemctl start $SERVICE
 else
   echo "Erro ao executar push, abortando deploy"
   exit 1
 fi
 
-sudo /usr/bin/systemctl stop $SERVICE
-rm -rf "$PROJECT_DIR"
-mv "$TEMP_DIR" "$PROJECT_DIR"
-sudo /usr/bin/systemctl start $SERVICE
-
-# Aguardar serviço ficar saudável (até 60s)
-for i in $(seq 1 12); do
+# Aguardar serviço ficar saudável (até 30s)
+for i in $(seq 1 6); do
   sleep 5
   if curl -s -f http://localhost:4000/api/health > /dev/null 2>&1; then
     echo "Serviço iniciado com sucesso"
@@ -42,5 +41,5 @@ for i in $(seq 1 12); do
   echo "Aguardando serviço... (tentativa $i/12)"
 done
 
-echo "Serviço não respondeu após 60s"
+echo "Serviço não respondeu após 30s"
 exit 1
