@@ -62,7 +62,7 @@ export default function CheckoutClient({
 
   // Poll for Pix/boleto payment approval
   useEffect(() => {
-    if (!result || result.status !== "pending" || !result.paymentId) return;
+    if (result?.status !== "pending" || !result.paymentId) return;
 
     pollingRef.current = setInterval(async () => {
       try {

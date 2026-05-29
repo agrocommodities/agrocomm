@@ -205,7 +205,7 @@ export async function toggleQuoteSubscription(
 
   // Check if user has active subscription
   const sub = await getUserSubscription();
-  if (!sub || sub.status !== "active" || !sub.emailBulletins) {
+  if (sub?.status !== "active" || !sub.emailBulletins) {
     return { subscribed: false, error: "Necessário plano ativo com boletins" };
   }
 

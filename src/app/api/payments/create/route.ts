@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     .where(eq(subscriptionPlans.slug, planSlug))
     .limit(1);
 
-  if (!plan || !plan.active) {
+  if (!plan?.active) {
     return NextResponse.json(
       { error: "Plano não encontrado" },
       { status: 404 },

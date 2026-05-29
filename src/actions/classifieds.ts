@@ -430,8 +430,7 @@ export async function addComment(
     .from(classifieds)
     .where(eq(classifieds.id, classifiedId))
     .limit(1);
-  if (!cl || cl.status !== "approved")
-    return { error: "Anúncio não encontrado." };
+  if (cl?.status !== "approved") return { error: "Anúncio não encontrado." };
 
   // Moderate content
   const modResult = await moderateText(
