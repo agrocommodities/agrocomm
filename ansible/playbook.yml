@@ -11,7 +11,7 @@
   tasks:
     # ── Dependências do sistema ──────────────────────────────────────────
     - name: Instalar pacotes essenciais
-      dnf:
+      ansible.builtin.dnf:
         name:
           - git
           - curl
@@ -21,16 +21,25 @@
         state: present
 
     # ── Node.js via fnm ──────────────────────────────────────────────────
-    - name: Instalar fnm para o usuário {{ app_user }}
+    - name: Baixar script de instalação do fnm
+      become: true
       become_user: "{{ app_user }}"
-      shell: |
-        curl -fsSL https://fnm.vercel.app/install | bash
+      ansible.builtin.get_url:
+        url: https://fnm.vercel.app/install
+        dest: /tmp/fnm-install.sh
+        mode: "0700"
+
+    - name: Instalar fnm para o usuário {{ app_user }}
+      become: true
+      become_user: "{{ app_user }}"
+      ansible.builtin.command: /tmp/fnm-install.sh
       args:
         creates: "/home/{{ app_user }}/.local/share/fnm"
 
     - name: Instalar Node.js {{ node_version }}
+      become: true
       become_user: "{{ app_user }}"
-      shell: |
+      ansible.builtin.shell: |
         export PATH="$HOME/.local/share/fnm:$PATH"
         eval "$(fnm env)"
         fnm install {{ node_version }}
@@ -39,8 +48,9 @@
         creates: "/home/{{ app_user }}/.local/share/fnm/node-versions/v{{ node_version }}"
 
     - name: Instalar pnpm via corepack
+      become: true
       become_user: "{{ app_user }}"
-      shell: |
+      ansible.builtin.shell: |
         export PATH="$HOME/.local/share/fnm:$PATH"
         eval "$(fnm env)"
         corepack enable
@@ -50,7 +60,7 @@
 
     # ── Diretório da aplicação ───────────────────────────────────────────
     - name: Criar diretório da aplicação
-      file:
+      ansible.builtin.file:
         path: "{{ app_dir }}"
         state: directory
         owner: "{{ app_user }}"
@@ -59,7 +69,7 @@
 
     # ── Nginx ────────────────────────────────────────────────────────────
     - name: Copiar configuração do Nginx (site principal)
-      copy:
+      ansible.builtin.copy:
         src: files/nginx/agrocomm.conf
         dest: /etc/nginx/conf.d/agrocomm.conf
         owner: root
@@ -68,7 +78,7 @@
       notify: Reiniciar nginx
 
     - name: Copiar configuração do Nginx (CDN)
-      copy:
+      ansible.builtin.copy:
         src: files/nginx/cdn.agrocomm.conf
         dest: /etc/nginx/conf.d/cdn.agrocomm.conf
         owner: root
@@ -77,14 +87,14 @@
       notify: Reiniciar nginx
 
     - name: Habilitar e iniciar nginx
-      systemd:
+      ansible.builtin.systemd:
         name: nginx
         enabled: true
         state: started
 
     # ── Systemd: serviço principal ───────────────────────────────────────
     - name: Copiar agrocomm.service
-      copy:
+      ansible.builtin.copy:
         src: files/systemd/agrocomm.service
         dest: /etc/systemd/system/agrocomm.service
         owner: root
@@ -94,7 +104,7 @@
 
     # ── Systemd: scraper ─────────────────────────────────────────────────
     - name: Copiar agrocomm-scraper.service
-      copy:
+      ansible.builtin.copy:
         src: files/systemd/agrocomm-scraper.service
         dest: /etc/systemd/system/agrocomm-scraper.service
         owner: root
@@ -103,7 +113,7 @@
       notify: Recarregar systemd
 
     - name: Copiar agrocomm-scraper.timer
-      copy:
+      ansible.builtin.copy:
         src: files/systemd/agrocomm-scraper.timer
         dest: /etc/systemd/system/agrocomm-scraper.timer
         owner: root
@@ -112,7 +122,7 @@
       notify: Recarregar systemd
 
     - name: Habilitar timer do scraper
-      systemd:
+      ansible.builtin.systemd:
         name: agrocomm-scraper.timer
         enabled: true
         state: started
@@ -120,7 +130,7 @@
 
     # ── Systemd: bulletins ───────────────────────────────────────────────
     - name: Copiar agrocomm-bulletins.service
-      copy:
+      ansible.builtin.copy:
         src: files/systemd/agrocomm-bulletins.service
         dest: /etc/systemd/system/agrocomm-bulletins.service
         owner: root
@@ -129,7 +139,7 @@
       notify: Recarregar systemd
 
     - name: Copiar agrocomm-bulletins.timer
-      copy:
+      ansible.builtin.copy:
         src: files/systemd/agrocomm-bulletins.timer
         dest: /etc/systemd/system/agrocomm-bulletins.timer
         owner: root
@@ -138,18 +148,52 @@
       notify: Recarregar systemd
 
     - name: Habilitar timer de boletins
-      systemd:
+      ansible.builtin.systemd:
         name: agrocomm-bulletins.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    # ── Systemd: backup do banco ─────────────────────────────────────────
+    - name: Criar diretório de backups
+      ansible.builtin.file:
+        path: /var/backups/agrocomm
+        state: directory
+        owner: nginx
+        group: nginx
+        mode: "0750"
+
+    - name: Copiar agrocomm-backup.service
+      ansible.builtin.copy:
+        src: files/systemd/agrocomm-backup.service
+        dest: /etc/systemd/system/agrocomm-backup.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Recarregar systemd
+
+    - name: Copiar agrocomm-backup.timer
+      ansible.builtin.copy:
+        src: files/systemd/agrocomm-backup.timer
+        dest: /etc/systemd/system/agrocomm-backup.timer
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Recarregar systemd
+
+    - name: Habilitar timer de backup
+      ansible.builtin.systemd:
+        name: agrocomm-backup.timer
         enabled: true
         state: started
         daemon_reload: true
 
   handlers:
     - name: Reiniciar nginx
-      systemd:
+      ansible.builtin.systemd:
         name: nginx
         state: restarted
 
     - name: Recarregar systemd
-      systemd:
+      ansible.builtin.systemd:
         daemon_reload: true

@@ -45,6 +45,7 @@ next-env.d.ts
 # drizzle
 drizzle/**
 !drizzle/.gitkeep
+!drizzle/backups/.gitkeep
 
 # news
 public/images/posts/**
