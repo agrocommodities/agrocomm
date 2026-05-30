@@ -46,7 +46,7 @@ export async function GET() {
   const dbRelative = dbEnv.replace(/^file:/, "");
   const dbPath = path.isAbsolute(dbRelative)
     ? dbRelative
-    : path.join(cwd, dbRelative);
+    : path.join(/*turbopackIgnore: true*/ cwd, dbRelative);
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
   const filename = `agrocomm-backup-${timestamp}.zip`;
@@ -62,12 +62,12 @@ export async function GET() {
 
   // User-uploaded media only
   const mediaDirs = [
-    { dir: path.join(cwd, "public/images/avatars"), archive: "media/avatars" },
+    { dir: path.join(/*turbopackIgnore: true*/ cwd, "public/images/avatars"), archive: "media/avatars" },
     {
-      dir: path.join(cwd, "public/images/classifieds"),
+      dir: path.join(/*turbopackIgnore: true*/ cwd, "public/images/classifieds"),
       archive: "media/classifieds",
     },
-    { dir: path.join(cwd, "public/images/posts"), archive: "media/posts" },
+    { dir: path.join(/*turbopackIgnore: true*/ cwd, "public/images/posts"), archive: "media/posts" },
   ];
 
   for (const { dir, archive: archivePath } of mediaDirs) {

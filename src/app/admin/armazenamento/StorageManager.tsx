@@ -13,6 +13,7 @@ import {
   CheckCircle,
   AlertTriangle,
   Download,
+  Upload,
 } from "lucide-react";
 import type { StorageData, OrphanMedia } from "@/actions/admin";
 import {
@@ -43,6 +44,11 @@ export default function StorageManager({ data }: { data: StorageData }) {
   const [orphanResult, setOrphanResult] = useState<string | null>(null);
   const [downloadingBackup, setDownloadingBackup] = useState(false);
   const [backupError, setBackupError] = useState<string | null>(null);
+  const [restoringBackup, setRestoringBackup] = useState(false);
+  const [restoreResult, setRestoreResult] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
 
   const usedPercent = (disk.used / disk.total) * 100;
 
@@ -115,6 +121,35 @@ export default function StorageManager({ data }: { data: StorageData }) {
       );
     } finally {
       setDownloadingBackup(false);
+    }
+  }
+
+  async function handleRestoreBackup(
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setRestoringBackup(true);
+    setRestoreResult(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/admin/restore", {
+        method: "POST",
+        body: form,
+      });
+      const body = (await res.json()) as { ok?: boolean; message?: string; error?: string };
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+      setRestoreResult({ ok: true, message: body.message ?? "Restaurado com sucesso." });
+      router.refresh();
+    } catch (err) {
+      setRestoreResult({
+        ok: false,
+        message: err instanceof Error ? err.message : "Erro ao restaurar backup.",
+      });
+    } finally {
+      setRestoringBackup(false);
     }
   }
 
@@ -250,6 +285,52 @@ export default function StorageManager({ data }: { data: StorageData }) {
             {backupError}
           </p>
         )}
+
+        <div className="mt-4 pt-4 border-t border-white/10">
+          <p className="text-xs text-white/50 mb-3">
+            Restaurar a partir de um arquivo <code className="text-white/70">.zip</code> gerado por este painel.
+            O banco de dados atual será copiado para{" "}
+            <code className="text-white/70">drizzle/backups/</code> antes da restauração.
+          </p>
+          <label
+            className={`inline-flex items-center gap-2 px-5 py-2.5 bg-orange-600/20 text-orange-400 rounded-lg text-sm font-medium hover:bg-orange-600/30 transition-colors cursor-pointer ${
+              restoringBackup ? "opacity-50 pointer-events-none" : ""
+            }`}
+          >
+            {restoringBackup ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Restaurando…
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" />
+                Restaurar Backup
+              </>
+            )}
+            <input
+              type="file"
+              accept=".zip"
+              className="hidden"
+              onChange={handleRestoreBackup}
+              disabled={restoringBackup}
+            />
+          </label>
+          {restoreResult && (
+            <p
+              className={`text-xs mt-2 flex items-center gap-1 ${
+                restoreResult.ok ? "text-green-400" : "text-red-400"
+              }`}
+            >
+              {restoreResult.ok ? (
+                <CheckCircle className="w-3 h-3" />
+              ) : (
+                <AlertTriangle className="w-3 h-3" />
+              )}
+              {restoreResult.message}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Actions */}
