@@ -4,6 +4,7 @@
 
 set -euo pipefail
 
+OLD_PWD="$(pwd)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ANSIBLE_DIR="$SCRIPT_DIR/../ansible"
 
@@ -15,3 +16,5 @@ command -v ansible-playbook >/dev/null 2>&1 || {
 cd "$ANSIBLE_DIR"
 
 ansible-playbook -i inventory.ini playbook.yml "$@"
+
+cd "$OLD_PWD"

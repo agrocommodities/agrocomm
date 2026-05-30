@@ -12,6 +12,7 @@ import {
   Loader2,
   CheckCircle,
   AlertTriangle,
+  Download,
 } from "lucide-react";
 import type { StorageData, OrphanMedia } from "@/actions/admin";
 import {
@@ -40,6 +41,8 @@ export default function StorageManager({ data }: { data: StorageData }) {
   const [orphans, setOrphans] = useState<OrphanMedia[] | null>(null);
   const [deletingOrphans, setDeletingOrphans] = useState(false);
   const [orphanResult, setOrphanResult] = useState<string | null>(null);
+  const [downloadingBackup, setDownloadingBackup] = useState(false);
+  const [backupError, setBackupError] = useState<string | null>(null);
 
   const usedPercent = (disk.used / disk.total) * 100;
 
@@ -82,6 +85,36 @@ export default function StorageManager({ data }: { data: StorageData }) {
       setEmptyResult("Erro ao remover pastas vazias.");
     } finally {
       setDeletingEmpty(false);
+    }
+  }
+
+  async function handleDownloadBackup() {
+    setDownloadingBackup(true);
+    setBackupError(null);
+    try {
+      const res = await fetch("/api/admin/backup");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(
+          (body as { error?: string }).error ?? `HTTP ${res.status}`,
+        );
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get("Content-Disposition") ?? "";
+      const match = disposition.match(/filename="([^"]+)"/);
+      const filename = match?.[1] ?? "agrocomm-backup.zip";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setBackupError(
+        err instanceof Error ? err.message : "Erro ao gerar backup.",
+      );
+    } finally {
+      setDownloadingBackup(false);
     }
   }
 
@@ -169,6 +202,54 @@ export default function StorageManager({ data }: { data: StorageData }) {
             {formatBytes(totalMediaSize)}
           </strong>
         </p>
+      </div>
+
+      {/* Backup */}
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="bg-green-500/10 p-2 rounded-lg">
+            <Download className="w-5 h-5 text-green-400" />
+          </div>
+          <div>
+            <h2 className="font-semibold">Backup</h2>
+            <p className="text-xs text-white/40">
+              Banco de dados + mídias enviadas pelos usuários
+            </p>
+          </div>
+        </div>
+        <p className="text-xs text-white/50 mb-4">
+          Gera um arquivo <code className="text-white/70">.zip</code> contendo{" "}
+          <strong className="text-white/70">database/agrocomm.db</strong> e as
+          pastas{" "}
+          <strong className="text-white/70">
+            media/avatars, media/classifieds, media/posts
+          </strong>
+          .
+        </p>
+        <button
+          type="button"
+          onClick={handleDownloadBackup}
+          disabled={downloadingBackup}
+          className="px-5 py-2.5 bg-green-600/20 text-green-400 rounded-lg text-sm font-medium hover:bg-green-600/30 transition-colors disabled:opacity-50 flex items-center gap-2"
+        >
+          {downloadingBackup ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Gerando backup…
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4" />
+              Baixar Backup Completo
+            </>
+          )}
+        </button>
+        {backupError && (
+          <p className="text-xs text-red-400 mt-2 flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3" />
+            {backupError}
+          </p>
+        )}
       </div>
 
       {/* Actions */}

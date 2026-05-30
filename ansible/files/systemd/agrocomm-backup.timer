@@ -1,0 +1,10 @@
+[Unit]
+Description=AgroComm Backup Timer - Diário às 03:00
+Requires=agrocomm-backup.service
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
