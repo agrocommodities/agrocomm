@@ -23,7 +23,8 @@ jobs:
           password: ${{ secrets.SSH_PASS }}
           port: ${{ secrets.SSH_PORT }}
           source: "."
-          target: ${{ secrets.PROJECT_PATH }}
+          target: /tmp/agrocomm-ci
+          rm: true
 
   build:
     needs: deploy
@@ -37,6 +38,4 @@ jobs:
           password: ${{ secrets.SSH_PASS }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            cd ${{ secrets.PROJECT_PATH }}
-            bash scripts/deploy.sh
-            #bash scripts/deploy-simple.sh
+            bash /tmp/agrocomm-ci/scripts/deploy-ci.sh

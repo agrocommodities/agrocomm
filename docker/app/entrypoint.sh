@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+export CI=true
+
 echo "▶ Installing dependencies..."
 pnpm install --frozen-lockfile
 

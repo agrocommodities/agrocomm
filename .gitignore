@@ -62,3 +62,6 @@ public/images/avatars/**
 docker/certs/*.pem
 docker/certs/*.key
 docker/certs/*.crt
+# pnpm store
+.pnpm-store/
+docker/.pnpm-store/

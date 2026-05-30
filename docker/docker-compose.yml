@@ -1,0 +1,67 @@
+name: agrocomm
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    container_name: agrocomm-app
+    restart: unless-stopped
+    env_file: ../.env.production
+    volumes:
+      - ..:/app
+      - ../node_modules:/app/node_modules
+      - pnpm_store:/root/.local/share/pnpm/store
+    expose:
+      - "4000"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 6
+      start_period: 120s
+    networks:
+      - agrocomm
+
+  scraper:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    container_name: agrocomm-scraper
+    restart: "no"
+    env_file: ../.env.production
+    volumes:
+      - ..:/app
+      - ../node_modules:/app/node_modules
+      - pnpm_store:/root/.local/share/pnpm/store
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["pnpm install --frozen-lockfile && pnpm scrape"]
+    networks:
+      - agrocomm
+
+  nginx:
+    image: nginx:1.26-alpine
+    container_name: agrocomm-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/agrocomm.conf:/etc/nginx/conf.d/agrocomm.conf:ro
+      - ./nginx/cdn.conf:/etc/nginx/conf.d/cdn.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ../public:/var/www/agrocomm/public:ro
+      - ../.next/static:/var/www/agrocomm/.next/static:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - agrocomm
+
+volumes:
+  node_modules:
+  pnpm_store:
+
+networks:
+  agrocomm:
+    driver: bridge

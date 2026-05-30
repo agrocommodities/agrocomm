@@ -1,6 +1,6 @@
-FROM rockylinux:9.8
+FROM rockylinux/rockylinux:9.7
 
-RUN dnf install -y curl git && dnf clean all
+RUN dnf install -y --allowerasing curl git && dnf clean all
 
 # Node.js 24.16.0 — binary direto do nodejs.org
 ENV NODE_VERSION=24.16.0

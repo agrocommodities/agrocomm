@@ -5,8 +5,8 @@ set -e
 
 cd "$(dirname "$0")"
 
-DOMAINS_MAIN="agrocomm.com.br www.agrocomm.com.br localhost 127.0.0.1"
-DOMAINS_CDN="cdn.agrocomm.com.br localhost 127.0.0.1"
+DOMAINS_MAIN="agrocomm.local www.agrocomm.local localhost 127.0.0.1"
+DOMAINS_CDN="cdn.agrocomm.local localhost 127.0.0.1"
 
 if command -v mkcert &>/dev/null; then
     echo "▶ Usando mkcert..."
@@ -20,13 +20,13 @@ else
 
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
         -keyout privkey.pem -out fullchain.pem \
-        -subj "/CN=agrocomm.com.br" \
-        -addext "subjectAltName=DNS:agrocomm.com.br,DNS:www.agrocomm.com.br,DNS:localhost,IP:127.0.0.1"
+        -subj "/CN=agrocomm.local" \
+        -addext "subjectAltName=DNS:agrocomm.local,DNS:www.agrocomm.local,DNS:localhost,IP:127.0.0.1"
 
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
         -keyout cdn-privkey.pem -out cdn-fullchain.pem \
-        -subj "/CN=cdn.agrocomm.com.br" \
-        -addext "subjectAltName=DNS:cdn.agrocomm.com.br,DNS:localhost,IP:127.0.0.1"
+        -subj "/CN=cdn.agrocomm.local" \
+        -addext "subjectAltName=DNS:cdn.agrocomm.local,DNS:localhost,IP:127.0.0.1"
 fi
 
 echo "✓ Certificados gerados em docker/certs/"
