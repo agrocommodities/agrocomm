@@ -18,6 +18,7 @@
   "dependencies": {
     "@libsql/client": "^0.17.3",
     "@next/third-parties": "^16.2.6",
+    "adm-zip": "^0.5.17",
     "archiver": "^6.0.2",
     "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
@@ -42,6 +43,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.16",
     "@tailwindcss/postcss": "^4.3.0",
+    "@types/adm-zip": "^0.5.8",
     "@types/archiver": "^6.0.4",
     "@types/email-templates": "^10.0.4",
     "@types/node": "^20",
