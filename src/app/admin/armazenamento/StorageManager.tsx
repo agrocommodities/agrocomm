@@ -124,9 +124,7 @@ export default function StorageManager({ data }: { data: StorageData }) {
     }
   }
 
-  async function handleRestoreBackup(
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) {
+  async function handleRestoreBackup(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
@@ -139,14 +137,22 @@ export default function StorageManager({ data }: { data: StorageData }) {
         method: "POST",
         body: form,
       });
-      const body = (await res.json()) as { ok?: boolean; message?: string; error?: string };
+      const body = (await res.json()) as {
+        ok?: boolean;
+        message?: string;
+        error?: string;
+      };
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
-      setRestoreResult({ ok: true, message: body.message ?? "Restaurado com sucesso." });
+      setRestoreResult({
+        ok: true,
+        message: body.message ?? "Restaurado com sucesso.",
+      });
       router.refresh();
     } catch (err) {
       setRestoreResult({
         ok: false,
-        message: err instanceof Error ? err.message : "Erro ao restaurar backup.",
+        message:
+          err instanceof Error ? err.message : "Erro ao restaurar backup.",
       });
     } finally {
       setRestoringBackup(false);
@@ -288,9 +294,11 @@ export default function StorageManager({ data }: { data: StorageData }) {
 
         <div className="mt-4 pt-4 border-t border-white/10">
           <p className="text-xs text-white/50 mb-3">
-            Restaurar a partir de um arquivo <code className="text-white/70">.zip</code> gerado por este painel.
+            Restaurar a partir de um arquivo{" "}
+            <code className="text-white/70">.zip</code> gerado por este painel.
             O banco de dados atual será copiado para{" "}
-            <code className="text-white/70">drizzle/backups/</code> antes da restauração.
+            <code className="text-white/70">drizzle/backups/</code> antes da
+            restauração.
           </p>
           <label
             className={`inline-flex items-center gap-2 px-5 py-2.5 bg-orange-600/20 text-orange-400 rounded-lg text-sm font-medium hover:bg-orange-600/30 transition-colors cursor-pointer ${

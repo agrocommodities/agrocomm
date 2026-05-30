@@ -64,10 +64,16 @@ export async function POST(request: Request) {
       .toISOString()
       .replace(/[:.]/g, "-")
       .slice(0, 19);
-    const backupDir = path.join(/*turbopackIgnore: true*/ cwd, "drizzle/backups");
+    const backupDir = path.join(
+      /*turbopackIgnore: true*/ cwd,
+      "drizzle/backups",
+    );
     await mkdir(backupDir, { recursive: true });
     try {
-      await copyFile(dbPath, path.join(backupDir, `agrocomm-pre-restore-${timestamp}.db`));
+      await copyFile(
+        dbPath,
+        path.join(backupDir, `agrocomm-pre-restore-${timestamp}.db`),
+      );
     } catch {
       // DB might not exist yet, ignore
     }

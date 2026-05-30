@@ -62,12 +62,21 @@ export async function GET() {
 
   // User-uploaded media only
   const mediaDirs = [
-    { dir: path.join(/*turbopackIgnore: true*/ cwd, "public/images/avatars"), archive: "media/avatars" },
     {
-      dir: path.join(/*turbopackIgnore: true*/ cwd, "public/images/classifieds"),
+      dir: path.join(/*turbopackIgnore: true*/ cwd, "public/images/avatars"),
+      archive: "media/avatars",
+    },
+    {
+      dir: path.join(
+        /*turbopackIgnore: true*/ cwd,
+        "public/images/classifieds",
+      ),
       archive: "media/classifieds",
     },
-    { dir: path.join(/*turbopackIgnore: true*/ cwd, "public/images/posts"), archive: "media/posts" },
+    {
+      dir: path.join(/*turbopackIgnore: true*/ cwd, "public/images/posts"),
+      archive: "media/posts",
+    },
   ];
 
   for (const { dir, archive: archivePath } of mediaDirs) {
