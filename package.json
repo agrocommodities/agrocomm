@@ -19,7 +19,7 @@
     "@libsql/client": "^0.17.3",
     "@next/third-parties": "^16.2.6",
     "adm-zip": "^0.5.17",
-    "archiver": "^6.0.2",
+    "archiver": "^8.0.0",
     "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",

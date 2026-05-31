@@ -137,11 +137,30 @@ export default function StorageManager({ data }: { data: StorageData }) {
         method: "POST",
         body: form,
       });
-      const body = (await res.json()) as {
+      const contentType = res.headers.get("content-type") ?? "";
+      let body: {
         ok?: boolean;
         message?: string;
         error?: string;
-      };
+      } = {};
+
+      if (contentType.includes("application/json")) {
+        body = (await res.json()) as {
+          ok?: boolean;
+          message?: string;
+          error?: string;
+        };
+      } else {
+        const text = await res.text();
+        if (text.includes("413") || text.toLowerCase().includes("too large")) {
+          body.error =
+            "Upload recusado por tamanho do arquivo (.db/.sql muito grande). Verifique o limite de upload do servidor/proxy.";
+        } else {
+          body.error =
+            "Falha ao restaurar backup: resposta inesperada do servidor (não JSON).";
+        }
+      }
+
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
       setRestoreResult({
         ok: true,
