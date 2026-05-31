@@ -355,6 +355,16 @@ O script:
 
 ---
 
+## Backup e Restauração (Admin)
+
+- Download de backup completo no admin: arquivo `.zip` com banco SQLite + mídias (`avatars`, `classifieds`, `posts`)
+- Restauração aceita: `.zip`, `.db/.sqlite` e `.sql`
+- Antes de restaurar banco, o sistema sempre cria cópia de segurança em `drizzle/backups/`
+- Em restore via `.sql`, o arquivo é preservado em `drizzle/backups/` para auditoria e para fluxos de migração para Postgres
+- A extração de arquivos de mídia no `.zip` aplica validações de caminho para evitar path traversal
+
+---
+
 ## Variáveis de Ambiente
 
 | Variável                       | Descrição                          | Exemplo                  |
@@ -403,7 +413,8 @@ pnpm format
 
 - **App Router** do Next.js 16 — use `app/` para rotas, `components/` para componentes reutilizáveis.
 - Componentes de servidor por padrão; use `"use client"` apenas quando necessário (estado, eventos).
-- **Drizzle ORM** com SQLite/libSQL — queries tipadas, sem SQL raw sempre que possível.
+- **Drizzle ORM** com SQLite/libSQL — priorizar APIs nativas do Drizzle (`select/insert/update/delete`, relations, query builder).
+- SQL raw apenas quando inevitável (ex: restauração/importação de backup `.sql` enviado por usuário).
 - **Nunca usar `drizzle-kit migrate`** — sempre `pnpm drizzle-kit push`.
 - Estilização com **Tailwind CSS v4** — sem CSS Modules; classes utilitárias diretas.
 - **Biome** para lint e format — não usar ESLint/Prettier.

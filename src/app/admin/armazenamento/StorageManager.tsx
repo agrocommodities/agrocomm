@@ -294,11 +294,15 @@ export default function StorageManager({ data }: { data: StorageData }) {
 
         <div className="mt-4 pt-4 border-t border-white/10">
           <p className="text-xs text-white/50 mb-3">
-            Restaurar a partir de um arquivo{" "}
-            <code className="text-white/70">.zip</code> gerado por este painel.
-            O banco de dados atual será copiado para{" "}
+            Restaurar a partir de arquivo{" "}
+            <code className="text-white/70">.zip</code>,{" "}
+            <code className="text-white/70">.db/.sqlite</code> ou{" "}
+            <code className="text-white/70">.sql</code>. O banco de dados atual
+            será copiado para{" "}
             <code className="text-white/70">drizzle/backups/</code> antes da
-            restauração.
+            restauração. Arquivos <code className="text-white/70">.sql</code>{" "}
+            também ficam salvos em backup para uso em fluxos de migração com
+            Postgres + Drizzle.
           </p>
           <label
             className={`inline-flex items-center gap-2 px-5 py-2.5 bg-orange-600/20 text-orange-400 rounded-lg text-sm font-medium hover:bg-orange-600/30 transition-colors cursor-pointer ${
@@ -318,7 +322,7 @@ export default function StorageManager({ data }: { data: StorageData }) {
             )}
             <input
               type="file"
-              accept=".zip"
+              accept=".zip,.db,.sqlite,.sql"
               className="hidden"
               onChange={handleRestoreBackup}
               disabled={restoringBackup}

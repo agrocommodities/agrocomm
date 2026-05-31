@@ -58,7 +58,14 @@ Organized with feature subfolders: `admin/` and `auth/`. Root-level components a
 - **ORM**: Drizzle ORM with SQLite/libSQL (`@libsql/client`)
 - **Schema**: `src/db/schema.ts` — all table definitions in one file
 - **Rule**: Always use `pnpm push` (`drizzle-kit push`) to sync schema. Never use `drizzle-kit migrate`.
+- **Rule**: Prefer Drizzle ORM APIs over raw SQL. Use raw SQL only when unavoidable (for example, importing an external `.sql` backup).
 - **Seed**: `src/db/seed.ts` creates the admin user, roles/permissions, and sample data
+
+### Backup / Restore (Admin)
+- Admin storage manager supports restore from `.zip`, `.db/.sqlite`, and `.sql`
+- Always create a pre-restore DB backup in `drizzle/backups/` before replacing data
+- Keep file restore safe: reject/ignore path traversal attempts when extracting media from zip
+- `.sql` restores are saved in `drizzle/backups/` for auditability and future Postgres migration workflows
 
 ### Scraping
 - Fetches from Scot Consultoria (pecuária), Notícias Agrícolas (grãos), and Yahoo Finance API (CBOT futures: ZS=F, ZC=F, LE=F)
