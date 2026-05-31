@@ -46,16 +46,16 @@
     "@types/adm-zip": "^0.5.8",
     "@types/archiver": "^6.0.4",
     "@types/email-templates": "^10.0.4",
-    "@types/node": "^20",
+    "@types/node": "^20.19.41",
     "@types/nodemailer": "^8.0.0",
     "@types/pug": "^2.0.10",
     "@types/react": "^19.2.15",
-    "@types/react-dom": "^19",
+    "@types/react-dom": "^19.2.3",
     "@types/ua-parser-js": "^0.7.39",
     "domhandler": "^6.0.1",
     "drizzle-kit": "^0.31.10",
     "tailwindcss": "^4.3.0",
     "tsx": "^4.22.3",
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   }
 }

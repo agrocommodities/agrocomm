@@ -4,6 +4,9 @@
 
 - This project uses **Drizzle ORM** with **libsql/SQLite**.
 - **Never use `drizzle-kit migrate`**. Always use `pnpm drizzle-kit push` to apply schema changes to the database.
+- Prefer **Drizzle ORM APIs** (`select/insert/update/delete`, relations, query builder) over raw SQL.
+- Use raw SQL only when unavoidable (example: restoring a user-provided `.sql` backup file in admin).
+- Admin restore supports `.zip`, `.db/.sqlite`, and `.sql`. Keep restore logic safe (path traversal checks + pre-restore DB backup).
 
 ## Architecture
 
