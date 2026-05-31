@@ -66,6 +66,7 @@ Organized with feature subfolders: `admin/` and `auth/`. Root-level components a
 - Always create a pre-restore DB backup in `drizzle/backups/` before replacing data
 - Keep file restore safe: reject/ignore path traversal attempts when extracting media from zip
 - `.sql` restores are saved in `drizzle/backups/` for auditability and future Postgres migration workflows
+- Keep the app Nginx `client_max_body_size` aligned with restore uploads; current target is `200m`
 
 ### Scraping
 - Fetches from Scot Consultoria (pecuária), Notícias Agrícolas (grãos), and Yahoo Finance API (CBOT futures: ZS=F, ZC=F, LE=F)

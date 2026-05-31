@@ -362,6 +362,7 @@ O script:
 - Antes de restaurar banco, o sistema sempre cria cópia de segurança em `drizzle/backups/`
 - Em restore via `.sql`, o arquivo é preservado em `drizzle/backups/` para auditoria e para fluxos de migração para Postgres
 - A extração de arquivos de mídia no `.zip` aplica validações de caminho para evitar path traversal
+- O proxy Nginx do app aceita uploads de até `200m` para cobrir restores de backup grandes
 
 ---
 
