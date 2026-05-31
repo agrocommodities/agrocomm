@@ -1,12 +1,33 @@
 "use client";
 
-import { useActionState, useState, useEffect } from "react";
+import {
+  useActionState,
+  useState,
+  useEffect,
+  useTransition,
+  useCallback,
+} from "react";
 import { updateProfileAction } from "@/actions/auth";
+import {
+  requestWhatsAppPhoneOtpAction,
+  verifyWhatsAppPhoneOtpAction,
+} from "@/actions/phone-verification";
+import {
+  COUNTRY_DIAL_CODES,
+  formatAreaCodeInput,
+  formatLocalNumberInput,
+  splitNationalPhone,
+  validatePhoneInput,
+} from "@/lib/phone";
 import { ChevronDown } from "lucide-react";
 
 interface Props {
   defaultName: string;
   defaultEmail: string;
+  defaultPhoneCountryCode: string | null;
+  defaultPhoneNationalNumber: string | null;
+  defaultPhoneE164: string | null;
+  defaultPhoneVerifiedAt: string | null;
   defaultCountryId: number | null;
   defaultGeoStateId: number | null;
   defaultGeoCityId: number | null;
@@ -37,15 +58,41 @@ const selectClass =
 export default function SettingsForm({
   defaultName,
   defaultEmail,
+  defaultPhoneCountryCode,
+  defaultPhoneNationalNumber,
+  defaultPhoneE164,
+  defaultPhoneVerifiedAt,
   defaultCountryId,
   defaultGeoStateId,
   defaultGeoCityId,
 }: Props) {
   const [state, action, pending] = useActionState(updateProfileAction, null);
+  const [sendingOtp, startSendingOtp] = useTransition();
+  const [verifyingOtp, startVerifyingOtp] = useTransition();
 
   const [countries, setCountries] = useState<GeoCountry[]>([]);
   const [geoStates, setGeoStates] = useState<GeoState[]>([]);
   const [geoCities, setGeoCities] = useState<GeoCity[]>([]);
+
+  const initialPhone = splitNationalPhone(
+    defaultPhoneCountryCode,
+    defaultPhoneNationalNumber,
+  );
+
+  const [phoneCountryCode, setPhoneCountryCode] = useState(
+    defaultPhoneCountryCode ?? "+55",
+  );
+  const [areaCode, setAreaCode] = useState(initialPhone.areaCode);
+  const [localNumber, setLocalNumber] = useState(initialPhone.localNumber);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpRequestedFor, setOtpRequestedFor] = useState<string | null>(null);
+  const [otpExpiresAt, setOtpExpiresAt] = useState<string | null>(null);
+  const [otpVisible, setOtpVisible] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [otpInfo, setOtpInfo] = useState<string | null>(null);
+  const [verifiedPhoneE164, setVerifiedPhoneE164] = useState<string | null>(
+    defaultPhoneVerifiedAt && defaultPhoneE164 ? defaultPhoneE164 : null,
+  );
 
   const [countryId, setCountryId] = useState<number | null>(defaultCountryId);
   const [geoStateId, setGeoStateId] = useState<number | null>(
@@ -94,6 +141,120 @@ export default function SettingsForm({
       })
       .catch(() => setLoadingCities(false));
   }, [geoStateId]);
+
+  const phoneValidation = validatePhoneInput(
+    phoneCountryCode,
+    areaCode,
+    localNumber,
+  );
+  const currentE164 = phoneValidation.ok ? phoneValidation.e164 : null;
+  const isCurrentPhoneVerified = Boolean(
+    currentE164 && currentE164 === verifiedPhoneE164,
+  );
+
+  const doRequestOtp = useCallback(
+    async (auto: boolean) => {
+      if (!phoneValidation.ok) {
+        if (!auto) {
+          setOtpError(phoneValidation.error);
+        }
+        return;
+      }
+
+      const result = await requestWhatsAppPhoneOtpAction({
+        countryCode: phoneCountryCode,
+        areaCode,
+        localNumber,
+      });
+
+      if (!result.success) {
+        setOtpError(result.error);
+        setOtpInfo(null);
+        if (!auto) {
+          setOtpVisible(true);
+        }
+        return;
+      }
+
+      setOtpRequestedFor(phoneValidation.e164);
+      setOtpExpiresAt(result.expiresAt ?? null);
+      setOtpVisible(true);
+      setOtpError(null);
+      setOtpInfo(result.message);
+    },
+    [phoneValidation, phoneCountryCode, areaCode, localNumber],
+  );
+
+  useEffect(() => {
+    if (!phoneValidation.ok || !currentE164 || isCurrentPhoneVerified) {
+      return;
+    }
+
+    if (otpRequestedFor === currentE164 || sendingOtp) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      startSendingOtp(async () => {
+        await doRequestOtp(true);
+      });
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [
+    phoneValidation.ok,
+    currentE164,
+    isCurrentPhoneVerified,
+    otpRequestedFor,
+    sendingOtp,
+    doRequestOtp,
+  ]);
+
+  useEffect(() => {
+    if (!currentE164 || otpRequestedFor !== currentE164) {
+      setOtpVisible(false);
+      setOtpCode("");
+      setOtpExpiresAt(null);
+      setOtpError(null);
+      if (currentE164 !== verifiedPhoneE164) {
+        setOtpInfo(null);
+      }
+    }
+  }, [currentE164, otpRequestedFor, verifiedPhoneE164]);
+
+  function handleManualOtpRequest() {
+    startSendingOtp(async () => {
+      await doRequestOtp(false);
+    });
+  }
+
+  function handleVerifyOtp() {
+    if (!phoneValidation.ok) {
+      setOtpError(phoneValidation.error);
+      return;
+    }
+
+    startVerifyingOtp(async () => {
+      const result = await verifyWhatsAppPhoneOtpAction({
+        countryCode: phoneCountryCode,
+        areaCode,
+        localNumber,
+        otpCode,
+      });
+
+      if (!result.success) {
+        setOtpError(result.error);
+        setOtpInfo(null);
+        return;
+      }
+
+      setVerifiedPhoneE164(phoneValidation.e164);
+      setOtpVisible(false);
+      setOtpCode("");
+      setOtpError(null);
+      setOtpInfo(result.message);
+    });
+  }
 
   return (
     <form action={action} className="flex flex-col gap-5">
@@ -233,6 +394,167 @@ export default function SettingsForm({
       </div>
 
       <hr className="border-white/10" />
+
+      <p className="text-xs text-white/40">WhatsApp para confirmações</p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="phoneCountryCode"
+            className="text-sm font-medium text-white/80"
+          >
+            País / Prefixo
+          </label>
+          <div className="relative">
+            <select
+              id="phoneCountryCode"
+              value={phoneCountryCode}
+              onChange={(e) => {
+                setPhoneCountryCode(e.target.value);
+                setOtpRequestedFor(null);
+              }}
+              className={selectClass}
+            >
+              {COUNTRY_DIAL_CODES.map((country) => (
+                <option
+                  key={`${country.iso2}-${country.dialCode}`}
+                  value={country.dialCode}
+                >
+                  {country.flag} {country.name} ({country.dialCode})
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="areaCode"
+            className="text-sm font-medium text-white/80"
+          >
+            Código do estado
+          </label>
+          <input
+            id="areaCode"
+            type="text"
+            value={areaCode}
+            onChange={(e) => {
+              setAreaCode(formatAreaCodeInput(e.target.value));
+              setOtpRequestedFor(null);
+            }}
+            inputMode="numeric"
+            maxLength={3}
+            placeholder="11"
+            className={inputClass}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label
+          htmlFor="phoneNumber"
+          className="text-sm font-medium text-white/80"
+        >
+          Número
+        </label>
+        <input
+          id="phoneNumber"
+          type="text"
+          value={localNumber}
+          onChange={(e) => {
+            setLocalNumber(formatLocalNumberInput(e.target.value));
+            setOtpRequestedFor(null);
+          }}
+          inputMode="numeric"
+          maxLength={10}
+          placeholder="12345-6789"
+          className={inputClass}
+        />
+        <p className="text-xs text-white/50">Formato: +55 (11) 12345-6789</p>
+      </div>
+
+      {isCurrentPhoneVerified ? (
+        <p className="text-sm text-green-400 bg-green-400/10 border border-green-400/20 rounded-lg px-4 py-2.5">
+          Telefone verificado e salvo.
+        </p>
+      ) : (
+        <p className="text-xs text-white/45">
+          O código de confirmação é enviado automaticamente quando o número fica
+          válido.
+        </p>
+      )}
+
+      {sendingOtp && (
+        <p className="text-xs text-white/45">Enviando código de confirmação…</p>
+      )}
+
+      {(otpVisible || otpRequestedFor === currentE164) &&
+        !isCurrentPhoneVerified && (
+          <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/5 p-4">
+            <label
+              htmlFor="otpCode"
+              className="text-sm font-medium text-white/80"
+            >
+              Código OTP do WhatsApp
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="otpCode"
+                type="text"
+                value={otpCode}
+                onChange={(e) =>
+                  setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="000000"
+                className={`${inputClass} flex-1`}
+              />
+              <button
+                type="button"
+                onClick={handleVerifyOtp}
+                disabled={verifyingOtp || otpCode.length !== 6}
+                className="bg-green-600 hover:bg-green-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-lg px-4 py-2.5 text-sm transition-colors"
+              >
+                {verifyingOtp ? "Validando…" : "Confirmar"}
+              </button>
+            </div>
+
+            <div className="flex justify-between items-center gap-3">
+              <button
+                type="button"
+                onClick={handleManualOtpRequest}
+                disabled={sendingOtp}
+                className="text-xs text-green-300 hover:text-green-200 disabled:opacity-60"
+              >
+                Reenviar código
+              </button>
+
+              {otpExpiresAt && (
+                <span className="text-[11px] text-white/45">
+                  Expira em{" "}
+                  {new Date(otpExpiresAt).toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+      {otpError && (
+        <p className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2.5">
+          {otpError}
+        </p>
+      )}
+
+      {otpInfo && (
+        <p className="text-sm text-green-400 bg-green-400/10 border border-green-400/20 rounded-lg px-4 py-2.5">
+          {otpInfo}
+        </p>
+      )}
 
       <p className="text-xs text-white/40">
         Preencha os campos abaixo apenas se quiser alterar a senha.

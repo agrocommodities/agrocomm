@@ -23,6 +23,10 @@ export default async function AjustesPage() {
   const [user] = await db
     .select({
       avatarUrl: users.avatarUrl,
+      phoneCountryCode: users.phoneCountryCode,
+      phoneNationalNumber: users.phoneNationalNumber,
+      phoneE164: users.phoneE164,
+      phoneVerifiedAt: users.phoneVerifiedAt,
       countryId: users.countryId,
       geoStateId: users.geoStateId,
       geoCityId: users.geoCityId,
@@ -67,6 +71,10 @@ export default async function AjustesPage() {
           <SettingsForm
             defaultName={session.name}
             defaultEmail={session.email}
+            defaultPhoneCountryCode={user?.phoneCountryCode ?? null}
+            defaultPhoneNationalNumber={user?.phoneNationalNumber ?? null}
+            defaultPhoneE164={user?.phoneE164 ?? null}
+            defaultPhoneVerifiedAt={user?.phoneVerifiedAt ?? null}
             defaultCountryId={user?.countryId ?? null}
             defaultGeoStateId={user?.geoStateId ?? null}
             defaultGeoCityId={user?.geoCityId ?? null}
