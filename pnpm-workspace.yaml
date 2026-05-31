@@ -1,6 +1,11 @@
 allowBuilds:
   esbuild: true
   sharp: true
+allowedDeprecatedVersions:
+  '@esbuild-kit/core-utils': '*'
+  '@esbuild-kit/esm-loader': '*'
+  uuid: '9'
+  whatwg-encoding: '*'
 ignoredBuiltDependencies:
   - unrs-resolver
 minimumReleaseAgeExclude:
