@@ -3,7 +3,13 @@ import { existsSync } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable, PassThrough } from "node:stream";
-import archiver from "archiver";
+import type { Archiver } from "archiver";
+
+type ZipArchiveCtor = new (options?: {
+  zlib?: {
+    level?: number;
+  };
+}) => Archiver;
 
 async function dirExists(p: string): Promise<boolean> {
   try {
@@ -15,7 +21,7 @@ async function dirExists(p: string): Promise<boolean> {
 }
 
 async function addDirIfExists(
-  archive: archiver.Archiver,
+  archive: Archiver,
   dir: string,
   archivePath: string,
 ) {
@@ -51,7 +57,10 @@ export async function GET() {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
   const filename = `agrocomm-backup-${timestamp}.zip`;
 
-  const archive = archiver("zip", { zlib: { level: 6 } });
+  const archiverRuntime = (await import("archiver")) as unknown as {
+    ZipArchive: ZipArchiveCtor;
+  };
+  const archive = new archiverRuntime.ZipArchive({ zlib: { level: 6 } });
   const passthrough = new PassThrough();
   archive.pipe(passthrough);
 
