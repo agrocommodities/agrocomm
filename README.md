@@ -366,6 +366,115 @@ O script:
 
 ---
 
+## Configuração do WhatsApp Business API (Meta)
+
+Este projeto usa a API oficial da Meta para:
+
+- enviar mensagens WhatsApp para assinantes/admin;
+- enviar código OTP de confirmação de telefone no fluxo de `/ajustes`.
+
+### 1) Pré-requisitos
+
+Antes de configurar no código, garanta que você possui:
+
+1. Conta no **Meta Business Manager** com verificação concluída (recomendado para produção).
+2. Uma **WhatsApp Business Account (WABA)** ativa.
+3. Um número de telefone habilitado no WhatsApp Business Platform.
+4. Permissão para criar app e usuários de sistema no Business Manager.
+
+### 2) Criar app no painel da Meta
+
+1. Acesse: **https://developers.facebook.com/apps/**
+2. Clique em **Create App**.
+3. Selecione o tipo de app adequado para integrações business (WhatsApp).
+4. Dentro do app, adicione o produto **WhatsApp**.
+5. Em **WhatsApp > API Setup**, anote:
+   - **Phone Number ID** (usado em `WHATSAPP_PHONE_NUMBER_ID`)
+   - **WhatsApp Business Account ID** (opcional no app hoje, mas útil para operação)
+
+### 3) Gerar token estável para produção
+
+Para ambiente de produção, não use token temporário do painel.
+
+1. No Business Manager, crie um **System User**.
+2. Vincule esse usuário de sistema ao app e à WABA.
+3. Gere um **Permanent Access Token**.
+4. Garanta escopos mínimos:
+   - `whatsapp_business_messaging`
+   - `whatsapp_business_management`
+
+Use esse token em `WHATSAPP_TOKEN`.
+
+### 4) Criar template de OTP (recomendado)
+
+O projeto suporta envio OTP por template aprovado da Meta.
+
+1. Em **WhatsApp Manager > Message Templates**, crie um template.
+2. Categoria recomendada: **Authentication**.
+3. Idioma: **Português (Brasil)** (`pt_BR`) ou outro suportado.
+4. No corpo da mensagem, inclua variável para o código (ex.: `{{1}}`).
+5. Publique e aguarde aprovação.
+
+Depois configure:
+
+- `WHATSAPP_OTP_TEMPLATE_NAME` com o nome exato aprovado.
+- `WHATSAPP_OTP_TEMPLATE_LANGUAGE` com o locale do template (ex.: `pt_BR`).
+
+Se `WHATSAPP_OTP_TEMPLATE_NAME` não estiver definido, o sistema usa fallback para mensagem de texto simples.
+
+### 5) Configurar variáveis de ambiente
+
+No servidor de produção, preencha as variáveis de WhatsApp (veja tabela na seção abaixo):
+
+- `WHATSAPP_PHONE_NUMBER_ID`
+- `WHATSAPP_TOKEN`
+- `WHATSAPP_OTP_TEMPLATE_NAME` (recomendado)
+- `WHATSAPP_OTP_TEMPLATE_LANGUAGE` (opcional, padrão `pt_BR`)
+
+Depois reinicie o serviço para aplicar:
+
+```bash
+sudo systemctl restart agrocomm.service
+sudo systemctl status agrocomm.service
+```
+
+### 6) Webhook da Meta (opcional neste fluxo, recomendado para operação)
+
+Hoje o envio principal é de saída (outbound). Ainda assim, configurar webhook é recomendado para rastrear entregas e preparar fluxos futuros de entrada.
+
+1. No app Meta, abra **WhatsApp > Configuration**.
+2. Configure callback URL HTTPS pública (ex.: `https://seu-dominio.com.br/api/whatsapp/webhook`).
+3. Defina verify token e salve no ambiente (`WHATSAPP_WEBHOOK_VERIFY_TOKEN`).
+4. Assine eventos como `messages` e `message_template_status_update`.
+
+> Observação: se você ainda não expôs a rota de webhook no app, mantenha as variáveis prontas e habilite quando publicar o endpoint.
+
+### 7) Teste de ponta a ponta no AgroComm
+
+1. Faça login com usuário válido.
+2. Acesse `/ajustes`.
+3. Preencha país/prefixo + código de área + número.
+4. Aguarde o envio automático do OTP.
+5. Digite o código recebido e confirme.
+6. Verifique se o telefone foi salvo e marcado como verificado.
+
+### 8) Checklist de produção
+
+- Token permanente configurado (não temporário)
+- Número em modo produção (não apenas número de teste)
+- Template OTP aprovado no idioma correto
+- Rate limit monitorado
+- Logs de erro da API monitorados no servidor
+
+### 9) Troubleshooting rápido
+
+- **Erro 401/403 na Meta API**: token inválido, expirado ou sem escopo.
+- **Template não envia**: nome/idioma divergentes ou template sem aprovação.
+- **Mensagem não chega**: número destino fora do padrão internacional (E.164) ou bloqueio do WhatsApp.
+- **Funciona em dev e falha em produção**: variável ausente no ambiente do serviço systemd.
+
+---
+
 ## Variáveis de Ambiente
 
 | Variável                       | Descrição                          | Exemplo                  |
@@ -381,6 +490,12 @@ O script:
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID`| Google Analytics Measurement ID    | `G-XXXXXXXXXX`           |
 | `MERCADOPAGO_ACCESS_TOKEN`     | Access Token do Mercado Pago       | `APP_USR-...`            |
 | `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` | Public Key do MP (exposta no client) | `APP_USR-...`      |
+| `WHATSAPP_PHONE_NUMBER_ID`      | ID do número no WhatsApp Cloud API | `123456789012345`        |
+| `WHATSAPP_TOKEN`                | Token da API oficial da Meta       | `EAA...`                 |
+| `WHATSAPP_OTP_TEMPLATE_NAME`    | Nome do template OTP aprovado      | `agrocomm_otp_code`      |
+| `WHATSAPP_OTP_TEMPLATE_LANGUAGE`| Locale do template OTP             | `pt_BR`                  |
+| `WHATSAPP_BUSINESS_ACCOUNT_ID`  | ID da conta WABA (operacional)     | `987654321098765`        |
+| `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | Token de verificação do webhook    | string aleatória longa   |
 
 Arquivo `.env` na raiz; em produção é copiado como `.env.production`.
 

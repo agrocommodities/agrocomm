@@ -239,12 +239,13 @@ export default function QuoteChart({
   );
 
   const stats = computeStats(data);
+  const hasData = data.length > 0;
 
-  if (data.length === 0 && !isPending) return <EmptyState />;
-
-  const prices = data.map((d) => d.price);
-  const [min, max] = [Math.min(...prices), Math.max(...prices)];
-  const pad = (max - min) * 0.15 || 1;
+  const prices = hasData ? data.map((d) => d.price) : [];
+  const [min, max] = hasData
+    ? [Math.min(...prices), Math.max(...prices)]
+    : [0, 0];
+  const pad = hasData ? (max - min) * 0.15 || 1 : 1;
   const avgPrice = stats?.avg ?? 0;
 
   const gradientId = `chartGradient-${color.replace("#", "")}`;
@@ -263,7 +264,7 @@ export default function QuoteChart({
       )}
 
       {/* Stats */}
-      {stats && <StatsBar stats={stats} unit={unit} />}
+      {hasData && stats && <StatsBar stats={stats} unit={unit} />}
 
       {/* Chart */}
       <div className="relative">
@@ -272,79 +273,83 @@ export default function QuoteChart({
             <Loader2 className="w-6 h-6 text-green-400 animate-spin" />
           </div>
         )}
-        <ResponsiveContainer width="100%" height={height}>
-          <AreaChart
-            data={data}
-            margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
-          >
-            <defs>
-              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={color} stopOpacity={0.3} />
-                <stop offset="100%" stopColor={color} stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="rgba(255,255,255,0.06)"
-              vertical={false}
-            />
-            <XAxis
-              dataKey="date"
-              tickFormatter={formatDateShort}
-              {...axisProps}
-            />
-            <YAxis
-              domain={[min - pad, max + pad]}
-              tickFormatter={(v: number) => v.toFixed(0)}
-              {...axisProps}
-              width={52}
-            />
-            {/* Average reference line */}
-            <ReferenceLine
-              y={avgPrice}
-              stroke="rgba(96,165,250,0.3)"
-              strokeDasharray="6 4"
-              label={{
-                value: `Média ${avgPrice.toFixed(0)}`,
-                fill: "rgba(96,165,250,0.5)",
-                fontSize: 10,
-                position: "insideTopRight",
-              }}
-            />
-            <Tooltip
-              contentStyle={{
-                background: "#171717",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: 12,
-                color: "#fff",
-                fontSize: 13,
-                padding: "10px 14px",
-              }}
-              labelFormatter={(l) => formatDateFull(String(l))}
-              formatter={(value: unknown) => {
-                const num = typeof value === "number" ? value : Number(value);
-                return [`${unit.split(" ")[0]} ${num.toFixed(2)}`, "Preço"] as [
-                  string,
-                  string,
-                ];
-              }}
-            />
-            <Area
-              type="monotone"
-              dataKey="price"
-              stroke={color}
-              strokeWidth={2.5}
-              fill={`url(#${gradientId})`}
-              dot={false}
-              activeDot={{
-                r: 5,
-                fill: color,
-                stroke: "#fff",
-                strokeWidth: 2,
-              }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        {hasData ? (
+          <ResponsiveContainer width="100%" height={height}>
+            <AreaChart
+              data={data}
+              margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+            >
+              <defs>
+                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+                  <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="rgba(255,255,255,0.06)"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="date"
+                tickFormatter={formatDateShort}
+                {...axisProps}
+              />
+              <YAxis
+                domain={[min - pad, max + pad]}
+                tickFormatter={(v: number) => v.toFixed(0)}
+                {...axisProps}
+                width={52}
+              />
+              {/* Average reference line */}
+              <ReferenceLine
+                y={avgPrice}
+                stroke="rgba(96,165,250,0.3)"
+                strokeDasharray="6 4"
+                label={{
+                  value: `Média ${avgPrice.toFixed(0)}`,
+                  fill: "rgba(96,165,250,0.5)",
+                  fontSize: 10,
+                  position: "insideTopRight",
+                }}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: "#171717",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  borderRadius: 12,
+                  color: "#fff",
+                  fontSize: 13,
+                  padding: "10px 14px",
+                }}
+                labelFormatter={(l) => formatDateFull(String(l))}
+                formatter={(value: unknown) => {
+                  const num = typeof value === "number" ? value : Number(value);
+                  return [
+                    `${unit.split(" ")[0]} ${num.toFixed(2)}`,
+                    "Preço",
+                  ] as [string, string];
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="price"
+                stroke={color}
+                strokeWidth={2.5}
+                fill={`url(#${gradientId})`}
+                dot={false}
+                activeDot={{
+                  r: 5,
+                  fill: color,
+                  stroke: "#fff",
+                  strokeWidth: 2,
+                }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <EmptyState height={height} />
+        )}
       </div>
     </div>
   );
@@ -359,9 +364,12 @@ const axisProps = {
   interval: "preserveStartEnd" as const,
 };
 
-function EmptyState() {
+function EmptyState({ height = 280 }: { height?: number }) {
   return (
-    <div className="flex items-center justify-center h-48 text-white/40 text-sm">
+    <div
+      className="flex items-center justify-center text-white/40 text-sm"
+      style={{ height }}
+    >
       Sem dados disponíveis
     </div>
   );

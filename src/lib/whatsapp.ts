@@ -17,13 +17,7 @@ type SendResult = {
   error?: string;
 };
 
-/**
- * Envia uma mensagem de texto livre via WhatsApp Business API.
- */
-export async function sendWhatsAppText(
-  to: string,
-  body: string,
-): Promise<SendResult> {
+async function sendWhatsAppPayload(payload: Record<string, unknown>) {
   const { phoneNumberId, token } = getConfig();
   const url = `https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneNumberId}/messages`;
 
@@ -33,12 +27,7 @@ export async function sendWhatsAppText(
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to,
-      type: "text",
-      text: { body },
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
@@ -48,14 +37,64 @@ export async function sendWhatsAppText(
     return {
       success: false,
       error: err?.error?.message ?? `HTTP ${res.status}`,
-    };
+    } satisfies SendResult;
   }
 
   const data = await res.json();
   return {
     success: true,
     messageId: data?.messages?.[0]?.id,
-  };
+  } satisfies SendResult;
+}
+
+/**
+ * Envia uma mensagem de texto livre via WhatsApp Business API.
+ */
+export async function sendWhatsAppText(
+  to: string,
+  body: string,
+): Promise<SendResult> {
+  return sendWhatsAppPayload({
+    messaging_product: "whatsapp",
+    to,
+    type: "text",
+    text: { body },
+  });
+}
+
+/**
+ * Envia código OTP usando template aprovado no WhatsApp Business (Meta).
+ */
+export async function sendWhatsAppOtpCode(
+  to: string,
+  otpCode: string,
+): Promise<SendResult> {
+  const templateName = process.env.WHATSAPP_OTP_TEMPLATE_NAME;
+  const templateLanguage =
+    process.env.WHATSAPP_OTP_TEMPLATE_LANGUAGE ?? "pt_BR";
+
+  if (!templateName) {
+    return sendWhatsAppText(
+      to,
+      `Seu código de confirmação AgroComm é: ${otpCode}. Ele expira em 10 minutos.`,
+    );
+  }
+
+  return sendWhatsAppPayload({
+    messaging_product: "whatsapp",
+    to,
+    type: "template",
+    template: {
+      name: templateName,
+      language: { code: templateLanguage },
+      components: [
+        {
+          type: "body",
+          parameters: [{ type: "text", text: otpCode }],
+        },
+      ],
+    },
+  });
 }
 
 /**

@@ -59,6 +59,10 @@ export const users = sqliteTable("users", {
   role: text().notNull().default("user"),
   roleId: int("role_id").references(() => roles.id, { onDelete: "set null" }),
   avatarUrl: text("avatar_url"),
+  phoneCountryCode: text("phone_country_code"), // ex: +55
+  phoneNationalNumber: text("phone_national_number"), // ex: 11912345678
+  phoneE164: text("phone_e164").unique(), // ex: 5511912345678
+  phoneVerifiedAt: text("phone_verified_at"),
   countryId: int("country_id"),
   geoStateId: int("geo_state_id"),
   geoCityId: int("geo_city_id"),
@@ -97,6 +101,21 @@ export const passwordResetTokens = sqliteTable("password_reset_tokens", {
   token: text().notNull().unique(),
   expiresAt: text("expires_at").notNull(),
   usedAt: text("used_at"),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const phoneVerificationCodes = sqliteTable("phone_verification_codes", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  phoneE164: text("phone_e164").notNull(),
+  countryCode: text("country_code").notNull(),
+  nationalNumber: text("national_number").notNull(),
+  codeHash: text("code_hash").notNull(),
+  attempts: int().notNull().default(0),
+  expiresAt: text("expires_at").notNull(),
+  verifiedAt: text("verified_at"),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 
