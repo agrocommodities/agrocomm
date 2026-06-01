@@ -967,3 +967,15 @@ export const emailTemplateConfigs = sqliteTable("email_template_configs", {
   bodyMarkdown: text("body_markdown"),
   updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
 });
+
+// ── Agenda de Boletins ────────────────────────────────────────────────────────
+
+export const bulletinSchedules = sqliteTable("bulletin_schedules", {
+  id: int().primaryKey({ autoIncrement: true }),
+  bulletinType: text("bulletin_type").unique().notNull(), // 'news' | 'quotes'
+  enabled: int().notNull().default(1),
+  daysOfWeek: text("days_of_week").notNull().default("[1,2,3,4,5]"), // JSON int[] 0=Dom..6=Sáb
+  sendTimes: text("send_times").notNull().default("[7,17]"), // JSON int[] horas (0-23)
+  lastSentAt: text("last_sent_at"),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+});

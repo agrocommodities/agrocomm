@@ -1,8 +1,18 @@
 "use server";
 
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, gte } from "drizzle-orm";
 import { db } from "@/db";
-import { emailTemplateConfigs, subscriptionAlerts, users } from "@/db/schema";
+import {
+  bulletinSchedules,
+  emailTemplateConfigs,
+  newsArticles,
+  products,
+  quotes,
+  cities,
+  states,
+  subscriptionAlerts,
+  users,
+} from "@/db/schema";
 import { getSession, getUserPermissions } from "@/lib/auth";
 import nodemailer from "nodemailer";
 import {
@@ -279,4 +289,153 @@ export async function getEmailAlertLogs(): Promise<EmailAlertLogRow[]> {
     .limit(100);
 
   return rows;
+}
+
+// ── Agenda de Boletins ────────────────────────────────────────────────────────
+
+export interface BulletinSchedule {
+  id: number;
+  bulletinType: string;
+  enabled: number;
+  daysOfWeek: number[];
+  sendTimes: number[];
+  lastSentAt: string | null;
+  updatedAt: string;
+}
+
+export async function getBulletinSchedules(): Promise<BulletinSchedule[]> {
+  await requireAdmin();
+  const rows = await db.select().from(bulletinSchedules);
+  return rows.map((r) => ({
+    ...r,
+    daysOfWeek: JSON.parse(r.daysOfWeek) as number[],
+    sendTimes: JSON.parse(r.sendTimes) as number[],
+  }));
+}
+
+export async function saveBulletinScheduleAction(
+  bulletinType: string,
+  enabled: boolean,
+  daysOfWeek: number[],
+  sendTimes: number[],
+) {
+  await requireAdmin();
+
+  if (!["news", "quotes"].includes(bulletinType))
+    return { error: "Tipo inválido." };
+
+  const now = new Date().toISOString();
+  const existing = await db
+    .select({ id: bulletinSchedules.id })
+    .from(bulletinSchedules)
+    .where(eq(bulletinSchedules.bulletinType, bulletinType))
+    .limit(1);
+
+  if (existing.length > 0) {
+    await db
+      .update(bulletinSchedules)
+      .set({
+        enabled: enabled ? 1 : 0,
+        daysOfWeek: JSON.stringify(daysOfWeek),
+        sendTimes: JSON.stringify(sendTimes),
+        updatedAt: now,
+      })
+      .where(eq(bulletinSchedules.bulletinType, bulletinType));
+  } else {
+    await db.insert(bulletinSchedules).values({
+      bulletinType,
+      enabled: enabled ? 1 : 0,
+      daysOfWeek: JSON.stringify(daysOfWeek),
+      sendTimes: JSON.stringify(sendTimes),
+      updatedAt: now,
+    });
+  }
+
+  return { success: true };
+}
+
+export async function sendNewsBulletinNowAction(to: string) {
+  await requireAdmin();
+
+  if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to))
+    return { error: "E-mail inválido." };
+
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    `http://localhost:${process.env.PORT ?? 3000}`;
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const articles = await db
+    .select({
+      title: newsArticles.title,
+      excerpt: newsArticles.excerpt,
+      slug: newsArticles.slug,
+      imageUrl: newsArticles.imageUrl,
+    })
+    .from(newsArticles)
+    .where(gte(newsArticles.publishedAt, yesterday.toISOString()))
+    .orderBy(desc(newsArticles.publishedAt))
+    .limit(5);
+
+  if (articles.length === 0)
+    return { error: "Nenhuma notícia nas últimas 24h." };
+
+  const formattedArticles = articles.map((a) => ({
+    title: a.title,
+    excerpt: a.excerpt,
+    url: `${appUrl}/noticias/${a.slug}`,
+    imageUrl: a.imageUrl,
+  }));
+
+  try {
+    await sendNewsBulletinEmail(to, "Administrador", formattedArticles);
+    return { success: true };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Falha ao enviar." };
+  }
+}
+
+export async function sendQuotesBulletinNowAction(to: string) {
+  await requireAdmin();
+
+  if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to))
+    return { error: "E-mail inválido." };
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const recentQuotes = await db
+    .select({
+      productName: products.name,
+      cityName: cities.name,
+      stateName: states.name,
+      price: quotes.price,
+      variation: quotes.variation,
+    })
+    .from(quotes)
+    .innerJoin(products, eq(quotes.productId, products.id))
+    .leftJoin(cities, eq(quotes.cityId, cities.id))
+    .leftJoin(states, eq(cities.stateId, states.id))
+    .where(eq(quotes.quoteDate, today))
+    .orderBy(desc(quotes.createdAt))
+    .limit(10);
+
+  if (recentQuotes.length === 0)
+    return { error: "Nenhuma cotação disponível para hoje." };
+
+  const formatted = recentQuotes.map((q) => ({
+    productName: q.productName,
+    cityName: q.cityName ?? "Todas",
+    stateName: q.stateName ?? "",
+    price: q.price,
+    variation: q.variation,
+  }));
+
+  try {
+    await sendQuoteBulletinEmail(to, "Administrador", formatted);
+    return { success: true };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Falha ao enviar." };
+  }
 }

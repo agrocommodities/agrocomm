@@ -232,12 +232,18 @@ export async function sendNewsBulletinEmail(
   }>,
 ) {
   const appUrl = getAppUrl();
+  const resolvedArticles = articles.map((a) => ({
+    ...a,
+    imageUrl: a.imageUrl?.startsWith("/")
+      ? `${appUrl}${a.imageUrl}`
+      : a.imageUrl,
+  }));
   await emailClient.send({
     template: "news-bulletin",
     message: { to },
     locals: {
       userName,
-      articles,
+      articles: resolvedArticles,
       logoUrl: `${appUrl}/images/logo-email.png`,
     },
   });
