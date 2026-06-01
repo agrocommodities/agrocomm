@@ -12,14 +12,20 @@ import {
   Plus,
   Trash2,
   Save,
+  CalendarDays,
+  Newspaper,
+  TrendingUp,
 } from "lucide-react";
 import {
   sendTestEmailAction,
   sendTemplateTestEmailAction,
   saveEmailTemplateConfigAction,
   deleteEmailTemplateConfigAction,
+  saveBulletinScheduleAction,
+  sendNewsBulletinNowAction,
+  sendQuotesBulletinNowAction,
 } from "@/actions/emails";
-import type { EmailAlertLogRow } from "@/actions/emails";
+import type { EmailAlertLogRow, BulletinSchedule } from "@/actions/emails";
 
 interface EmailConfig {
   configured: boolean;
@@ -35,7 +41,9 @@ interface TemplateConfig {
   updatedAt: string;
 }
 
-type Tab = "config" | "templates" | "logs";
+type Tab = "config" | "bulletins" | "templates" | "logs";
+
+const DAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 const ALERT_TYPE_LABELS: Record<string, string> = {
   card_declined: "Cartão recusado",
@@ -59,14 +67,282 @@ const TEMPLATE_KEY_LABELS: Record<string, string> = {
   "boleto-payment": "Pagamento via Boleto",
 };
 
+function getDefaultSchedule(bulletinType: string): BulletinSchedule {
+  return {
+    id: 0,
+    bulletinType,
+    enabled: 1,
+    daysOfWeek: [1, 2, 3, 4, 5],
+    sendTimes: [7, 17],
+    lastSentAt: null,
+    updatedAt: "",
+  };
+}
+
+function ScheduleEditor({
+  schedule,
+  onSaved,
+  smtpConfigured,
+  testEmail,
+}: {
+  schedule: BulletinSchedule;
+  onSaved: () => void;
+  smtpConfigured: boolean;
+  testEmail: string;
+}) {
+  const [enabled, setEnabled] = useState(schedule.enabled === 1);
+  const [days, setDays] = useState<number[]>(schedule.daysOfWeek);
+  const [times, setTimes] = useState<number[]>(schedule.sendTimes);
+  const [newHour, setNewHour] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const [saved, setSaved] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+  const [testPending, setTestPending] = useState(false);
+
+  const isNews = schedule.bulletinType === "news";
+
+  function toggleDay(day: number) {
+    setDays((prev) =>
+      prev.includes(day)
+        ? prev.filter((d) => d !== day)
+        : [...prev, day].sort((a, b) => a - b),
+    );
+  }
+
+  function addTime() {
+    const h = parseInt(newHour, 10);
+    if (Number.isNaN(h) || h < 0 || h > 23) return;
+    if (times.includes(h)) return;
+    setTimes((prev) => [...prev, h].sort((a, b) => a - b));
+    setNewHour("");
+  }
+
+  function removeTime(h: number) {
+    setTimes((prev) => prev.filter((t) => t !== h));
+  }
+
+  function handleSave() {
+    startTransition(async () => {
+      const res = await saveBulletinScheduleAction(
+        schedule.bulletinType,
+        enabled,
+        days,
+        times,
+      );
+      if (!res.error) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+        onSaved();
+      }
+    });
+  }
+
+  async function handleTestSend() {
+    if (!testEmail) return;
+    setTestResult(null);
+    setTestPending(true);
+    const res = isNews
+      ? await sendNewsBulletinNowAction(testEmail)
+      : await sendQuotesBulletinNowAction(testEmail);
+    setTestPending(false);
+    setTestResult(
+      res.error
+        ? { type: "error", message: res.error }
+        : { type: "success", message: "Boletim enviado!" },
+    );
+  }
+
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+      {/* Header */}
+      <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {isNews ? (
+            <Newspaper className="w-5 h-5 text-green-400 shrink-0" />
+          ) : (
+            <TrendingUp className="w-5 h-5 text-blue-400 shrink-0" />
+          )}
+          <div>
+            <h3 className="font-semibold">
+              {isNews ? "Boletim de Notícias" : "Boletim de Cotações"}
+            </h3>
+            <p className="text-xs text-white/40 mt-0.5">
+              {isNews
+                ? "Últimas notícias do agronegócio"
+                : "Cotações dos produtos seguidos pelo assinante"}
+            </p>
+          </div>
+        </div>
+
+        {/* Enable toggle */}
+        <button
+          type="button"
+          onClick={() => setEnabled((v) => !v)}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
+            enabled ? "bg-green-600" : "bg-white/20"
+          }`}
+          aria-label={enabled ? "Desativar" : "Ativar"}
+        >
+          <span
+            className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+              enabled ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </button>
+      </div>
+
+      <div
+        className={`p-5 flex flex-col gap-5 ${!enabled ? "opacity-40 pointer-events-none" : ""}`}
+      >
+        {/* Days of week */}
+        <div>
+          <p className="text-xs font-medium text-white/50 mb-2 uppercase tracking-wide">
+            Dias da semana
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            {DAY_LABELS.map((label, idx) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => toggleDay(idx)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  days.includes(idx)
+                    ? "bg-green-600/30 text-green-400 border border-green-500/40"
+                    : "bg-white/5 text-white/40 border border-white/10 hover:bg-white/10"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Send times */}
+        <div>
+          <p className="text-xs font-medium text-white/50 mb-2 uppercase tracking-wide">
+            Horários de envio
+          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            {times.map((h) => (
+              <div
+                key={h}
+                className="flex items-center gap-1.5 bg-green-600/20 border border-green-500/30 rounded-lg px-2.5 py-1"
+              >
+                <span className="text-sm text-green-400 font-mono font-medium">
+                  {String(h).padStart(2, "0")}:00
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeTime(h)}
+                  className="text-green-400/60 hover:text-red-400 transition-colors"
+                  aria-label={`Remover ${h}:00`}
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min={0}
+                max={23}
+                value={newHour}
+                onChange={(e) => setNewHour(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addTime()}
+                placeholder="HH"
+                className="w-14 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-sm text-white placeholder:text-white/30 font-mono focus:outline-none focus:border-green-500/50 text-center"
+              />
+              <button
+                type="button"
+                onClick={addTime}
+                disabled={!newHour}
+                className="flex items-center gap-1 bg-white/10 hover:bg-white/15 disabled:opacity-40 text-white/70 text-xs font-medium px-2.5 py-1.5 rounded-lg transition-colors"
+              >
+                <Plus className="w-3 h-3" />
+                Adicionar
+              </button>
+            </div>
+          </div>
+          <p className="text-xs text-white/30 mt-1.5">
+            Digite o número da hora (0–23) e clique em Adicionar ou pressione
+            Enter.
+          </p>
+        </div>
+      </div>
+
+      {/* Footer: last sent + save */}
+      <div className="px-5 py-3 border-t border-white/10 flex items-center justify-between gap-3 flex-wrap">
+        <div className="text-xs text-white/30">
+          {schedule.lastSentAt
+            ? `Último envio: ${schedule.lastSentAt.slice(0, 16).replace("T", " ")}`
+            : "Nunca enviado"}
+        </div>
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={handleSave}
+          className="flex items-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white font-semibold text-sm px-4 py-1.5 rounded-lg transition-colors"
+        >
+          <Save className="w-4 h-4" />
+          {saved ? "Salvo!" : isPending ? "Salvando…" : "Salvar agenda"}
+        </button>
+      </div>
+
+      {/* Test send */}
+      <div className="px-5 py-4 border-t border-white/10 bg-white/2">
+        <p className="text-xs font-medium text-white/50 mb-2 uppercase tracking-wide">
+          Envio de teste
+        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-white/40">
+            {testEmail
+              ? `Destinatário: ${testEmail}`
+              : "Defina o e-mail de teste na aba Configuração"}
+          </span>
+          <button
+            type="button"
+            disabled={!smtpConfigured || !testEmail || testPending}
+            onClick={handleTestSend}
+            className="flex items-center gap-1.5 bg-green-600/20 hover:bg-green-600/30 disabled:opacity-40 text-green-400 font-medium text-xs px-3 py-1.5 rounded-lg transition-colors ml-auto"
+          >
+            <Send className="w-3 h-3" />
+            {testPending ? "Enviando…" : "Enviar boletim real agora"}
+          </button>
+        </div>
+        {testResult && (
+          <div
+            className={`mt-2 flex items-center gap-2 text-xs px-3 py-2 rounded-lg ${
+              testResult.type === "success"
+                ? "bg-green-500/10 text-green-400"
+                : "bg-red-500/10 text-red-400"
+            }`}
+          >
+            {testResult.type === "success" ? (
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+            ) : (
+              <XCircle className="w-3.5 h-3.5 shrink-0" />
+            )}
+            {testResult.message}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function EmailsManager({
   config,
   initialTemplates,
   initialLogs,
+  initialBulletinSchedules,
 }: {
   config: EmailConfig;
   initialTemplates: TemplateConfig[];
   initialLogs: EmailAlertLogRow[];
+  initialBulletinSchedules: BulletinSchedule[];
 }) {
   const [tab, setTab] = useState<Tab>("config");
   const [templates, setTemplates] = useState(initialTemplates);
@@ -88,6 +364,13 @@ export default function EmailsManager({
   const [showNewForm, setShowNewForm] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  const newsSchedule =
+    initialBulletinSchedules.find((s) => s.bulletinType === "news") ??
+    getDefaultSchedule("news");
+  const quotesSchedule =
+    initialBulletinSchedules.find((s) => s.bulletinType === "quotes") ??
+    getDefaultSchedule("quotes");
 
   function handleEdit(t: TemplateConfig) {
     setEditingKey(t.templateKey);
@@ -171,6 +454,7 @@ export default function EmailsManager({
 
   const tabs: { key: Tab; label: string; icon: typeof Mail }[] = [
     { key: "config", label: "Configuração", icon: Mail },
+    { key: "bulletins", label: "Boletins", icon: CalendarDays },
     { key: "templates", label: "Templates", icon: FileText },
     { key: "logs", label: "Logs", icon: Clock },
   ];
@@ -178,7 +462,7 @@ export default function EmailsManager({
   return (
     <>
       {/* Tabs */}
-      <div className="flex gap-1 bg-white/5 border border-white/10 rounded-xl p-1 w-fit">
+      <div className="flex gap-1 bg-white/5 border border-white/10 rounded-xl p-1 w-fit flex-wrap">
         {tabs.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
@@ -244,6 +528,7 @@ export default function EmailsManager({
             <h2 className="font-semibold mb-1">Enviar e-mail de teste</h2>
             <p className="text-xs text-white/40 mb-4">
               Informe o destinatário e envie um teste para cada tipo de e-mail.
+              O mesmo endereço é usado nos envios de teste da aba Boletins.
             </p>
             <div className="flex gap-2 mb-4">
               <input
@@ -327,6 +612,41 @@ export default function EmailsManager({
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Bulletins tab */}
+      {tab === "bulletins" && (
+        <div className="flex flex-col gap-4">
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+            <div className="flex items-start gap-3">
+              <CalendarDays className="w-4 h-4 text-white/40 mt-0.5 shrink-0" />
+              <p className="text-xs text-white/40 leading-relaxed">
+                O timer do servidor roda de hora em hora. Os boletins são
+                enviados apenas nos dias e horários configurados abaixo. Para
+                testar o envio com artigos e cotações reais, use o botão{" "}
+                <strong className="text-white/60">
+                  Enviar boletim real agora
+                </strong>{" "}
+                em cada seção — basta definir o e-mail de teste na aba{" "}
+                <strong className="text-white/60">Configuração</strong>.
+              </p>
+            </div>
+          </div>
+
+          <ScheduleEditor
+            schedule={newsSchedule}
+            onSaved={() => router.refresh()}
+            smtpConfigured={config.configured}
+            testEmail={testEmail}
+          />
+
+          <ScheduleEditor
+            schedule={quotesSchedule}
+            onSaved={() => router.refresh()}
+            smtpConfigured={config.configured}
+            testEmail={testEmail}
+          />
         </div>
       )}
 

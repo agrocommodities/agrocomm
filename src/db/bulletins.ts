@@ -2,6 +2,7 @@ import "dotenv/config";
 import { drizzle } from "drizzle-orm/libsql";
 import { eq, and, sql, desc, gte } from "drizzle-orm";
 import {
+  bulletinSchedules,
   subscriptions,
   subscriptionPlans,
   subscriptionAlertSettings,
@@ -26,8 +27,52 @@ import {
 
 const db = drizzle(process.env.DB_FILE_NAME!);
 
+async function shouldSendBulletin(bulletinType: string): Promise<boolean> {
+  const [schedule] = await db
+    .select()
+    .from(bulletinSchedules)
+    .where(eq(bulletinSchedules.bulletinType, bulletinType))
+    .limit(1);
+
+  if (!schedule) {
+    // No schedule configured — use legacy behavior (always send)
+    return true;
+  }
+
+  if (!schedule.enabled) return false;
+
+  const now = new Date();
+  const currentDay = now.getDay(); // 0=Sun..6=Sat
+  const currentHour = now.getHours();
+
+  const days = JSON.parse(schedule.daysOfWeek) as number[];
+  const times = JSON.parse(schedule.sendTimes) as number[];
+
+  if (!days.includes(currentDay)) return false;
+  if (!times.includes(currentHour)) return false;
+
+  // Prevent double-send: skip if already sent within the last 50 minutes
+  if (schedule.lastSentAt) {
+    const lastSent = new Date(schedule.lastSentAt);
+    const diffMs = now.getTime() - lastSent.getTime();
+    if (diffMs < 50 * 60 * 1000) return false;
+  }
+
+  // Mark as sent
+  await db
+    .update(bulletinSchedules)
+    .set({ lastSentAt: now.toISOString() })
+    .where(eq(bulletinSchedules.bulletinType, bulletinType));
+
+  return true;
+}
+
 async function sendQuoteBulletins() {
   console.log("Sending quote bulletins...");
+  if (!(await shouldSendBulletin("quotes"))) {
+    console.log("  Skipped (outside scheduled window).");
+    return;
+  }
 
   // Get all active subscribers with emailBulletins enabled
   const activeSubs = await db
@@ -124,6 +169,10 @@ async function sendQuoteBulletins() {
 
 async function sendNewsBulletins() {
   console.log("Sending news bulletins...");
+  if (!(await shouldSendBulletin("news"))) {
+    console.log("  Skipped (outside scheduled window).");
+    return;
+  }
 
   // Get all active subscribers
   const activeSubs = await db

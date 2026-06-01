@@ -2,16 +2,18 @@ import {
   getEmailConfig,
   getEmailTemplateConfigs,
   getEmailAlertLogs,
+  getBulletinSchedules,
 } from "@/actions/emails";
 import EmailsManager from "./EmailsManager";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminEmailsPage() {
-  const [config, templates, logs] = await Promise.all([
+  const [config, templates, logs, bulletinSchedules] = await Promise.all([
     getEmailConfig(),
     getEmailTemplateConfigs(),
     getEmailAlertLogs(),
+    getBulletinSchedules(),
   ]);
 
   return (
@@ -19,7 +21,7 @@ export default async function AdminEmailsPage() {
       <div>
         <h1 className="text-2xl font-bold">E-mails</h1>
         <p className="text-sm text-white/50 mt-1">
-          Configuração SMTP, templates e histórico de envios
+          Configuração SMTP, boletins, templates e histórico de envios
         </p>
       </div>
 
@@ -27,6 +29,7 @@ export default async function AdminEmailsPage() {
         config={config}
         initialTemplates={templates}
         initialLogs={logs}
+        initialBulletinSchedules={bulletinSchedules}
       />
     </div>
   );

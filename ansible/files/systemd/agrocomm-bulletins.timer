@@ -1,11 +1,10 @@
 [Unit]
-Description=AgroComm Bulletins Timer - Boletins 2x ao dia, alertas de assinatura
+Description=AgroComm Bulletins Timer - Boletins e alertas de assinatura
 Requires=agrocomm-bulletins.service
 
 [Timer]
-# 07:00 e 17:00 em dias úteis
-OnCalendar=Mon-Fri *-*-* 07:00:00
-OnCalendar=Mon-Fri *-*-* 17:00:00
+# Roda de hora em hora; a lógica de agenda (dias/horários) está no banco de dados
+OnCalendar=*-*-* *:00:00
 Persistent=true
 
 [Install]
