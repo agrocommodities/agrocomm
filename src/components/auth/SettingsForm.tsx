@@ -86,6 +86,9 @@ export default function SettingsForm({
   const [localNumber, setLocalNumber] = useState(initialPhone.localNumber);
   const [otpCode, setOtpCode] = useState("");
   const [otpRequestedFor, setOtpRequestedFor] = useState<string | null>(null);
+  const [autoOtpAttemptedFor, setAutoOtpAttemptedFor] = useState<string | null>(
+    null,
+  );
   const [otpExpiresAt, setOtpExpiresAt] = useState<string | null>(null);
   const [otpVisible, setOtpVisible] = useState(false);
   const [otpError, setOtpError] = useState<string | null>(null);
@@ -167,6 +170,10 @@ export default function SettingsForm({
         localNumber,
       });
 
+      if (auto) {
+        setAutoOtpAttemptedFor(phoneValidation.e164);
+      }
+
       if (!result.success) {
         setOtpError(result.error);
         setOtpInfo(null);
@@ -194,6 +201,10 @@ export default function SettingsForm({
       return;
     }
 
+    if (autoOtpAttemptedFor === currentE164) {
+      return;
+    }
+
     const timer = setTimeout(() => {
       startSendingOtp(async () => {
         await doRequestOtp(true);
@@ -206,6 +217,7 @@ export default function SettingsForm({
     currentE164,
     isCurrentPhoneVerified,
     otpRequestedFor,
+    autoOtpAttemptedFor,
     sendingOtp,
     doRequestOtp,
   ]);
@@ -412,6 +424,7 @@ export default function SettingsForm({
               onChange={(e) => {
                 setPhoneCountryCode(e.target.value);
                 setOtpRequestedFor(null);
+                setAutoOtpAttemptedFor(null);
               }}
               className={selectClass}
             >
@@ -442,6 +455,7 @@ export default function SettingsForm({
             onChange={(e) => {
               setAreaCode(formatAreaCodeInput(e.target.value));
               setOtpRequestedFor(null);
+              setAutoOtpAttemptedFor(null);
             }}
             inputMode="numeric"
             maxLength={3}
@@ -465,6 +479,7 @@ export default function SettingsForm({
           onChange={(e) => {
             setLocalNumber(formatLocalNumberInput(e.target.value));
             setOtpRequestedFor(null);
+            setAutoOtpAttemptedFor(null);
           }}
           inputMode="numeric"
           maxLength={10}

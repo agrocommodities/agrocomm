@@ -142,9 +142,10 @@ export async function requestWhatsAppPhoneOtpAction(
     })
     .returning({ id: phoneVerificationCodes.id });
 
-  const sendResult = await sendWhatsAppOtpCode(validation.e164, otpCode);
-
-  if (!sendResult.success) {
+  let sendResult: Awaited<ReturnType<typeof sendWhatsAppOtpCode>>;
+  try {
+    sendResult = await sendWhatsAppOtpCode(validation.e164, otpCode);
+  } catch (error) {
     await db
       .delete(phoneVerificationCodes)
       .where(eq(phoneVerificationCodes.id, created.id));
@@ -152,8 +153,25 @@ export async function requestWhatsAppPhoneOtpAction(
     return {
       success: false,
       error:
-        sendResult.error ??
-        "Não foi possível enviar o código por WhatsApp. Tente novamente.",
+        error instanceof Error
+          ? error.message
+          : "Não foi possível enviar o código por WhatsApp.",
+    };
+  }
+
+  if (!sendResult.success) {
+    await db
+      .delete(phoneVerificationCodes)
+      .where(eq(phoneVerificationCodes.id, created.id));
+
+    const sendError = sendResult.error ?? "";
+    return {
+      success: false,
+      error:
+        sendError === "Authentication Error"
+          ? "Erro de autenticação com a API do WhatsApp. Verifique WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID."
+          : sendError ||
+            "Não foi possível enviar o código por WhatsApp. Tente novamente.",
     };
   }
 
