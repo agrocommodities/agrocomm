@@ -5,6 +5,10 @@ import {
   whatsappSubscribers,
   whatsappSubscriberProducts,
   whatsappLogs,
+  users,
+  subscriptions,
+  subscriptionPlans,
+  userQuoteSubscriptions,
   products,
   quotes,
   cities,
@@ -13,7 +17,10 @@ import {
 import { eq, desc, and, inArray, sql, count } from "drizzle-orm";
 import { getSession, getUserPermissions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { sendWhatsAppText, formatQuotesMessage } from "@/lib/whatsapp";
+import {
+  sendWhatsAppBulletinTemplate,
+  formatQuotesBulletinBody,
+} from "@/lib/whatsapp";
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
 
@@ -269,7 +276,7 @@ export async function deleteSubscriber(id: number) {
  * Busca as cotações mais recentes para os produtos de um assinante
  * e envia via WhatsApp.
  */
-async function sendQuotesToSubscriber(sub: {
+async function _sendQuotesToSubscriber(sub: {
   id: number;
   name: string;
   phone: string;
@@ -311,13 +318,114 @@ async function sendQuotesToSubscriber(sub: {
   });
 
   const date = uniqueQuotes[0].quoteDate;
-  const message = formatQuotesMessage(sub.name, uniqueQuotes, date);
-  const result = await sendWhatsAppText(sub.phone, message);
+  const message = formatQuotesBulletinBody(uniqueQuotes);
+  const result = await sendWhatsAppBulletinTemplate(
+    sub.phone,
+    sub.name,
+    date,
+    message,
+  );
 
   // Registra log
   await db.insert(whatsappLogs).values({
     subscriberId: sub.id,
     phone: sub.phone,
+    status: result.success ? "success" : "error",
+    messageId: result.messageId ?? null,
+    errorMessage: result.error ?? null,
+  });
+
+  return result;
+}
+
+async function sendQuotesToUser(user: {
+  userId: number;
+  name: string;
+  phone: string;
+}) {
+  const followed = await db
+    .select({
+      productId: userQuoteSubscriptions.productId,
+      productName: products.name,
+      unit: products.unit,
+      cityId: userQuoteSubscriptions.cityId,
+      cityName: cities.name,
+      stateCode: states.code,
+    })
+    .from(userQuoteSubscriptions)
+    .innerJoin(products, eq(userQuoteSubscriptions.productId, products.id))
+    .leftJoin(cities, eq(userQuoteSubscriptions.cityId, cities.id))
+    .leftJoin(states, eq(cities.stateId, states.id))
+    .where(eq(userQuoteSubscriptions.userId, user.userId));
+
+  if (followed.length === 0) {
+    return { success: false, error: "Nenhuma cotação assinada" };
+  }
+
+  const quotesData: Array<{
+    productName: string;
+    unit: string;
+    city: string;
+    state: string;
+    price: number;
+    variation: number | null;
+    quoteDate: string;
+  }> = [];
+
+  for (const f of followed) {
+    const conditions = [eq(quotes.productId, f.productId)];
+    if (f.cityId) {
+      conditions.push(eq(quotes.cityId, f.cityId));
+    }
+
+    const [latestQuote] = await db
+      .select({
+        price: quotes.price,
+        variation: quotes.variation,
+        quoteDate: quotes.quoteDate,
+        cityName: cities.name,
+        stateCode: states.code,
+      })
+      .from(quotes)
+      .innerJoin(cities, eq(quotes.cityId, cities.id))
+      .innerJoin(states, eq(cities.stateId, states.id))
+      .where(and(...conditions))
+      .orderBy(desc(quotes.quoteDate), desc(quotes.createdAt))
+      .limit(1);
+
+    if (!latestQuote) {
+      continue;
+    }
+
+    quotesData.push({
+      productName: f.productName,
+      unit: f.unit,
+      city: latestQuote.cityName ?? f.cityName ?? "Todas",
+      state: latestQuote.stateCode ?? f.stateCode ?? "",
+      price: latestQuote.price,
+      variation: latestQuote.variation,
+      quoteDate: latestQuote.quoteDate,
+    });
+  }
+
+  if (quotesData.length === 0) {
+    return { success: false, error: "Nenhuma cotação disponível" };
+  }
+
+  const latestDate = [...quotesData].sort((a, b) =>
+    b.quoteDate.localeCompare(a.quoteDate),
+  )[0].quoteDate;
+  const bulletinBody = formatQuotesBulletinBody(quotesData);
+  const result = await sendWhatsAppBulletinTemplate(
+    user.phone,
+    user.name,
+    latestDate,
+    bulletinBody,
+  );
+
+  await db.insert(whatsappLogs).values({
+    subscriberId: null,
+    phone: user.phone,
     status: result.success ? "success" : "error",
     messageId: result.messageId ?? null,
     errorMessage: result.error ?? null,
@@ -339,10 +447,38 @@ export async function sendDailyQuotes() {
  * Versão interna sem auth guard (para uso na API route com secret).
  */
 export async function sendDailyQuotesInternal() {
-  const activeSubs = await db
-    .select()
-    .from(whatsappSubscribers)
-    .where(eq(whatsappSubscribers.active, 1));
+  const rawActiveUsers = await db
+    .select({
+      userId: users.id,
+      name: users.name,
+      phone: users.phoneE164,
+    })
+    .from(subscriptions)
+    .innerJoin(users, eq(subscriptions.userId, users.id))
+    .innerJoin(
+      subscriptionPlans,
+      eq(subscriptions.planId, subscriptionPlans.id),
+    )
+    .where(
+      and(
+        eq(subscriptions.status, "active"),
+        eq(subscriptionPlans.emailBulletins, 1),
+        eq(users.bulletinOptOut, 0),
+        sql`${users.phoneVerifiedAt} is not null`,
+        sql`${users.phoneE164} is not null`,
+      ),
+    );
+
+  const activeUsers = Array.from(
+    new Map(
+      rawActiveUsers
+        .filter(
+          (user): user is { userId: number; name: string; phone: string } =>
+            Boolean(user.phone),
+        )
+        .map((user) => [user.userId, user]),
+    ).values(),
+  );
 
   const results: Array<{
     phone: string;
@@ -351,23 +487,12 @@ export async function sendDailyQuotesInternal() {
     error?: string;
   }> = [];
 
-  for (const sub of activeSubs) {
-    const subProducts = await db
-      .select({ productId: whatsappSubscriberProducts.productId })
-      .from(whatsappSubscriberProducts)
-      .where(eq(whatsappSubscriberProducts.subscriberId, sub.id));
-
-    const productIds = subProducts.map((p) => p.productId);
-    const result = await sendQuotesToSubscriber({
-      id: sub.id,
-      name: sub.name,
-      phone: sub.phone,
-      productIds,
-    });
+  for (const user of activeUsers) {
+    const result = await sendQuotesToUser(user);
 
     results.push({
-      phone: sub.phone,
-      name: sub.name,
+      phone: user.phone ?? "",
+      name: user.name,
       success: result.success,
       error: result.error,
     });
