@@ -52,6 +52,14 @@ type SendResult = {
   error?: string;
 };
 
+function getTemplateConfig(prefix: "OTP" | "BULLETIN") {
+  return {
+    templateName: process.env[`WHATSAPP_${prefix}_TEMPLATE_NAME`],
+    templateLanguage:
+      process.env[`WHATSAPP_${prefix}_TEMPLATE_LANGUAGE`] ?? "pt_BR",
+  };
+}
+
 async function sendWhatsAppPayload(payload: Record<string, unknown>) {
   return enqueueWhatsAppSend(async () => {
     const { phoneNumberId, token } = getConfig();
@@ -106,9 +114,7 @@ export async function sendWhatsAppOtpCode(
   to: string,
   otpCode: string,
 ): Promise<SendResult> {
-  const templateName = process.env.WHATSAPP_OTP_TEMPLATE_NAME;
-  const templateLanguage =
-    process.env.WHATSAPP_OTP_TEMPLATE_LANGUAGE ?? "pt_BR";
+  const { templateName, templateLanguage } = getTemplateConfig("OTP");
 
   if (!templateName) {
     return sendWhatsAppText(
@@ -135,10 +141,48 @@ export async function sendWhatsAppOtpCode(
 }
 
 /**
- * Formata as cotações para envio via WhatsApp.
+ * Envia boletim diário usando template aprovado no WhatsApp Business.
  */
-export function formatQuotesMessage(
+export async function sendWhatsAppBulletinTemplate(
+  to: string,
   subscriberName: string,
+  date: string,
+  bulletinBody: string,
+): Promise<SendResult> {
+  const { templateName, templateLanguage } = getTemplateConfig("BULLETIN");
+
+  if (!templateName) {
+    return sendWhatsAppText(
+      to,
+      `Olá, ${subscriberName}.\nSegue seu boletim AgroComm de ${date.split("-").reverse().join("/")}:\n\n${bulletinBody}`,
+    );
+  }
+
+  return sendWhatsAppPayload({
+    messaging_product: "whatsapp",
+    to,
+    type: "template",
+    template: {
+      name: templateName,
+      language: { code: templateLanguage },
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: subscriberName },
+            { type: "text", text: date.split("-").reverse().join("/") },
+            { type: "text", text: bulletinBody },
+          ],
+        },
+      ],
+    },
+  });
+}
+
+/**
+ * Formata somente o corpo variável do boletim de cotações para uso em {{3}}.
+ */
+export function formatQuotesBulletinBody(
   quotes: Array<{
     productName: string;
     unit: string;
@@ -147,11 +191,8 @@ export function formatQuotesMessage(
     price: number;
     variation: number | null;
   }>,
-  date: string,
 ): string {
-  const dateFormatted = date.split("-").reverse().join("/");
-  const lines = [`*AgroComm - Cotações ${dateFormatted}*`, ""];
-  lines.push(`Olá, ${subscriberName}! Suas cotações de hoje:`, "");
+  const lines: string[] = [];
 
   for (const q of quotes) {
     const arrow =
@@ -171,6 +212,6 @@ export function formatQuotesMessage(
     );
   }
 
-  lines.push("_agrocomm.com.br_");
-  return lines.join("\n");
+  lines.push("agrocomm.com.br");
+  return lines.join("\n").trim();
 }
