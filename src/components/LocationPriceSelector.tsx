@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition } from "react";
 import { MapPin, TrendingUp, TrendingDown, ChevronDown } from "lucide-react";
 import QuoteChart from "@/components/QuoteChart";
+import QuoteNotificationButton from "@/components/QuoteNotificationButton";
 import { getCityHistoryByRange } from "@/actions/quotes";
 import type {
   QuoteRow,
@@ -19,6 +20,9 @@ interface Props {
   productSlug: string;
   initialState?: string;
   initialCitySlug?: string;
+  subscribedQuotes?: string[];
+  hasSession?: boolean;
+  hasActivePlan?: boolean;
 }
 
 const LS_STATE_KEY = "agrocomm_state";
@@ -63,8 +67,16 @@ export default function LocationPriceSelector({
   productSlug,
   initialState,
   initialCitySlug,
+  subscribedQuotes = [],
+  hasSession = false,
+  hasActivePlan = false,
 }: Props) {
   const [isPending, startTransition] = useTransition();
+  const [subscriptionStates, setSubscriptionStates] = useState<
+    Record<string, boolean>
+  >(() =>
+    Object.fromEntries(subscribedQuotes.map((quoteKey) => [quoteKey, true])),
+  );
 
   function findCityIdBySlug(stateCode: string, slug: string): number {
     return (
@@ -176,6 +188,15 @@ export default function LocationPriceSelector({
     }
   }
 
+  function handleClearFilters() {
+    setSelectedState("");
+    setSelectedCityId(0);
+    setCityHistory([]);
+    safeRemoveItem(LS_STATE_KEY);
+    safeRemoveItem(LS_CITY_KEY);
+    updateUrl("", "");
+  }
+
   const availableCities = selectedState
     ? (citiesByState[selectedState] ?? [])
     : [];
@@ -185,6 +206,12 @@ export default function LocationPriceSelector({
     : null;
 
   const hasTodayPrice = todayRow !== null && todayRow !== undefined;
+  const currentSubscriptionKey = todayRow
+    ? `${todayRow.productId}-${todayRow.cityId}`
+    : null;
+  const isSubscribed = currentSubscriptionKey
+    ? (subscriptionStates[currentSubscriptionKey] ?? false)
+    : false;
 
   return (
     <div className="flex flex-col gap-5">
@@ -240,6 +267,18 @@ export default function LocationPriceSelector({
             <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
           </div>
         </div>
+
+        {(selectedState || selectedCityId > 0) && (
+          <div className="mt-3 flex justify-end">
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              Limpar filtros
+            </button>
+          </div>
+        )}
       </section>
 
       {/* Price hero & chart */}
@@ -249,13 +288,36 @@ export default function LocationPriceSelector({
           {hasTodayPrice ? (
             <section className="bg-linear-to-br from-[#1a2a16] to-[#162012] border border-green-500/15 rounded-2xl p-5 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-                <div>
-                  <p className="text-xs text-white/40 mb-1.5">
-                    Preço atual em{" "}
-                    <span className="text-green-400 font-medium">
-                      {todayRow.city}, {todayRow.state}
-                    </span>
-                  </p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <p className="text-xs text-white/40">
+                      Preço atual em{" "}
+                      <span className="text-green-400 font-medium">
+                        {todayRow.city}, {todayRow.state}
+                      </span>
+                    </p>
+                    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                      <QuoteNotificationButton
+                        productId={todayRow.productId}
+                        cityId={todayRow.cityId}
+                        isSubscribed={isSubscribed}
+                        hasSession={hasSession}
+                        hasActivePlan={hasActivePlan}
+                        className="p-0"
+                        iconClassName="w-4 h-4"
+                        onToggle={(subscribed) => {
+                          if (!currentSubscriptionKey) return;
+                          setSubscriptionStates((current) => ({
+                            ...current,
+                            [currentSubscriptionKey]: subscribed,
+                          }));
+                        }}
+                      />
+                      <span className="text-[11px] text-white/55">
+                        {isSubscribed ? "Notificando" : "Ativar notificações"}
+                      </span>
+                    </div>
+                  </div>
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <span className="text-xs text-white/30">R$</span>
                     <span className="text-5xl sm:text-6xl font-extrabold tracking-tight tabular-nums leading-none">
