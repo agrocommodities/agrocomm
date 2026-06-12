@@ -22,7 +22,7 @@ import {
   updateSubscriber,
   deleteSubscriber,
   toggleSubscriber,
-  sendDailyQuotes,
+  sendManualSubscribersQuotes,
 } from "@/actions/whatsapp";
 import type { WhatsAppSubscriber, WhatsAppLogEntry } from "@/actions/whatsapp";
 
@@ -143,7 +143,7 @@ export default function WhatsAppManager({
     setSending(true);
     setSendResult(null);
     try {
-      const result = await sendDailyQuotes();
+      const result = await sendManualSubscribersQuotes();
       setSendResult({
         total: result.total,
         success: result.success,
