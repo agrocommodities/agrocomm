@@ -1023,7 +1023,15 @@ async function downloadImage(
 
     const [year, month] = publishedAt.split("-");
     const uuid = randomUUID();
-    const dir = join(process.cwd(), "public", "images", "posts", year, month);
+    const cwd = process.cwd();
+    const dir = join(
+      /*turbopackIgnore: true*/ cwd,
+      "public",
+      "images",
+      "posts",
+      year,
+      month,
+    );
     await mkdir(dir, { recursive: true });
 
     const fileName = `${uuid}${ext}`;
