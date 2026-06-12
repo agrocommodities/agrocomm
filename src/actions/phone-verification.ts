@@ -168,10 +168,8 @@ export async function requestWhatsAppPhoneOtpAction(
     return {
       success: false,
       error:
-        sendError === "Authentication Error"
-          ? "Erro de autenticação com a API do WhatsApp. Verifique WHATSAPP_TOKEN e WHATSAPP_PHONE_NUMBER_ID."
-          : sendError ||
-            "Não foi possível enviar o código por WhatsApp. Tente novamente.",
+        sendError ||
+        "Não foi possível enviar o código por WhatsApp. Tente novamente.",
     };
   }
 
