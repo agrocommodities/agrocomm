@@ -1,4 +1,39 @@
 const GRAPH_API_VERSION = "v25.0";
+const WHATSAPP_SEND_INTERVAL_MS = 2 * 60 * 1000;
+
+let sendQueue: Promise<void> = Promise.resolve();
+let nextAllowedSendAt = 0;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForSendWindow() {
+  const waitMs = Math.max(0, nextAllowedSendAt - Date.now());
+  if (waitMs > 0) {
+    await sleep(waitMs);
+  }
+}
+
+function enqueueWhatsAppSend<T>(task: () => Promise<T>): Promise<T> {
+  const queuedTask = async () => {
+    await waitForSendWindow();
+
+    try {
+      return await task();
+    } finally {
+      nextAllowedSendAt = Date.now() + WHATSAPP_SEND_INTERVAL_MS;
+    }
+  };
+
+  const result = sendQueue.then(queuedTask, queuedTask);
+  sendQueue = result.then(
+    () => undefined,
+    () => undefined,
+  );
+
+  return result;
+}
 
 function getConfig() {
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
@@ -18,33 +53,35 @@ type SendResult = {
 };
 
 async function sendWhatsAppPayload(payload: Record<string, unknown>) {
-  const { phoneNumberId, token } = getConfig();
-  const url = `https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneNumberId}/messages`;
+  return enqueueWhatsAppSend(async () => {
+    const { phoneNumberId, token } = getConfig();
+    const url = `https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneNumberId}/messages`;
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
 
-  if (!res.ok) {
-    const err = await res
-      .json()
-      .catch(() => ({ error: { message: res.statusText } }));
+    if (!res.ok) {
+      const err = await res
+        .json()
+        .catch(() => ({ error: { message: res.statusText } }));
+      return {
+        success: false,
+        error: err?.error?.message ?? `HTTP ${res.status}`,
+      } satisfies SendResult;
+    }
+
+    const data = await res.json();
     return {
-      success: false,
-      error: err?.error?.message ?? `HTTP ${res.status}`,
+      success: true,
+      messageId: data?.messages?.[0]?.id,
     } satisfies SendResult;
-  }
-
-  const data = await res.json();
-  return {
-    success: true,
-    messageId: data?.messages?.[0]?.id,
-  } satisfies SendResult;
+  });
 }
 
 /**
