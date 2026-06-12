@@ -443,6 +443,51 @@ export async function sendDailyQuotes() {
   return sendDailyQuotesInternal();
 }
 
+export async function sendManualSubscribersQuotes() {
+  await requireAdmin();
+
+  const activeSubs = await db
+    .select()
+    .from(whatsappSubscribers)
+    .where(eq(whatsappSubscribers.active, 1));
+
+  const results: Array<{
+    phone: string;
+    name: string;
+    success: boolean;
+    error?: string;
+  }> = [];
+
+  for (const sub of activeSubs) {
+    const subProducts = await db
+      .select({ productId: whatsappSubscriberProducts.productId })
+      .from(whatsappSubscriberProducts)
+      .where(eq(whatsappSubscriberProducts.subscriberId, sub.id));
+
+    const productIds = subProducts.map((p) => p.productId);
+    const result = await _sendQuotesToSubscriber({
+      id: sub.id,
+      name: sub.name,
+      phone: sub.phone,
+      productIds,
+    });
+
+    results.push({
+      phone: sub.phone,
+      name: sub.name,
+      success: result.success,
+      error: result.error,
+    });
+  }
+
+  return {
+    total: results.length,
+    success: results.filter((r) => r.success).length,
+    errors: results.filter((r) => !r.success).length,
+    details: results,
+  };
+}
+
 /**
  * Versão interna sem auth guard (para uso na API route com secret).
  */
