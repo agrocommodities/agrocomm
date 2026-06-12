@@ -78,9 +78,19 @@ async function sendWhatsAppPayload(payload: Record<string, unknown>) {
       const err = await res
         .json()
         .catch(() => ({ error: { message: res.statusText } }));
+      const errorMessage =
+        err?.error?.error_data?.details ||
+        err?.error?.message ||
+        `HTTP ${res.status}`;
+      const errorCode =
+        typeof err?.error?.code === "number" ? ` [code ${err.error.code}]` : "";
+      const errorSubcode =
+        typeof err?.error?.error_subcode === "number"
+          ? ` [subcode ${err.error.error_subcode}]`
+          : "";
       return {
         success: false,
-        error: err?.error?.message ?? `HTTP ${res.status}`,
+        error: `${errorMessage}${errorCode}${errorSubcode}`,
       } satisfies SendResult;
     }
 
