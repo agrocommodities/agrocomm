@@ -24,6 +24,7 @@ import {
   sendPixPaymentEmail,
   sendBoletoPaymentEmail,
 } from "../lib/email";
+import { generateUnsubscribeToken } from "../lib/unsubscribe";
 
 const db = drizzle(process.env.DB_FILE_NAME!);
 
@@ -74,7 +75,7 @@ async function sendQuoteBulletins() {
     return;
   }
 
-  // Get all active subscribers with emailBulletins enabled
+  // Get all active subscribers with emailBulletins enabled and no opt-out
   const activeSubs = await db
     .select({
       userId: subscriptions.userId,
@@ -92,6 +93,7 @@ async function sendQuoteBulletins() {
       and(
         eq(subscriptions.status, "active"),
         eq(subscriptionPlans.emailBulletins, 1),
+        eq(users.bulletinOptOut, 0),
       ),
     );
 
@@ -154,8 +156,17 @@ async function sendQuoteBulletins() {
     }
 
     if (quotesData.length > 0) {
+      const appUrl =
+        process.env.NEXT_PUBLIC_APP_URL ?? "https://agrocomm.com.br";
+      const token = generateUnsubscribeToken(sub.userId, sub.userEmail);
+      const unsubscribeUrl = `${appUrl}/descadastrar?token=${token}`;
       try {
-        await sendQuoteBulletinEmail(sub.userEmail, sub.userName, quotesData);
+        await sendQuoteBulletinEmail(
+          sub.userEmail,
+          sub.userName,
+          quotesData,
+          unsubscribeUrl,
+        );
         console.log(`  Quote bulletin sent to ${sub.userEmail}`);
       } catch (err) {
         console.error(
@@ -174,7 +185,7 @@ async function sendNewsBulletins() {
     return;
   }
 
-  // Get all active subscribers
+  // Get all active subscribers with no opt-out
   const activeSubs = await db
     .select({
       userId: subscriptions.userId,
@@ -191,6 +202,7 @@ async function sendNewsBulletins() {
       and(
         eq(subscriptions.status, "active"),
         eq(subscriptionPlans.emailBulletins, 1),
+        eq(users.bulletinOptOut, 0),
       ),
     );
 
@@ -224,11 +236,14 @@ async function sendNewsBulletins() {
   }));
 
   for (const sub of activeSubs) {
+    const token = generateUnsubscribeToken(sub.userId, sub.userEmail);
+    const unsubscribeUrl = `${appUrl}/descadastrar?token=${token}`;
     try {
       await sendNewsBulletinEmail(
         sub.userEmail,
         sub.userName,
         formattedArticles,
+        unsubscribeUrl,
       );
       console.log(`  News bulletin sent to ${sub.userEmail}`);
     } catch (err) {

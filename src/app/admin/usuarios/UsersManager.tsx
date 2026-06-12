@@ -169,8 +169,7 @@ function UsersTab({
       return;
     startTransition(async () => {
       const result = await impersonateUserAction(id);
-      if (result.error) alert(result.error);
-      else window.location.href = "/";
+      if (result?.error) alert(result.error);
     });
   }
 
@@ -183,8 +182,7 @@ function UsersTab({
       return;
     startTransition(async () => {
       const result = await impersonateVisitorAction();
-      if (result.error) alert(result.error);
-      else window.location.href = "/";
+      if (result?.error) alert(result.error);
     });
   }
 

@@ -1120,7 +1120,7 @@ export async function impersonateUserAction(userId: number) {
     }),
   });
 
-  return { success: true };
+  redirect("/");
 }
 
 export async function impersonateVisitorAction() {
@@ -1151,7 +1151,7 @@ export async function impersonateVisitorAction() {
     userId: session.userId,
   });
 
-  return { success: true };
+  redirect("/");
 }
 
 export async function stopImpersonatingAction() {
@@ -1171,5 +1171,5 @@ export async function stopImpersonatingAction() {
   cookieStore.set("session", originalToken, cookieOpts);
   cookieStore.delete("impersonating_from");
 
-  return { success: true };
+  redirect("/admin/usuarios");
 }

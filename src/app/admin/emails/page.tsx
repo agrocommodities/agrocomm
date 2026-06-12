@@ -3,18 +3,21 @@ import {
   getEmailTemplateConfigs,
   getEmailAlertLogs,
   getBulletinSchedules,
+  getBulletinRecipients,
 } from "@/actions/emails";
 import EmailsManager from "./EmailsManager";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminEmailsPage() {
-  const [config, templates, logs, bulletinSchedules] = await Promise.all([
-    getEmailConfig(),
-    getEmailTemplateConfigs(),
-    getEmailAlertLogs(),
-    getBulletinSchedules(),
-  ]);
+  const [config, templates, logs, bulletinSchedules, recipients] =
+    await Promise.all([
+      getEmailConfig(),
+      getEmailTemplateConfigs(),
+      getEmailAlertLogs(),
+      getBulletinSchedules(),
+      getBulletinRecipients(),
+    ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -30,6 +33,7 @@ export default async function AdminEmailsPage() {
         initialTemplates={templates}
         initialLogs={logs}
         initialBulletinSchedules={bulletinSchedules}
+        initialRecipients={recipients}
       />
     </div>
   );

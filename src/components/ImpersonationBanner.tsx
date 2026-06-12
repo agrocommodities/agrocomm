@@ -13,8 +13,8 @@ export default function ImpersonationBanner({ targetName }: Props) {
 
   function handleStop() {
     startTransition(async () => {
-      await stopImpersonatingAction();
-      window.location.href = "/admin/usuarios";
+      const result = await stopImpersonatingAction();
+      if (result?.error) alert(result.error);
     });
   }
 

@@ -203,6 +203,7 @@ export async function sendQuoteBulletinEmail(
     price: number;
     variation: number | null;
   }>,
+  unsubscribeUrl?: string,
 ) {
   const appUrl = getAppUrl();
   await emailClient.send({
@@ -217,6 +218,7 @@ export async function sendQuoteBulletinEmail(
       })),
       logoUrl: `${appUrl}/images/logo-email.png`,
       settingsUrl: `${appUrl}/ajustes`,
+      unsubscribeUrl: unsubscribeUrl ?? `${appUrl}/ajustes`,
     },
   });
 }
@@ -230,6 +232,7 @@ export async function sendNewsBulletinEmail(
     url: string;
     imageUrl: string | null;
   }>,
+  unsubscribeUrl?: string,
 ) {
   const appUrl = getAppUrl();
   const resolvedArticles = articles.map((a) => ({
@@ -245,6 +248,7 @@ export async function sendNewsBulletinEmail(
       userName,
       articles: resolvedArticles,
       logoUrl: `${appUrl}/images/logo-email.png`,
+      unsubscribeUrl: unsubscribeUrl ?? `${appUrl}/ajustes`,
     },
   });
 }
