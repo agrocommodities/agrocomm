@@ -11,6 +11,8 @@ import {
   cities,
   states,
   subscriptionAlerts,
+  subscriptions,
+  subscriptionPlans,
   users,
 } from "@/db/schema";
 import { getSession, getUserPermissions } from "@/lib/auth";
@@ -438,4 +440,48 @@ export async function sendQuotesBulletinNowAction(to: string) {
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Falha ao enviar." };
   }
+}
+
+// ── Destinatários de Boletins ─────────────────────────────────────────────────
+
+export interface BulletinRecipientRow {
+  userId: number;
+  userName: string;
+  userEmail: string;
+  planName: string;
+  subscriptionStatus: string;
+  bulletinOptOut: number;
+}
+
+export async function getBulletinRecipients(): Promise<BulletinRecipientRow[]> {
+  await requireAdmin();
+
+  const rows = await db
+    .select({
+      userId: users.id,
+      userName: users.name,
+      userEmail: users.email,
+      planName: subscriptionPlans.name,
+      subscriptionStatus: subscriptions.status,
+      bulletinOptOut: users.bulletinOptOut,
+    })
+    .from(subscriptions)
+    .innerJoin(users, eq(subscriptions.userId, users.id))
+    .innerJoin(
+      subscriptionPlans,
+      eq(subscriptions.planId, subscriptionPlans.id),
+    )
+    .where(eq(subscriptionPlans.emailBulletins, 1))
+    .orderBy(users.name);
+
+  return rows;
+}
+
+export async function toggleBulletinOptOut(userId: number, optOut: boolean) {
+  await requireAdmin();
+  await db
+    .update(users)
+    .set({ bulletinOptOut: optOut ? 1 : 0 })
+    .where(eq(users.id, userId));
+  return { success: true };
 }

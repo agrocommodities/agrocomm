@@ -66,6 +66,7 @@ export const users = sqliteTable("users", {
   countryId: int("country_id"),
   geoStateId: int("geo_state_id"),
   geoCityId: int("geo_city_id"),
+  bulletinOptOut: int("bulletin_opt_out").notNull().default(0),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 

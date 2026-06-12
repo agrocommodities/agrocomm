@@ -15,6 +15,9 @@ import {
   CalendarDays,
   Newspaper,
   TrendingUp,
+  Users,
+  BellOff,
+  Bell,
 } from "lucide-react";
 import {
   sendTestEmailAction,
@@ -24,8 +27,13 @@ import {
   saveBulletinScheduleAction,
   sendNewsBulletinNowAction,
   sendQuotesBulletinNowAction,
+  toggleBulletinOptOut,
 } from "@/actions/emails";
-import type { EmailAlertLogRow, BulletinSchedule } from "@/actions/emails";
+import type {
+  EmailAlertLogRow,
+  BulletinSchedule,
+  BulletinRecipientRow,
+} from "@/actions/emails";
 
 interface EmailConfig {
   configured: boolean;
@@ -41,7 +49,7 @@ interface TemplateConfig {
   updatedAt: string;
 }
 
-type Tab = "config" | "bulletins" | "templates" | "logs";
+type Tab = "config" | "bulletins" | "templates" | "logs" | "recipients";
 
 const DAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -338,14 +346,17 @@ export default function EmailsManager({
   initialTemplates,
   initialLogs,
   initialBulletinSchedules,
+  initialRecipients,
 }: {
   config: EmailConfig;
   initialTemplates: TemplateConfig[];
   initialLogs: EmailAlertLogRow[];
   initialBulletinSchedules: BulletinSchedule[];
+  initialRecipients: BulletinRecipientRow[];
 }) {
   const [tab, setTab] = useState<Tab>("config");
   const [templates, setTemplates] = useState(initialTemplates);
+  const [recipients, setRecipients] = useState(initialRecipients);
   const [testEmail, setTestEmail] = useState("");
   const [testResult, setTestResult] = useState<{
     type: "success" | "error";
@@ -452,10 +463,21 @@ export default function EmailsManager({
     }
   }
 
+  async function handleToggleOptOut(userId: number, currentOptOut: number) {
+    const newOptOut = currentOptOut === 1 ? false : true;
+    await toggleBulletinOptOut(userId, newOptOut);
+    setRecipients((prev) =>
+      prev.map((r) =>
+        r.userId === userId ? { ...r, bulletinOptOut: newOptOut ? 1 : 0 } : r,
+      ),
+    );
+  }
+
   const tabs: { key: Tab; label: string; icon: typeof Mail }[] = [
     { key: "config", label: "Configuração", icon: Mail },
     { key: "bulletins", label: "Boletins", icon: CalendarDays },
     { key: "templates", label: "Templates", icon: FileText },
+    { key: "recipients", label: "Destinatários", icon: Users },
     { key: "logs", label: "Logs", icon: Clock },
   ];
 
@@ -849,6 +871,89 @@ export default function EmailsManager({
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Recipients tab */}
+      {tab === "recipients" && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-white/10">
+            <h2 className="font-semibold">Destinatários de Boletins</h2>
+            <p className="text-xs text-white/40 mt-0.5">
+              Assinantes elegíveis para receber boletins por e-mail
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-white/40 text-xs uppercase tracking-wide">
+                  <th className="text-left px-5 py-3 font-medium">Usuário</th>
+                  <th className="text-left px-5 py-3 font-medium hidden sm:table-cell">
+                    E-mail
+                  </th>
+                  <th className="text-left px-5 py-3 font-medium hidden md:table-cell">
+                    Plano
+                  </th>
+                  <th className="text-center px-5 py-3 font-medium">
+                    Boletins
+                  </th>
+                  <th className="text-center px-5 py-3 font-medium">Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recipients.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-10 text-white/30">
+                      Nenhum destinatário encontrado
+                    </td>
+                  </tr>
+                ) : (
+                  recipients.map((r) => (
+                    <tr
+                      key={r.userId}
+                      className="border-t border-white/5 hover:bg-white/5"
+                    >
+                      <td className="px-5 py-3 font-medium">{r.userName}</td>
+                      <td className="px-5 py-3 text-white/40 hidden sm:table-cell">
+                        {r.userEmail}
+                      </td>
+                      <td className="px-5 py-3 text-white/60 hidden md:table-cell">
+                        {r.planName}
+                      </td>
+                      <td className="px-5 py-3 text-center">
+                        {r.bulletinOptOut === 1 ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400">
+                            <BellOff className="w-3 h-3" />
+                            Optou por sair
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">
+                            <Bell className="w-3 h-3" />
+                            Ativo
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleToggleOptOut(r.userId, r.bulletinOptOut)
+                          }
+                          className={`text-xs font-medium px-3 py-1 rounded-lg transition-colors ${
+                            r.bulletinOptOut === 1
+                              ? "bg-green-600/20 hover:bg-green-600/30 text-green-400"
+                              : "bg-red-500/20 hover:bg-red-500/30 text-red-400"
+                          }`}
+                        >
+                          {r.bulletinOptOut === 1 ? "Reinscrever" : "Remover"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
