@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { verifyUnsubscribeToken } from "@/lib/unsubscribe";
 import Link from "next/link";
+import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 
@@ -45,16 +46,14 @@ export default async function UnsubscribePage({
     .set({ bulletinOptOut: 1 })
     .where(eq(users.id, user.id));
 
-  return <Result success email={user.email} />;
+  return <Result email={user.email} />;
 }
 
 function Result({
-  success,
   already,
   error,
   email,
 }: {
-  success?: boolean;
   already?: boolean;
   error?: string;
   email?: string;
@@ -63,11 +62,12 @@ function Result({
     <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-[#2a3925] border border-white/10 rounded-2xl p-8 text-center">
         <div className="mb-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src="/images/logo-email.png"
             alt="AgroComm"
             className="h-12 w-auto mx-auto"
+            width={48}
+            height={48}
           />
         </div>
 

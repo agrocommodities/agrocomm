@@ -464,7 +464,7 @@ export default function EmailsManager({
   }
 
   async function handleToggleOptOut(userId: number, currentOptOut: number) {
-    const newOptOut = currentOptOut === 1 ? false : true;
+    const newOptOut = currentOptOut !== 1;
     await toggleBulletinOptOut(userId, newOptOut);
     setRecipients((prev) =>
       prev.map((r) =>
