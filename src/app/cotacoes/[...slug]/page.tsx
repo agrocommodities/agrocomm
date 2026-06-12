@@ -5,7 +5,10 @@ import {
   getStatesForProduct,
   getCitiesForProduct,
 } from "@/actions/quotes";
-import { getUserSubscription } from "@/actions/subscriptions";
+import {
+  getUserQuoteSubscriptions,
+  getUserSubscription,
+} from "@/actions/subscriptions";
 import { getSession } from "@/lib/auth";
 import LocationPriceSelector from "@/components/LocationPriceSelector";
 import ShareSidebar from "@/components/ShareSidebar";
@@ -16,6 +19,14 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
 export const revalidate = 300;
+
+function formatQuoteDate(dateStr: string): string {
+  return new Date(`${dateStr}T12:00:00`).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
 
 const PRODUCT_META: Record<
   string,
@@ -118,14 +129,27 @@ export default async function ProdutoPage({
   ]);
 
   let hasActivePlan = false;
+  let hasEmailBulletinsPlan = false;
   let historyDays = 0;
+  let subscribedQuotes: string[] = [];
 
   if (session) {
-    const sub = await getUserSubscription();
+    const [sub, quoteSubscriptions] = await Promise.all([
+      getUserSubscription(),
+      getUserQuoteSubscriptions(),
+    ]);
+
     if (sub?.status === "active" && sub.priceHistory) {
       hasActivePlan = true;
       historyDays = sub.historyDays;
     }
+
+    hasEmailBulletinsPlan =
+      sub?.status === "active" && Boolean(sub.emailBulletins);
+    subscribedQuotes = quoteSubscriptions.map(
+      (quoteSubscription) =>
+        `${quoteSubscription.productId}-${quoteSubscription.cityId ?? 0}`,
+    );
   }
 
   const citiesByState: Record<
@@ -139,6 +163,8 @@ export default async function ProdutoPage({
   );
 
   const unit = today[0]?.unit ?? "";
+  const quoteDate = today[0]?.quoteDate ?? "";
+  const formattedQuoteDate = quoteDate ? formatQuoteDate(quoteDate) : null;
 
   const avgPrice = today.length
     ? today.reduce((s, r) => s + r.price, 0) / today.length
@@ -173,6 +199,12 @@ export default async function ProdutoPage({
           {meta.emoji} {meta.label}
         </h1>
         {unit && <p className="text-white/50 text-sm mt-0.5">{unit}</p>}
+        {formattedQuoteDate && (
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-500/10 px-3 py-1.5 text-sm text-amber-100">
+            <span className="font-medium">Data da cotação:</span>
+            <span>{formattedQuoteDate}</span>
+          </div>
+        )}
       </div>
 
       {/* Location + price selector + chart */}
@@ -185,13 +217,16 @@ export default async function ProdutoPage({
         productSlug={produto}
         initialState={estado}
         initialCitySlug={cidade}
+        subscribedQuotes={subscribedQuotes}
+        hasSession={!!session}
+        hasActivePlan={hasEmailBulletinsPlan}
       />
 
       {/* Summary cards */}
       {avgPrice !== null && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-4">
-            <p className="text-xs text-white/40 mb-1">Média do dia</p>
+            <p className="text-xs text-white/40 mb-1">Média da cotação</p>
             <p className="text-2xl font-bold">R$ {avgPrice.toFixed(2)}</p>
           </div>
           {avgVariation !== null && (
@@ -213,7 +248,7 @@ export default async function ProdutoPage({
             </div>
           )}
           <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-4">
-            <p className="text-xs text-white/40 mb-1">Praças hoje</p>
+            <p className="text-xs text-white/40 mb-1">Praças na cotação</p>
             <p className="text-2xl font-bold">{today.length}</p>
           </div>
         </div>

@@ -11,6 +11,9 @@ interface Props {
   isSubscribed: boolean;
   hasSession: boolean;
   hasActivePlan: boolean;
+  className?: string;
+  iconClassName?: string;
+  onToggle?: (subscribed: boolean) => void;
 }
 
 export default function QuoteNotificationButton({
@@ -19,6 +22,9 @@ export default function QuoteNotificationButton({
   isSubscribed: initialSubscribed,
   hasSession,
   hasActivePlan,
+  className,
+  iconClassName,
+  onToggle,
 }: Props) {
   const [subscribed, setSubscribed] = useState(initialSubscribed);
   const [isPending, startTransition] = useTransition();
@@ -46,6 +52,7 @@ export default function QuoteNotificationButton({
         return;
       }
       setSubscribed(result.subscribed);
+      onToggle?.(result.subscribed);
     });
   }
 
@@ -54,17 +61,17 @@ export default function QuoteNotificationButton({
       type="button"
       onClick={handleClick}
       disabled={isPending}
-      className={`p-1 rounded transition-colors cursor-pointer disabled:opacity-50 ${
+      className={`rounded transition-colors cursor-pointer disabled:opacity-50 ${
         subscribed
           ? "text-green-400 hover:text-green-300"
           : "text-white/20 hover:text-white/50"
-      }`}
+      } ${className ?? "p-1"}`}
       title={subscribed ? "Parar de acompanhar" : "Acompanhar cotação"}
     >
       {subscribed ? (
-        <BellRing className="w-3.5 h-3.5" />
+        <BellRing className={iconClassName ?? "w-3.5 h-3.5"} />
       ) : (
-        <Bell className="w-3.5 h-3.5" />
+        <Bell className={iconClassName ?? "w-3.5 h-3.5"} />
       )}
     </button>
   );
