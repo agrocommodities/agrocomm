@@ -466,6 +466,16 @@ Hoje o envio principal é de saída (outbound). Ainda assim, configurar webhook 
 - Rate limit monitorado
 - Logs de erro da API monitorados no servidor
 
+### 8.1) Limites
+
+- O AgroComm aplica uma fila serial para envios de WhatsApp: apenas um usuário recebe mensagem por vez e existe um intervalo mínimo de `2 minutos` entre um envio e outro.
+- Isso vale tanto para OTP quanto para disparos administrativos/em massa.
+- No nível do aplicativo da Meta, a limitação de volume define quantas chamadas de API podem ser feitas dentro de um período específico.
+- Esses limites se aplicam às chamadas feitas com qualquer token de acesso que não seja token de acesso da Página e também às chamadas das APIs de anúncios.
+- O total de chamadas que o aplicativo pode fazer por hora é `200 x número de usuários`.
+- Esse limite não é por usuário: um usuário individual pode exceder 200 chamadas por hora, desde que o total agregado de todos os usuários permaneça abaixo do máximo permitido para o aplicativo.
+- Os números exibidos pela Meta nessa página são aproximados e servem para ajudar a gerenciar o consumo do limite.
+
 ### 9) Troubleshooting rápido
 
 - **Erro 401/403 na Meta API**: token inválido, expirado ou sem escopo.

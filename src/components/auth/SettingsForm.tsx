@@ -89,6 +89,9 @@ export default function SettingsForm({
   const [autoOtpAttemptedFor, setAutoOtpAttemptedFor] = useState<string | null>(
     null,
   );
+  const [autoOtpInFlightFor, setAutoOtpInFlightFor] = useState<string | null>(
+    null,
+  );
   const [otpExpiresAt, setOtpExpiresAt] = useState<string | null>(null);
   const [otpVisible, setOtpVisible] = useState(false);
   const [otpError, setOtpError] = useState<string | null>(null);
@@ -164,30 +167,37 @@ export default function SettingsForm({
         return;
       }
 
-      const result = await requestWhatsAppPhoneOtpAction({
-        countryCode: phoneCountryCode,
-        areaCode,
-        localNumber,
-      });
-
       if (auto) {
         setAutoOtpAttemptedFor(phoneValidation.e164);
+        setAutoOtpInFlightFor(phoneValidation.e164);
       }
 
-      if (!result.success) {
-        setOtpError(result.error);
-        setOtpInfo(null);
-        if (!auto) {
-          setOtpVisible(true);
+      try {
+        const result = await requestWhatsAppPhoneOtpAction({
+          countryCode: phoneCountryCode,
+          areaCode,
+          localNumber,
+        });
+
+        if (!result.success) {
+          setOtpError(result.error);
+          setOtpInfo(null);
+          if (!auto) {
+            setOtpVisible(true);
+          }
+          return;
         }
-        return;
-      }
 
-      setOtpRequestedFor(phoneValidation.e164);
-      setOtpExpiresAt(result.expiresAt ?? null);
-      setOtpVisible(true);
-      setOtpError(null);
-      setOtpInfo(result.message);
+        setOtpRequestedFor(phoneValidation.e164);
+        setOtpExpiresAt(result.expiresAt ?? null);
+        setOtpVisible(true);
+        setOtpError(null);
+        setOtpInfo(result.message);
+      } finally {
+        if (auto) {
+          setAutoOtpInFlightFor(null);
+        }
+      }
     },
     [phoneValidation, phoneCountryCode, areaCode, localNumber],
   );
@@ -197,7 +207,11 @@ export default function SettingsForm({
       return;
     }
 
-    if (otpRequestedFor === currentE164 || sendingOtp) {
+    if (
+      otpRequestedFor === currentE164 ||
+      autoOtpInFlightFor === currentE164 ||
+      sendingOtp
+    ) {
       return;
     }
 
@@ -218,6 +232,7 @@ export default function SettingsForm({
     isCurrentPhoneVerified,
     otpRequestedFor,
     autoOtpAttemptedFor,
+    autoOtpInFlightFor,
     sendingOtp,
     doRequestOtp,
   ]);
@@ -425,6 +440,7 @@ export default function SettingsForm({
                 setPhoneCountryCode(e.target.value);
                 setOtpRequestedFor(null);
                 setAutoOtpAttemptedFor(null);
+                setAutoOtpInFlightFor(null);
               }}
               className={selectClass}
             >
@@ -456,6 +472,7 @@ export default function SettingsForm({
               setAreaCode(formatAreaCodeInput(e.target.value));
               setOtpRequestedFor(null);
               setAutoOtpAttemptedFor(null);
+              setAutoOtpInFlightFor(null);
             }}
             inputMode="numeric"
             maxLength={3}
@@ -480,6 +497,7 @@ export default function SettingsForm({
             setLocalNumber(formatLocalNumberInput(e.target.value));
             setOtpRequestedFor(null);
             setAutoOtpAttemptedFor(null);
+            setAutoOtpInFlightFor(null);
           }}
           inputMode="numeric"
           maxLength={10}
