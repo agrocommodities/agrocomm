@@ -22,6 +22,8 @@ function setNativeValue(
   element: HTMLInputElement | HTMLSelectElement,
   value: string,
 ) {
+  if (element.value === value) return;
+
   const prototype =
     element instanceof HTMLInputElement
       ? HTMLInputElement.prototype
@@ -41,7 +43,10 @@ export default function ShareCalculatorControls({ initialData }: Props) {
   useEffect(() => {
     if (!initialData?.fields.length) return;
 
-    const frame = window.requestAnimationFrame(() => {
+    let frame = 0;
+    let attempts = 0;
+
+    const restoreFields = () => {
       const root = document.querySelector<HTMLElement>("[data-calculator-root]");
       if (!root) return;
 
@@ -60,8 +65,14 @@ export default function ShareCalculatorControls({ initialData }: Props) {
         );
         if (element) setNativeValue(element, field.value);
       }
-    });
 
+      attempts += 1;
+      if (attempts < 6) {
+        frame = window.requestAnimationFrame(restoreFields);
+      }
+    };
+
+    frame = window.requestAnimationFrame(restoreFields);
     return () => window.cancelAnimationFrame(frame);
   }, [initialData]);
 
@@ -77,7 +88,10 @@ export default function ShareCalculatorControls({ initialData }: Props) {
       .map((element) => ({
         label: getFieldLabel(element),
         value: element.value,
-        type: element instanceof HTMLInputElement ? "input" as const : "select" as const,
+        type:
+          element instanceof HTMLInputElement
+            ? ("input" as const)
+            : ("select" as const),
       }))
       .filter((field) => field.label.length > 0);
 
@@ -126,7 +140,11 @@ export default function ShareCalculatorControls({ initialData }: Props) {
           disabled={isPending}
           className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isPending ? <Loader2 className="size-4 animate-spin" /> : <Link2 className="size-4" />}
+          {isPending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Link2 className="size-4" />
+          )}
           Criar link
         </button>
       </div>
@@ -143,7 +161,11 @@ export default function ShareCalculatorControls({ initialData }: Props) {
             onClick={handleCopy}
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium transition hover:bg-white/10"
           >
-            {copied ? <Check className="size-4 text-green-400" /> : <Copy className="size-4" />}
+            {copied ? (
+              <Check className="size-4 text-green-400" />
+            ) : (
+              <Copy className="size-4" />
+            )}
             {copied ? "Copiado" : "Copiar"}
           </button>
         </div>
