@@ -39,13 +39,16 @@ type Scenario = {
   key: string;
   title: string;
   description: string;
-  monthsAfterBirth: number;
+  totalMonths: number;
   revenue: number;
   productionCosts: number;
   commercialCosts: number;
   costs: number;
   profit: number;
   margin: number;
+  monthlyRevenue: number;
+  monthlyCosts: number;
+  monthlyProfit: number;
 };
 
 const BREEDS: Record<Raca, { label: string; weights: Weights }> = {
@@ -191,9 +194,11 @@ export default function CalculadoraPecuariaComercial({ quotes }: Props) {
   const percentualFemeas = 100 - percentualMachos;
 
   const result = useMemo(() => {
-    const monthlyCosts = sal + veterinario + peao + vacinas + vermifugo + outros;
+    const operatingCostsPerMonth =
+      sal + veterinario + peao + vacinas + vermifugo + outros;
     const fixedCosts = cercasPastagens + estruturaAgua;
-    const born = sistema === "cria" ? quantidade * (taxaNatalidade / 100) : quantidade;
+    const born =
+      sistema === "cria" ? quantidade * (taxaNatalidade / 100) : quantidade;
     const survivors = born * (1 - mortalidade / 100);
     const males = survivors * (percentualMachos / 100);
     const females = survivors - males;
@@ -234,8 +239,8 @@ export default function CalculadoraPecuariaComercial({ quotes }: Props) {
       revenue: number,
       slaughter = false,
     ): Scenario => {
-      const totalMonths = gestacao + monthsAfterBirth;
-      const productionCosts = monthlyCosts * totalMonths + fixedCosts;
+      const totalMonths = Math.max(1, gestacao + monthsAfterBirth);
+      const productionCosts = operatingCostsPerMonth * totalMonths + fixedCosts;
       const commercialCosts = calculateCommercialCosts(revenue, slaughter);
       const costs = productionCosts + commercialCosts;
       const profit = revenue - costs;
@@ -243,70 +248,110 @@ export default function CalculadoraPecuariaComercial({ quotes }: Props) {
         key,
         title,
         description,
-        monthsAfterBirth,
+        totalMonths,
         revenue,
         productionCosts,
         commercialCosts,
         costs,
         profit,
         margin: revenue > 0 ? (profit / revenue) * 100 : 0,
+        monthlyRevenue: revenue / totalMonths,
+        monthlyCosts: costs / totalMonths,
+        monthlyProfit: profit / totalMonths,
       };
     };
 
     const calfRevenue =
-      valueByArroba(males, weights.calfMale, rendimentoMacho, arrobaBoi, agioLeilao) +
-      valueByArroba(females, weights.calfFemale, rendimentoFemea, arrobaVaca, agioLeilao);
+      valueByArroba(
+        males,
+        weights.calfMale,
+        rendimentoMacho,
+        arrobaBoi,
+        agioLeilao,
+      ) +
+      valueByArroba(
+        females,
+        weights.calfFemale,
+        rendimentoFemea,
+        arrobaVaca,
+        agioLeilao,
+      );
     const youngRevenue =
-      valueByArroba(males, weights.youngMale, rendimentoMacho, arrobaBoi, agioLeilao) +
-      valueByArroba(females, weights.youngFemale, rendimentoFemea, arrobaVaca, agioLeilao);
+      valueByArroba(
+        males,
+        weights.youngMale,
+        rendimentoMacho,
+        arrobaBoi,
+        agioLeilao,
+      ) +
+      valueByArroba(
+        females,
+        weights.youngFemale,
+        rendimentoFemea,
+        arrobaVaca,
+        agioLeilao,
+      );
     const breederRevenue =
       valueByArroba(males, weights.adultMale, rendimentoMacho, arrobaBoi) +
-      valueByArroba(females, weights.adultFemale, rendimentoFemea, arrobaVaca, agioReprodutora);
+      valueByArroba(
+        females,
+        weights.adultFemale,
+        rendimentoFemea,
+        arrobaVaca,
+        agioReprodutora,
+      );
     const slaughterRevenue =
       valueByArroba(males, weights.adultMale, rendimentoMacho, arrobaBoi) +
-      valueByArroba(females, weights.adultFemale, rendimentoFemea, arrobaVaca);
+      valueByArroba(
+        females,
+        weights.adultFemale,
+        rendimentoFemea,
+        arrobaVaca,
+      );
 
-    const scenarios = sistema === "cria"
-      ? [
-          buildScenario(
-            "bezerros",
-            "Venda como bezerros e bezerras",
-            modalidadeVenda === "leilao"
-              ? "Leilão após a desmama, com frete, comissão e nota fiscal."
-              : "Venda direta, com corretagem e nota fiscal.",
-            8,
-            calfRevenue,
-          ),
-          buildScenario(
-            "jovens",
-            "Venda como garrotes e novilhas",
-            modalidadeVenda === "leilao"
-              ? "Gestação + 24 meses, com custos de leilão."
-              : "Gestação + 24 meses, com corretagem e nota fiscal.",
-            24,
-            youngRevenue,
-          ),
-          buildScenario(
-            "reproducao",
-            "Vacas para criador ou leilão",
-            modalidadeVenda === "leilao"
-              ? "Fêmeas reprodutoras com frete, comissão e nota fiscal."
-              : "Venda a pecuarista com corretagem e nota fiscal.",
-            36,
-            breederRevenue,
-          ),
-          buildScenario(
-            "abate",
-            "Bovinos para abate",
-            "Venda ao frigorífico com custo de nota fiscal.",
-            36,
-            slaughterRevenue,
-            true,
-          ),
-        ]
-      : [];
+    const scenarios =
+      sistema === "cria"
+        ? [
+            buildScenario(
+              "bezerros",
+              "Venda como bezerros e bezerras",
+              modalidadeVenda === "leilao"
+                ? "Leilão após a desmama, com frete, comissão e nota fiscal."
+                : "Venda direta, com corretagem e nota fiscal.",
+              8,
+              calfRevenue,
+            ),
+            buildScenario(
+              "jovens",
+              "Venda como garrotes e novilhas",
+              modalidadeVenda === "leilao"
+                ? "Gestação + 24 meses, com custos de leilão."
+                : "Gestação + 24 meses, com corretagem e nota fiscal.",
+              24,
+              youngRevenue,
+            ),
+            buildScenario(
+              "reproducao",
+              "Vacas para criador ou leilão",
+              modalidadeVenda === "leilao"
+                ? "Fêmeas reprodutoras com frete, comissão e nota fiscal."
+                : "Venda a pecuarista com corretagem e nota fiscal.",
+              36,
+              breederRevenue,
+            ),
+            buildScenario(
+              "abate",
+              "Bovinos para abate",
+              "Venda ao frigorífico com custo de nota fiscal.",
+              36,
+              slaughterRevenue,
+              true,
+            ),
+          ]
+        : [];
 
-    const recurringCosts = monthlyCosts * meses;
+    const safeMonths = Math.max(1, meses);
+    const recurringCosts = operatingCostsPerMonth * safeMonths;
     const purchaseCosts = precoCompraCabeca * quantidade;
     const animals = quantidade * (1 - mortalidade / 100);
     const revenue = valueByArroba(
@@ -318,7 +363,8 @@ export default function CalculadoraPecuariaComercial({ quotes }: Props) {
     );
     const slaughter = sistema === "engorda";
     const commercialCosts = calculateCommercialCosts(revenue, slaughter);
-    const totalCosts = recurringCosts + fixedCosts + purchaseCosts + commercialCosts;
+    const totalCosts =
+      recurringCosts + fixedCosts + purchaseCosts + commercialCosts;
     const profit = revenue - totalCosts;
 
     return {
@@ -331,6 +377,9 @@ export default function CalculadoraPecuariaComercial({ quotes }: Props) {
         totalCosts,
         profit,
         margin: revenue > 0 ? (profit / revenue) * 100 : 0,
+        monthlyRevenue: revenue / safeMonths,
+        monthlyCosts: totalCosts / safeMonths,
+        monthlyProfit: profit / safeMonths,
       },
     };
   }, [
@@ -377,7 +426,9 @@ export default function CalculadoraPecuariaComercial({ quotes }: Props) {
       <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           <label className="flex min-w-0 flex-col gap-1.5">
-            <span className="text-xs font-medium text-white/55">Sistema produtivo</span>
+            <span className="text-xs font-medium text-white/55">
+              Sistema produtivo
+            </span>
             <select
               value={sistema}
               onChange={(event) => setSistema(event.target.value as Sistema)}
@@ -389,20 +440,25 @@ export default function CalculadoraPecuariaComercial({ quotes }: Props) {
             </select>
           </label>
           <label className="flex min-w-0 flex-col gap-1.5">
-            <span className="text-xs font-medium text-white/55">Raça de referência</span>
+            <span className="text-xs font-medium text-white/55">
+              Raça de referência
+            </span>
             <select
               value={raca}
               onChange={(event) => setRaca(event.target.value as Raca)}
               className="w-full min-w-0 rounded-xl border border-white/10 bg-[#151a13] px-3 py-2.5 text-sm outline-none"
             >
               {Object.entries(BREEDS).map(([key, breed]) => (
-                <option key={key} value={key}>{breed.label}</option>
+                <option key={key} value={key}>
+                  {breed.label}
+                </option>
               ))}
             </select>
           </label>
           <label className="flex min-w-0 flex-col gap-2">
             <span className="text-xs font-medium text-white/55">
-              Nascimentos: {percentualMachos}% machos e {percentualFemeas}% fêmeas
+              Nascimentos: {percentualMachos}% machos e {percentualFemeas}%
+              fêmeas
             </span>
             <input
               type="range"
@@ -410,7 +466,9 @@ export default function CalculadoraPecuariaComercial({ quotes }: Props) {
               max={100}
               step={1}
               value={percentualMachos}
-              onChange={(event) => setPercentualMachos(Number(event.target.value))}
+              onChange={(event) =>
+                setPercentualMachos(Number(event.target.value))
+              }
               className="w-full accent-green-500"
             />
           </label>
@@ -420,32 +478,104 @@ export default function CalculadoraPecuariaComercial({ quotes }: Props) {
       <div className="grid min-w-0 gap-6 xl:grid-cols-[1.05fr_0.95fr]">
         <div className="flex min-w-0 flex-col gap-6">
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-            <h2 className="mb-4 text-lg font-semibold">Rebanho e reprodução</h2>
+            <h2 className="mb-4 text-lg font-semibold">
+              Rebanho e reprodução
+            </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Field label={sistema === "cria" ? "Matrizes expostas" : "Animais comprados"} value={quantidade} onChange={setQuantidade} suffix="cabeças" />
+              <Field
+                label={
+                  sistema === "cria" ? "Matrizes expostas" : "Animais comprados"
+                }
+                value={quantidade}
+                onChange={setQuantidade}
+                suffix="cabeças"
+              />
               {sistema === "cria" ? (
                 <>
-                  <Field label="Período de gestação" value={gestacao} onChange={setGestacao} suffix="meses" step={0.1} min={1} />
-                  <Field label="Taxa de natalidade" value={taxaNatalidade} onChange={setTaxaNatalidade} suffix="%" max={100} />
-                  <Field label="Mortalidade até a venda" value={mortalidade} onChange={setMortalidade} suffix="%" max={100} step={0.1} />
-                  <div className="rounded-xl border border-white/10 bg-black/15 p-3"><p className="text-xs text-white/35">Machos projetados</p><p className="mt-1 font-semibold">{decimal.format(result.males)}</p></div>
-                  <div className="rounded-xl border border-white/10 bg-black/15 p-3"><p className="text-xs text-white/35">Fêmeas projetadas</p><p className="mt-1 font-semibold">{decimal.format(result.females)}</p></div>
+                  <Field
+                    label="Período de gestação"
+                    value={gestacao}
+                    onChange={setGestacao}
+                    suffix="meses"
+                    step={0.1}
+                    min={1}
+                  />
+                  <Field
+                    label="Taxa de natalidade"
+                    value={taxaNatalidade}
+                    onChange={setTaxaNatalidade}
+                    suffix="%"
+                    max={100}
+                  />
+                  <Field
+                    label="Mortalidade até a venda"
+                    value={mortalidade}
+                    onChange={setMortalidade}
+                    suffix="%"
+                    max={100}
+                    step={0.1}
+                  />
+                  <div className="rounded-xl border border-white/10 bg-black/15 p-3">
+                    <p className="text-xs text-white/35">Machos projetados</p>
+                    <p className="mt-1 font-semibold">
+                      {decimal.format(result.males)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-black/15 p-3">
+                    <p className="text-xs text-white/35">Fêmeas projetadas</p>
+                    <p className="mt-1 font-semibold">
+                      {decimal.format(result.females)}
+                    </p>
+                  </div>
                 </>
               ) : (
                 <>
-                  <Field label="Duração do ciclo" value={meses} onChange={setMeses} suffix="meses" min={1} />
-                  <Field label="Peso médio de entrada" value={pesoEntrada} onChange={setPesoEntrada} suffix="kg" />
-                  <Field label="Peso médio de venda" value={pesoSaida} onChange={setPesoSaida} suffix="kg" />
-                  <Field label="Compra por cabeça" value={precoCompraCabeca} onChange={setPrecoCompraCabeca} suffix="R$" />
-                  <Field label="Mortalidade no ciclo" value={mortalidade} onChange={setMortalidade} suffix="%" max={100} step={0.1} />
+                  <Field
+                    label="Duração do ciclo"
+                    value={meses}
+                    onChange={setMeses}
+                    suffix="meses"
+                    min={1}
+                  />
+                  <Field
+                    label="Peso médio de entrada"
+                    value={pesoEntrada}
+                    onChange={setPesoEntrada}
+                    suffix="kg"
+                  />
+                  <Field
+                    label="Peso médio de venda"
+                    value={pesoSaida}
+                    onChange={setPesoSaida}
+                    suffix="kg"
+                  />
+                  <Field
+                    label="Compra por cabeça"
+                    value={precoCompraCabeca}
+                    onChange={setPrecoCompraCabeca}
+                    suffix="R$"
+                  />
+                  <Field
+                    label="Mortalidade no ciclo"
+                    value={mortalidade}
+                    onChange={setMortalidade}
+                    suffix="%"
+                    max={100}
+                    step={0.1}
+                  />
                 </>
               )}
             </div>
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-            <h2 className="mb-1 text-lg font-semibold">Custos mensais totais</h2>
-            <p className="mb-4 text-xs text-white/35">Valores para toda a operação, sem multiplicação pela quantidade de animais.</p>
+            <h2 className="mb-1 text-lg font-semibold">
+              Custos mensais totais
+            </h2>
+            <p className="mb-4 text-xs text-white/35">
+              Valores para toda a operação, sem multiplicação pela quantidade de
+              animais.
+            </p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Sal e suplementação" value={sal} onChange={setSal} suffix="R$/mês" />
               <Field label="Veterinário" value={veterinario} onChange={setVeterinario} suffix="R$/mês" />
@@ -459,20 +589,29 @@ export default function CalculadoraPecuariaComercial({ quotes }: Props) {
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-            <h2 className="mb-1 text-lg font-semibold">Custos de comercialização</h2>
+            <h2 className="mb-1 text-lg font-semibold">
+              Custos de comercialização
+            </h2>
             <p className="mb-4 text-xs text-white/35">
-              O abate considera somente nota fiscal. As demais vendas usam a modalidade escolhida abaixo.
+              O abate considera somente nota fiscal. As demais vendas usam a
+              modalidade escolhida abaixo.
             </p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <label className="flex min-w-0 flex-col gap-1.5">
-                <span className="text-xs font-medium text-white/55">Modalidade das vendas sem abate</span>
+                <span className="text-xs font-medium text-white/55">
+                  Modalidade das vendas sem abate
+                </span>
                 <select
                   value={modalidadeVenda}
-                  onChange={(event) => setModalidadeVenda(event.target.value as ModalidadeVenda)}
+                  onChange={(event) =>
+                    setModalidadeVenda(event.target.value as ModalidadeVenda)
+                  }
                   className="w-full min-w-0 rounded-xl border border-white/10 bg-[#151a13] px-3 py-2.5 text-sm outline-none"
                 >
                   <option value="leilao">Leilão</option>
-                  <option value="pecuarista">Venda para outro pecuarista</option>
+                  <option value="pecuarista">
+                    Venda para outro pecuarista
+                  </option>
                 </select>
               </label>
               {modalidadeVenda === "leilao" ? (
@@ -488,10 +627,14 @@ export default function CalculadoraPecuariaComercial({ quotes }: Props) {
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-            <h2 className="mb-4 text-lg font-semibold">Preços e valorização</h2>
+            <h2 className="mb-4 text-lg font-semibold">
+              Preços e valorização
+            </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <label className="flex min-w-0 flex-col gap-1.5">
-                <span className="text-xs font-medium text-white/55">Cotação principal</span>
+                <span className="text-xs font-medium text-white/55">
+                  Cotação principal
+                </span>
                 <select
                   value={quoteIndex}
                   onChange={(event) => {
@@ -501,8 +644,12 @@ export default function CalculadoraPecuariaComercial({ quotes }: Props) {
                   className="w-full min-w-0 rounded-xl border border-white/10 bg-[#151a13] px-3 py-2.5 text-sm outline-none"
                 >
                   {quotes.map((item, index) => (
-                    <option key={`${item.productSlug}-${item.city}-${item.state}`} value={index}>
-                      {item.label} — {item.city}/{item.state} — R$ {item.price.toFixed(2)}
+                    <option
+                      key={`${item.productSlug}-${item.city}-${item.state}`}
+                      value={index}
+                    >
+                      {item.label} — {item.city}/{item.state} — R${" "}
+                      {item.price.toFixed(2)}
                     </option>
                   ))}
                 </select>
@@ -520,36 +667,144 @@ export default function CalculadoraPecuariaComercial({ quotes }: Props) {
           {sistema === "cria" ? (
             <>
               <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold">Comparação dos cenários</h2>
-                <p className="mt-1 text-xs text-white/35">Todos incluem os {decimal.format(gestacao)} meses de gestação.</p>
+                <h2 className="text-lg font-semibold">
+                  Comparação dos cenários
+                </h2>
+                <p className="mt-1 text-xs text-white/35">
+                  Médias mensais representam a receita, o gasto e o lucro totais
+                  divididos pela duração completa de cada ciclo.
+                </p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {result.scenarios.map((scenario) => (
-                    <article key={scenario.key} className={`rounded-xl border p-4 ${scenario.profit >= 0 ? "border-green-500/20 bg-green-500/5" : "border-red-500/20 bg-red-500/5"}`}>
+                    <article
+                      key={scenario.key}
+                      className={`rounded-xl border p-4 ${
+                        scenario.profit >= 0
+                          ? "border-green-500/20 bg-green-500/5"
+                          : "border-red-500/20 bg-red-500/5"
+                      }`}
+                    >
                       <p className="font-semibold">{scenario.title}</p>
-                      <p className="mt-1 text-xs text-white/40">{scenario.description}</p>
-                      <p className="mt-3 text-xs text-white/35">Ciclo total: {decimal.format(gestacao + scenario.monthsAfterBirth)} meses</p>
-                      <p className={`mt-1 text-2xl font-bold ${scenario.profit >= 0 ? "text-green-400" : "text-red-400"}`}>{currency.format(scenario.profit)}</p>
+                      <p className="mt-1 text-xs text-white/40">
+                        {scenario.description}
+                      </p>
+                      <p className="mt-3 text-xs text-white/35">
+                        Ciclo total: {decimal.format(scenario.totalMonths)} meses
+                      </p>
+                      <p
+                        className={`mt-1 text-2xl font-bold ${
+                          scenario.profit >= 0
+                            ? "text-green-400"
+                            : "text-red-400"
+                        }`}
+                      >
+                        {currency.format(scenario.profit)}
+                      </p>
+
                       <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                        <div><span className="text-white/35">Receita</span><p>{currency.format(scenario.revenue)}</p></div>
-                        <div><span className="text-white/35">Produção</span><p>{currency.format(scenario.productionCosts)}</p></div>
-                        <div><span className="text-white/35">Comercialização</span><p>{currency.format(scenario.commercialCosts)}</p></div>
-                        <div><span className="text-white/35">Custo total</span><p>{currency.format(scenario.costs)}</p></div>
-                        <div><span className="text-white/35">Margem</span><p>{decimal.format(scenario.margin)}%</p></div>
-                        <div><span className="text-white/35">Lucro/cabeça</span><p>{currency.format(scenario.profit / Math.max(1, result.males + result.females))}</p></div>
+                        <div>
+                          <span className="text-white/35">Receita total</span>
+                          <p>{currency.format(scenario.revenue)}</p>
+                        </div>
+                        <div>
+                          <span className="text-white/35">Custo total</span>
+                          <p>{currency.format(scenario.costs)}</p>
+                        </div>
+                        <div>
+                          <span className="text-white/35">Produção</span>
+                          <p>{currency.format(scenario.productionCosts)}</p>
+                        </div>
+                        <div>
+                          <span className="text-white/35">Comercialização</span>
+                          <p>{currency.format(scenario.commercialCosts)}</p>
+                        </div>
+                        <div>
+                          <span className="text-white/35">Margem</span>
+                          <p>{decimal.format(scenario.margin)}%</p>
+                        </div>
+                        <div>
+                          <span className="text-white/35">Lucro/cabeça</span>
+                          <p>
+                            {currency.format(
+                              scenario.profit /
+                                Math.max(1, result.males + result.females),
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 rounded-xl border border-white/10 bg-black/15 p-3">
+                        <p className="text-xs font-medium text-white/55">
+                          Média mensal estimada
+                        </p>
+                        <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                          <div>
+                            <span className="text-white/35">Receita</span>
+                            <p className="font-semibold text-green-400">
+                              {currency.format(scenario.monthlyRevenue)}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-white/35">Gastos</span>
+                            <p className="font-semibold text-red-400">
+                              {currency.format(scenario.monthlyCosts)}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-white/35">Lucro</span>
+                            <p
+                              className={`font-semibold ${
+                                scenario.monthlyProfit >= 0
+                                  ? "text-green-400"
+                                  : "text-red-400"
+                              }`}
+                            >
+                              {currency.format(scenario.monthlyProfit)}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </article>
                   ))}
                 </div>
               </section>
+
               <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-                <h2 className="text-lg font-semibold">Receitas, gastos e lucros</h2>
+                <h2 className="text-lg font-semibold">
+                  Receitas, gastos e lucros
+                </h2>
                 <div className="mt-4 h-80 min-w-0">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={comparisonChart} margin={{ top: 10, right: 8, left: 0, bottom: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.08)" />
-                      <XAxis dataKey="nome" tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }} angle={-10} textAnchor="end" height={60} />
-                      <YAxis tickFormatter={(value) => `R$ ${Math.round(Number(value) / 1000)}k`} tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }} width={58} />
-                      <Tooltip formatter={(value) => currency.format(Number(value))} contentStyle={{ background: "#151a13", border: "1px solid rgba(255,255,255,.12)", borderRadius: 12 }} />
+                    <LineChart
+                      data={comparisonChart}
+                      margin={{ top: 10, right: 8, left: 0, bottom: 20 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="rgba(255,255,255,.08)"
+                      />
+                      <XAxis
+                        dataKey="nome"
+                        tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }}
+                        angle={-10}
+                        textAnchor="end"
+                        height={60}
+                      />
+                      <YAxis
+                        tickFormatter={(value) =>
+                          `R$ ${Math.round(Number(value) / 1000)}k`
+                        }
+                        tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }}
+                        width={58}
+                      />
+                      <Tooltip
+                        formatter={(value) => currency.format(Number(value))}
+                        contentStyle={{
+                          background: "#151a13",
+                          border: "1px solid rgba(255,255,255,.12)",
+                          borderRadius: 12,
+                        }}
+                      />
                       <Legend />
                       <Line dataKey="gastos" name="Gastos" stroke="#f87171" strokeWidth={2.5} />
                       <Line dataKey="receita" name="Receita" stroke="#4ade80" strokeWidth={2.5} />
@@ -560,14 +815,74 @@ export default function CalculadoraPecuariaComercial({ quotes }: Props) {
               </section>
             </>
           ) : (
-            <section className={`rounded-2xl border p-5 ${result.single.profit >= 0 ? "border-green-500/25 bg-green-500/8" : "border-red-500/25 bg-red-500/8"}`}>
-              <p className="text-xs uppercase tracking-wider text-white/40">Resultado projetado</p>
-              <p className={`mt-2 text-4xl font-extrabold ${result.single.profit >= 0 ? "text-green-400" : "text-red-400"}`}>{currency.format(result.single.profit)}</p>
+            <section
+              className={`rounded-2xl border p-5 ${
+                result.single.profit >= 0
+                  ? "border-green-500/25 bg-green-500/8"
+                  : "border-red-500/25 bg-red-500/8"
+              }`}
+            >
+              <p className="text-xs uppercase tracking-wider text-white/40">
+                Resultado projetado
+              </p>
+              <p
+                className={`mt-2 text-4xl font-extrabold ${
+                  result.single.profit >= 0
+                    ? "text-green-400"
+                    : "text-red-400"
+                }`}
+              >
+                {currency.format(result.single.profit)}
+              </p>
               <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-white/35">Receita</span><p>{currency.format(result.single.revenue)}</p></div>
-                <div><span className="text-white/35">Comercialização</span><p>{currency.format(result.single.commercialCosts)}</p></div>
-                <div><span className="text-white/35">Custos totais</span><p>{currency.format(result.single.totalCosts)}</p></div>
-                <div><span className="text-white/35">Margem</span><p>{decimal.format(result.single.margin)}%</p></div>
+                <div>
+                  <span className="text-white/35">Receita</span>
+                  <p>{currency.format(result.single.revenue)}</p>
+                </div>
+                <div>
+                  <span className="text-white/35">Comercialização</span>
+                  <p>{currency.format(result.single.commercialCosts)}</p>
+                </div>
+                <div>
+                  <span className="text-white/35">Custos totais</span>
+                  <p>{currency.format(result.single.totalCosts)}</p>
+                </div>
+                <div>
+                  <span className="text-white/35">Margem</span>
+                  <p>{decimal.format(result.single.margin)}%</p>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-xl border border-white/10 bg-black/15 p-4">
+                <p className="text-xs font-medium text-white/55">
+                  Média mensal estimada
+                </p>
+                <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <span className="text-xs text-white/35">Receita</span>
+                    <p className="font-semibold text-green-400">
+                      {currency.format(result.single.monthlyRevenue)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-white/35">Gastos</span>
+                    <p className="font-semibold text-red-400">
+                      {currency.format(result.single.monthlyCosts)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-white/35">Lucro</span>
+                    <p
+                      className={`font-semibold ${
+                        result.single.monthlyProfit >= 0
+                          ? "text-green-400"
+                          : "text-red-400"
+                      }`}
+                    >
+                      {currency.format(result.single.monthlyProfit)}
+                    </p>
+                  </div>
+                </div>
               </div>
             </section>
           )}
@@ -575,7 +890,9 @@ export default function CalculadoraPecuariaComercial({ quotes }: Props) {
       </div>
 
       <p className="text-center text-xs leading-relaxed text-white/30">
-        Simulação comparativa. Frete, comissão, corretagem e nota fiscal devem ser ajustados conforme contrato, estado e modalidade de venda.
+        As médias mensais são equivalentes econômicos: o valor total de cada
+        cenário é dividido pela duração completa do ciclo. A receita real tende a
+        ocorrer no momento da venda, e não mensalmente.
       </p>
     </div>
   );
