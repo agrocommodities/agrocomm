@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Bell, BellRing, Loader2 } from "lucide-react";
 import { toggleQuoteSubscription } from "@/actions/subscriptions";
 import { getQuoteSubscriptionStatus } from "@/actions/quote-subscription-status";
@@ -37,7 +37,12 @@ export default function QuoteNotificationButton({
   const [canReceiveEmails, setCanReceiveEmails] = useState(initialHasActivePlan);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [isPending, startTransition] = useTransition();
+  const onToggleRef = useRef(onToggle);
   const router = useRouter();
+
+  useEffect(() => {
+    onToggleRef.current = onToggle;
+  }, [onToggle]);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,13 +54,13 @@ export default function QuoteNotificationButton({
       setHasSession(status.hasSession);
       setCanReceiveEmails(status.canReceiveEmails);
       setSubscribed(status.subscribed);
-      onToggle?.(status.subscribed);
+      onToggleRef.current?.(status.subscribed);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [productId, cityId, onToggle]);
+  }, [productId, cityId]);
 
   useEffect(() => {
     if (!feedback) return;
@@ -98,7 +103,7 @@ export default function QuoteNotificationButton({
       }
 
       setSubscribed(result.subscribed);
-      onToggle?.(result.subscribed);
+      onToggleRef.current?.(result.subscribed);
       setFeedback({
         message: result.subscribed
           ? "Cotação adicionada aos boletins por e-mail."
