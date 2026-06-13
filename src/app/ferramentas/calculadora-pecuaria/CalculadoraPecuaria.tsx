@@ -2,13 +2,10 @@
 
 import { useMemo, useState } from "react";
 import {
-  Area,
-  AreaChart,
   CartesianGrid,
   Legend,
   Line,
   LineChart,
-  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -16,7 +13,6 @@ import {
 } from "recharts";
 
 type Sistema = "cria" | "recria" | "engorda";
-type Sexo = "macho" | "femea";
 type Raca = "nelore" | "angus" | "senepol" | "brangus";
 
 type QuoteOption = {
@@ -27,41 +23,75 @@ type QuoteOption = {
   price: number;
 };
 
-type Props = {
-  quotes: QuoteOption[];
-};
+type Props = { quotes: QuoteOption[] };
 
 type BreedPreset = {
   label: string;
-  cria: { macho: number; femea: number };
-  recria: { entrada: number; macho: number; femea: number };
-  engorda: { entrada: number; saida: number };
+  weights: {
+    calfMale: number;
+    calfFemale: number;
+    youngMale: number;
+    youngFemale: number;
+    adultMale: number;
+    adultFemale: number;
+  };
+};
+
+type Scenario = {
+  key: string;
+  title: string;
+  description: string;
+  monthsAfterBirth: number;
+  revenue: number;
+  costs: number;
+  profit: number;
+  margin: number;
 };
 
 const BREEDS: Record<Raca, BreedPreset> = {
   nelore: {
     label: "Nelore",
-    cria: { macho: 210, femea: 190 },
-    recria: { entrada: 200, macho: 360, femea: 320 },
-    engorda: { entrada: 360, saida: 540 },
+    weights: {
+      calfMale: 210,
+      calfFemale: 190,
+      youngMale: 420,
+      youngFemale: 360,
+      adultMale: 540,
+      adultFemale: 450,
+    },
   },
   angus: {
     label: "Angus",
-    cria: { macho: 230, femea: 210 },
-    recria: { entrada: 220, macho: 390, femea: 350 },
-    engorda: { entrada: 390, saida: 570 },
+    weights: {
+      calfMale: 230,
+      calfFemale: 210,
+      youngMale: 450,
+      youngFemale: 390,
+      adultMale: 580,
+      adultFemale: 480,
+    },
   },
   senepol: {
     label: "Senepol",
-    cria: { macho: 225, femea: 205 },
-    recria: { entrada: 215, macho: 380, femea: 340 },
-    engorda: { entrada: 380, saida: 560 },
+    weights: {
+      calfMale: 225,
+      calfFemale: 205,
+      youngMale: 440,
+      youngFemale: 380,
+      adultMale: 565,
+      adultFemale: 470,
+    },
   },
   brangus: {
     label: "Brangus",
-    cria: { macho: 225, femea: 205 },
-    recria: { entrada: 215, macho: 385, femea: 345 },
-    engorda: { entrada: 385, saida: 565 },
+    weights: {
+      calfMale: 225,
+      calfFemale: 205,
+      youngMale: 445,
+      youngFemale: 385,
+      adultMale: 570,
+      adultFemale: 475,
+    },
   },
 };
 
@@ -70,8 +100,7 @@ const currency = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
   maximumFractionDigits: 0,
 });
-
-const number = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
+const decimal = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
 
 function Field({
   label,
@@ -79,6 +108,7 @@ function Field({
   onChange,
   suffix,
   min = 0,
+  max,
   step = 1,
 }: {
   label: string;
@@ -86,19 +116,21 @@ function Field({
   onChange: (value: number) => void;
   suffix?: string;
   min?: number;
+  max?: number;
   step?: number;
 }) {
   return (
-    <label className="flex flex-col gap-1.5">
+    <label className="flex min-w-0 flex-col gap-1.5">
       <span className="text-xs font-medium text-white/55">{label}</span>
-      <div className="relative">
+      <div className="relative min-w-0">
         <input
           type="number"
           min={min}
+          max={max}
           step={step}
           value={value}
           onChange={(event) => onChange(Number(event.target.value) || 0)}
-          className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 pr-12 text-sm outline-none transition focus:border-green-500/50"
+          className="min-w-0 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 pr-14 text-sm outline-none transition focus:border-green-500/50"
         />
         {suffix && (
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/35">
@@ -113,309 +145,266 @@ function Field({
 export default function CalculadoraPecuaria({ quotes }: Props) {
   const [sistema, setSistema] = useState<Sistema>("cria");
   const [raca, setRaca] = useState<Raca>("nelore");
-  const [sexo, setSexo] = useState<Sexo>("macho");
   const [quoteIndex, setQuoteIndex] = useState(0);
   const [quantidade, setQuantidade] = useState(100);
   const [meses, setMeses] = useState(12);
-  const [pesoEntrada, setPesoEntrada] = useState(BREEDS.nelore.recria.entrada);
-  const [pesoSaida, setPesoSaida] = useState(BREEDS.nelore.cria.macho);
-  const [rendimentoCarcaca, setRendimentoCarcaca] = useState(52);
+  const [gestacao, setGestacao] = useState(9);
+  const [percentualMachos, setPercentualMachos] = useState(52);
   const [taxaNatalidade, setTaxaNatalidade] = useState(80);
   const [mortalidade, setMortalidade] = useState(3);
+  const [rendimentoMacho, setRendimentoMacho] = useState(54);
+  const [rendimentoFemea, setRendimentoFemea] = useState(50);
+  const [agioLeilao, setAgioLeilao] = useState(0);
+  const [agioReprodutora, setAgioReprodutora] = useState(20);
   const [precoCompraCabeca, setPrecoCompraCabeca] = useState(0);
-  const [premioLeilao, setPremioLeilao] = useState(0);
+  const [pesoEntrada, setPesoEntrada] = useState(200);
+  const [pesoSaida, setPesoSaida] = useState(420);
 
   const [sal, setSal] = useState(22);
   const [veterinario, setVeterinario] = useState(5);
   const [peao, setPeao] = useState(18);
   const [vacinas, setVacinas] = useState(8);
   const [vermifugo, setVermifugo] = useState(7);
+  const [outros, setOutros] = useState(0);
   const [cercasPastagens, setCercasPastagens] = useState(0);
   const [estruturaAgua, setEstruturaAgua] = useState(0);
-  const [outros, setOutros] = useState(0);
 
   const quote = quotes[quoteIndex] ?? {
-    label: "Preço informado manualmente",
+    label: "Preço manual",
     productSlug: "boi-gordo",
     city: "",
     state: "",
     price: 300,
   };
   const [manualPrice, setManualPrice] = useState<number | null>(null);
-  const arroba = manualPrice ?? quote.price;
-
-  function applyPreset(nextRace: Raca, nextSystem = sistema, nextSex = sexo) {
-    const preset = BREEDS[nextRace];
-    setRaca(nextRace);
-    if (nextSystem === "cria") {
-      setPesoEntrada(0);
-      setPesoSaida(preset.cria[nextSex]);
-      setMeses(12);
-    } else if (nextSystem === "recria") {
-      setPesoEntrada(preset.recria.entrada);
-      setPesoSaida(preset.recria[nextSex]);
-      setMeses(12);
-    } else {
-      setPesoEntrada(preset.engorda.entrada);
-      setPesoSaida(preset.engorda.saida);
-      setMeses(8);
-    }
-  }
-
-  function changeSystem(next: Sistema) {
-    setSistema(next);
-    applyPreset(raca, next, sexo);
-  }
-
-  function changeSex(next: Sexo) {
-    setSexo(next);
-    applyPreset(raca, sistema, next);
-  }
+  const arrobaBoi = manualPrice ?? quote.price;
+  const vacaQuote = quotes.find((item) => item.productSlug === "vaca-gorda");
+  const arrobaVaca = vacaQuote?.price ?? arrobaBoi * 0.9;
+  const weights = BREEDS[raca].weights;
+  const percentualFemeas = 100 - percentualMachos;
 
   const result = useMemo(() => {
-    const monthlyOperatingCosts =
-      sal + veterinario + peao + vacinas + vermifugo + outros;
-    const recurringCosts = monthlyOperatingCosts * meses;
-    const optionalCosts = cercasPastagens + estruturaAgua;
-    const purchaseCosts = sistema === "cria" ? 0 : precoCompraCabeca * quantidade;
-    const totalCosts = recurringCosts + optionalCosts + purchaseCosts;
-
+    const monthlyCosts = sal + veterinario + peao + vacinas + vermifugo + outros;
+    const fixedCosts = cercasPastagens + estruturaAgua;
     const born = sistema === "cria" ? quantidade * (taxaNatalidade / 100) : quantidade;
-    const saleAnimals = born * (1 - mortalidade / 100);
-    const saleArrobas = (pesoSaida * (rendimentoCarcaca / 100)) / 15;
-    const grossRevenue = saleAnimals * saleArrobas * arroba * (1 + premioLeilao / 100);
-    const profit = grossRevenue - totalCosts;
-    const margin = grossRevenue > 0 ? (profit / grossRevenue) * 100 : 0;
-    const breakEvenArroba = saleAnimals * saleArrobas > 0
-      ? totalCosts / (saleAnimals * saleArrobas * (1 + premioLeilao / 100))
-      : 0;
+    const survivors = born * (1 - mortalidade / 100);
+    const males = survivors * (percentualMachos / 100);
+    const females = survivors - males;
 
-    const chart = Array.from({ length: meses + 1 }, (_, month) => {
-      const progress = meses === 0 ? 1 : month / meses;
-      const accumulatedRecurring = recurringCosts * progress;
-      const initialCosts = purchaseCosts + optionalCosts;
-      const costs = initialCosts + accumulatedRecurring;
-      const revenue = month === meses ? grossRevenue : 0;
+    const valueByArroba = (
+      animals: number,
+      weight: number,
+      yieldPercent: number,
+      arroba: number,
+      premiumPercent = 0,
+    ) =>
+      animals *
+      ((weight * (yieldPercent / 100)) / 15) *
+      arroba *
+      (1 + premiumPercent / 100);
+
+    const buildScenario = (
+      key: string,
+      title: string,
+      description: string,
+      monthsAfterBirth: number,
+      revenue: number,
+    ): Scenario => {
+      const totalMonths = gestacao + monthsAfterBirth;
+      const costs = monthlyCosts * totalMonths + fixedCosts;
+      const profit = revenue - costs;
       return {
-        month: `Mês ${month}`,
-        gastos: Math.round(costs),
-        receitas: Math.round(revenue),
-        resultado: Math.round(revenue - costs),
+        key,
+        title,
+        description,
+        monthsAfterBirth,
+        revenue,
+        costs,
+        profit,
+        margin: revenue > 0 ? (profit / revenue) * 100 : 0,
       };
-    });
+    };
+
+    const calfRevenue =
+      valueByArroba(males, weights.calfMale, rendimentoMacho, arrobaBoi, agioLeilao) +
+      valueByArroba(females, weights.calfFemale, rendimentoFemea, arrobaVaca, agioLeilao);
+
+    const youngRevenue =
+      valueByArroba(males, weights.youngMale, rendimentoMacho, arrobaBoi, agioLeilao) +
+      valueByArroba(females, weights.youngFemale, rendimentoFemea, arrobaVaca, agioLeilao);
+
+    const breederRevenue =
+      valueByArroba(males, weights.adultMale, rendimentoMacho, arrobaBoi) +
+      valueByArroba(females, weights.adultFemale, rendimentoFemea, arrobaVaca, agioReprodutora);
+
+    const slaughterRevenue =
+      valueByArroba(males, weights.adultMale, rendimentoMacho, arrobaBoi) +
+      valueByArroba(females, weights.adultFemale, rendimentoFemea, arrobaVaca);
+
+    const scenarios = sistema === "cria"
+      ? [
+          buildScenario("bezerros", "Venda como bezerros e bezerras", "Leilão ou venda direta após a desmama.", 8, calfRevenue),
+          buildScenario("jovens", "Venda como garrotes e novilhas", "Gestação mais 24 meses de criação.", 24, youngRevenue),
+          buildScenario("reproducao", "Vacas para criador ou leilão", "Machos valorizados pelo peso e fêmeas com ágio reprodutivo.", 36, breederRevenue),
+          buildScenario("abate", "Bovinos para abate", "Machos pelo preço do boi e fêmeas pelo preço da vaca gorda.", 36, slaughterRevenue),
+        ]
+      : [];
+
+    const recurringCosts = monthlyCosts * meses;
+    const purchaseCosts = precoCompraCabeca * quantidade;
+    const totalCosts = recurringCosts + fixedCosts + purchaseCosts;
+    const animals = quantidade * (1 - mortalidade / 100);
+    const revenue = valueByArroba(animals, pesoSaida, rendimentoMacho, arrobaBoi, agioLeilao);
+    const profit = revenue - totalCosts;
 
     return {
-      monthlyOperatingCosts,
-      recurringCosts,
-      purchaseCosts,
-      totalCosts,
-      saleAnimals,
-      saleArrobas,
-      grossRevenue,
-      profit,
-      margin,
-      breakEvenArroba,
-      chart,
+      males,
+      females,
+      scenarios,
+      single: {
+        revenue,
+        totalCosts,
+        profit,
+        margin: revenue > 0 ? (profit / revenue) * 100 : 0,
+      },
     };
   }, [
+    sistema,
+    quantidade,
+    taxaNatalidade,
+    mortalidade,
+    percentualMachos,
+    gestacao,
+    meses,
     sal,
     veterinario,
     peao,
     vacinas,
     vermifugo,
     outros,
-    meses,
     cercasPastagens,
     estruturaAgua,
-    sistema,
     precoCompraCabeca,
-    quantidade,
-    taxaNatalidade,
-    mortalidade,
     pesoSaida,
-    rendimentoCarcaca,
-    arroba,
-    premioLeilao,
+    rendimentoMacho,
+    rendimentoFemea,
+    arrobaBoi,
+    arrobaVaca,
+    agioLeilao,
+    agioReprodutora,
+    weights,
   ]);
 
+  const comparisonChart = result.scenarios.map((scenario) => ({
+    nome: scenario.title.replace("Venda como ", ""),
+    gastos: Math.round(scenario.costs),
+    receita: Math.round(scenario.revenue),
+    lucro: Math.round(scenario.profit),
+  }));
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-w-0 flex-col gap-6">
       <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-        <div className="grid gap-5 lg:grid-cols-3">
-          <label className="flex flex-col gap-1.5">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <label className="flex min-w-0 flex-col gap-1.5">
             <span className="text-xs font-medium text-white/55">Sistema produtivo</span>
-            <select
-              value={sistema}
-              onChange={(event) => changeSystem(event.target.value as Sistema)}
-              className="rounded-xl border border-white/10 bg-[#151a13] px-3 py-2.5 text-sm outline-none"
-            >
-              <option value="cria">Cria — venda de bezerros</option>
-              <option value="recria">Recria — garrotes e novilhas</option>
-              <option value="engorda">Engorda — animais para abate</option>
+            <select value={sistema} onChange={(event) => setSistema(event.target.value as Sistema)} className="w-full min-w-0 rounded-xl border border-white/10 bg-[#151a13] px-3 py-2.5 text-sm outline-none">
+              <option value="cria">Cria — comparação completa</option>
+              <option value="recria">Recria</option>
+              <option value="engorda">Engorda</option>
             </select>
           </label>
-          <label className="flex flex-col gap-1.5">
+          <label className="flex min-w-0 flex-col gap-1.5">
             <span className="text-xs font-medium text-white/55">Raça de referência</span>
-            <select
-              value={raca}
-              onChange={(event) => applyPreset(event.target.value as Raca)}
-              className="rounded-xl border border-white/10 bg-[#151a13] px-3 py-2.5 text-sm outline-none"
-            >
-              {Object.entries(BREEDS).map(([key, breed]) => (
-                <option key={key} value={key}>{breed.label}</option>
-              ))}
+            <select value={raca} onChange={(event) => setRaca(event.target.value as Raca)} className="w-full min-w-0 rounded-xl border border-white/10 bg-[#151a13] px-3 py-2.5 text-sm outline-none">
+              {Object.entries(BREEDS).map(([key, breed]) => <option key={key} value={key}>{breed.label}</option>)}
             </select>
           </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-white/55">Sexo predominante</span>
-            <select
-              value={sexo}
-              onChange={(event) => changeSex(event.target.value as Sexo)}
-              className="rounded-xl border border-white/10 bg-[#151a13] px-3 py-2.5 text-sm outline-none"
-            >
-              <option value="macho">Machos</option>
-              <option value="femea">Fêmeas</option>
-            </select>
+          <label className="flex min-w-0 flex-col gap-2">
+            <span className="text-xs font-medium text-white/55">Nascimentos: {percentualMachos}% machos e {percentualFemeas}% fêmeas</span>
+            <input type="range" min={0} max={100} step={1} value={percentualMachos} onChange={(event) => setPercentualMachos(Number(event.target.value))} className="w-full accent-green-500" />
+            <div className="flex justify-between text-[11px] text-white/30"><span>0% machos</span><span>100% machos</span></div>
           </label>
         </div>
-        <p className="mt-4 text-xs leading-relaxed text-white/35">
-          Os pesos são preenchidos com referências práticas da raça selecionada e podem ser alterados para refletir o seu rebanho.
-        </p>
+        <p className="mt-4 text-xs leading-relaxed text-white/35">O padrão é 52% de machos e 48% de fêmeas. Pesos e percentuais são referências editáveis.</p>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <div className="flex flex-col gap-6">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="flex min-w-0 flex-col gap-6">
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-            <h2 className="mb-4 text-lg font-semibold">Rebanho e comercialização</h2>
+            <h2 className="mb-4 text-lg font-semibold">Rebanho e reprodução</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label={sistema === "cria" ? "Matrizes expostas" : "Animais comprados"} value={quantidade} onChange={setQuantidade} suffix="cabeças" />
-              <Field label="Duração do ciclo" value={meses} onChange={setMeses} suffix="meses" min={1} />
-              {sistema !== "cria" && <Field label="Peso médio de entrada" value={pesoEntrada} onChange={setPesoEntrada} suffix="kg" />}
-              <Field label="Peso médio de venda" value={pesoSaida} onChange={setPesoSaida} suffix="kg" />
-              <Field label="Rendimento de carcaça" value={rendimentoCarcaca} onChange={setRendimentoCarcaca} suffix="%" step={0.5} />
-              {sistema === "cria" && <Field label="Taxa de natalidade" value={taxaNatalidade} onChange={setTaxaNatalidade} suffix="%" />}
-              <Field label="Mortalidade no ciclo" value={mortalidade} onChange={setMortalidade} suffix="%" step={0.1} />
-              {sistema !== "cria" && <Field label="Compra por cabeça" value={precoCompraCabeca} onChange={setPrecoCompraCabeca} suffix="R$" />}
-              <Field label="Ágio/deságio de leilão" value={premioLeilao} onChange={setPremioLeilao} suffix="%" step={0.5} min={-100} />
+              {sistema === "cria" ? <>
+                <Field label="Período de gestação" value={gestacao} onChange={setGestacao} suffix="meses" step={0.1} min={1} />
+                <Field label="Taxa de natalidade" value={taxaNatalidade} onChange={setTaxaNatalidade} suffix="%" max={100} />
+                <Field label="Mortalidade até a venda" value={mortalidade} onChange={setMortalidade} suffix="%" max={100} step={0.1} />
+                <div className="rounded-xl border border-white/10 bg-black/15 p-3"><p className="text-xs text-white/35">Machos projetados</p><p className="mt-1 font-semibold">{decimal.format(result.males)}</p></div>
+                <div className="rounded-xl border border-white/10 bg-black/15 p-3"><p className="text-xs text-white/35">Fêmeas projetadas</p><p className="mt-1 font-semibold">{decimal.format(result.females)}</p></div>
+              </> : <>
+                <Field label="Duração do ciclo" value={meses} onChange={setMeses} suffix="meses" min={1} />
+                <Field label="Peso médio de entrada" value={pesoEntrada} onChange={setPesoEntrada} suffix="kg" />
+                <Field label="Peso médio de venda" value={pesoSaida} onChange={setPesoSaida} suffix="kg" />
+                <Field label="Compra por cabeça" value={precoCompraCabeca} onChange={setPrecoCompraCabeca} suffix="R$" />
+                <Field label="Mortalidade no ciclo" value={mortalidade} onChange={setMortalidade} suffix="%" max={100} step={0.1} />
+              </>}
             </div>
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-            <h2 className="mb-1 text-lg font-semibold">Custos</h2>
-            <p className="mb-4 text-xs text-white/35">
-              Informe o valor mensal total de cada despesa para toda a operação. Esses valores não são multiplicados pela quantidade de animais.
-            </p>
+          {sistema === "cria" && <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
+            <h2 className="mb-1 text-lg font-semibold">Pesos médios por cenário</h2>
+            <p className="mb-4 text-xs text-white/35">Os valores mudam conforme a raça selecionada.</p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Field label="Sal e suplementação" value={sal} onChange={setSal} suffix="R$/mês total" />
-              <Field label="Veterinário" value={veterinario} onChange={setVeterinario} suffix="R$/mês total" />
-              <Field label="Peão / mão de obra" value={peao} onChange={setPeao} suffix="R$/mês total" />
-              <Field label="Vacinas" value={vacinas} onChange={setVacinas} suffix="R$/mês total" />
-              <Field label="Vermífugo" value={vermifugo} onChange={setVermifugo} suffix="R$/mês total" />
-              <Field label="Outros custos" value={outros} onChange={setOutros} suffix="R$/mês total" />
-              <Field label="Cercas e pastagens (opcional)" value={cercasPastagens} onChange={setCercasPastagens} suffix="R$ total" />
-              <Field label="Pilhetas, açudes e bebedouros (opcional)" value={estruturaAgua} onChange={setEstruturaAgua} suffix="R$ total" />
+              <Field label="Bezerro na venda" value={weights.calfMale} onChange={() => undefined} suffix="kg" />
+              <Field label="Bezerra na venda" value={weights.calfFemale} onChange={() => undefined} suffix="kg" />
+              <Field label="Garrote aos 24 meses" value={weights.youngMale} onChange={() => undefined} suffix="kg" />
+              <Field label="Novilha aos 24 meses" value={weights.youngFemale} onChange={() => undefined} suffix="kg" />
+              <Field label="Macho aos 36 meses" value={weights.adultMale} onChange={() => undefined} suffix="kg" />
+              <Field label="Vaca/novilha aos 36 meses" value={weights.adultFemale} onChange={() => undefined} suffix="kg" />
+            </div>
+          </section>}
+
+          <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
+            <h2 className="mb-1 text-lg font-semibold">Custos mensais totais</h2>
+            <p className="mb-4 text-xs text-white/35">Valores para toda a operação, sem multiplicação pela quantidade de animais.</p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Field label="Sal e suplementação" value={sal} onChange={setSal} suffix="R$/mês" />
+              <Field label="Veterinário" value={veterinario} onChange={setVeterinario} suffix="R$/mês" />
+              <Field label="Peão / mão de obra" value={peao} onChange={setPeao} suffix="R$/mês" />
+              <Field label="Vacinas" value={vacinas} onChange={setVacinas} suffix="R$/mês" />
+              <Field label="Vermífugo" value={vermifugo} onChange={setVermifugo} suffix="R$/mês" />
+              <Field label="Outros custos" value={outros} onChange={setOutros} suffix="R$/mês" />
+              <Field label="Cercas e pastagens" value={cercasPastagens} onChange={setCercasPastagens} suffix="R$ total" />
+              <Field label="Pilhetas, açudes e bebedouros" value={estruturaAgua} onChange={setEstruturaAgua} suffix="R$ total" />
             </div>
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-            <h2 className="mb-4 text-lg font-semibold">Preço de referência</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium text-white/55">Cotação do site</span>
-                <select
-                  value={quoteIndex}
-                  onChange={(event) => {
-                    setQuoteIndex(Number(event.target.value));
-                    setManualPrice(null);
-                  }}
-                  className="rounded-xl border border-white/10 bg-[#151a13] px-3 py-2.5 text-sm outline-none"
-                >
-                  {quotes.map((item, index) => (
-                    <option key={`${item.productSlug}-${item.city}-${item.state}`} value={index}>
-                      {item.label} — {item.city}/{item.state} — R$ {item.price.toFixed(2)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <Field label="Preço da arroba usado" value={arroba} onChange={(value) => setManualPrice(value)} suffix="R$/@" step={0.01} />
+            <h2 className="mb-4 text-lg font-semibold">Preços e valorização</h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <label className="flex min-w-0 flex-col gap-1.5"><span className="text-xs font-medium text-white/55">Cotação principal</span><select value={quoteIndex} onChange={(event) => { setQuoteIndex(Number(event.target.value)); setManualPrice(null); }} className="w-full min-w-0 rounded-xl border border-white/10 bg-[#151a13] px-3 py-2.5 text-sm outline-none">{quotes.map((item, index) => <option key={`${item.productSlug}-${item.city}-${item.state}`} value={index}>{item.label} — {item.city}/{item.state} — R$ {item.price.toFixed(2)}</option>)}</select></label>
+              <Field label="Arroba do boi" value={arrobaBoi} onChange={setManualPrice} suffix="R$/@" step={0.01} />
+              <Field label="Rendimento machos" value={rendimentoMacho} onChange={setRendimentoMacho} suffix="%" step={0.5} />
+              <Field label="Rendimento fêmeas" value={rendimentoFemea} onChange={setRendimentoFemea} suffix="%" step={0.5} />
+              <Field label="Ágio de leilão" value={agioLeilao} onChange={setAgioLeilao} suffix="%" min={-100} step={0.5} />
+              <Field label="Ágio para fêmea reprodutora" value={agioReprodutora} onChange={setAgioReprodutora} suffix="%" min={-100} step={0.5} />
             </div>
           </section>
         </div>
 
-        <div className="flex flex-col gap-6">
-          <section className={`rounded-2xl border p-5 sm:p-6 ${result.profit >= 0 ? "border-green-500/25 bg-green-500/8" : "border-red-500/25 bg-red-500/8"}`}>
-            <p className="text-xs font-medium uppercase tracking-wider text-white/45">Resultado projetado</p>
-            <p className={`mt-2 text-4xl font-extrabold ${result.profit >= 0 ? "text-green-400" : "text-red-400"}`}>
-              {currency.format(result.profit)}
-            </p>
-            <p className="mt-2 text-sm text-white/55">
-              {result.profit >= 0 ? "A operação fica no azul" : "A operação fica no vermelho"} com margem de {number.format(result.margin)}%.
-            </p>
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-black/15 p-3">
-                <p className="text-xs text-white/35">Receita bruta</p>
-                <p className="mt-1 font-semibold">{currency.format(result.grossRevenue)}</p>
-              </div>
-              <div className="rounded-xl bg-black/15 p-3">
-                <p className="text-xs text-white/35">Custo total</p>
-                <p className="mt-1 font-semibold">{currency.format(result.totalCosts)}</p>
-              </div>
-              <div className="rounded-xl bg-black/15 p-3">
-                <p className="text-xs text-white/35">Animais vendidos</p>
-                <p className="mt-1 font-semibold">{number.format(result.saleAnimals)} cabeças</p>
-              </div>
-              <div className="rounded-xl bg-black/15 p-3">
-                <p className="text-xs text-white/35">Ponto de equilíbrio</p>
-                <p className="mt-1 font-semibold">R$ {result.breakEvenArroba.toFixed(2)}/@</p>
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-            <h2 className="text-lg font-semibold">Gastos × receitas ao longo do ciclo</h2>
-            <p className="mb-5 mt-1 text-xs text-white/35">A receita é reconhecida no mês da venda. A linha de resultado evidencia o momento em que a operação sai do vermelho.</p>
-            <div className="h-80 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={result.chart} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                  <XAxis dataKey="month" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} interval="preserveStartEnd" />
-                  <YAxis tickFormatter={(value) => `R$ ${Math.round(Number(value) / 1000)}k`} tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} width={58} />
-                  <Tooltip formatter={(value) => currency.format(Number(value))} contentStyle={{ background: "#151a13", border: "1px solid rgba(255,255,255,.12)", borderRadius: 12 }} />
-                  <Legend />
-                  <ReferenceLine y={0} stroke="rgba(255,255,255,.25)" />
-                  <Line type="monotone" dataKey="gastos" name="Gastos acumulados" stroke="#f87171" strokeWidth={2.5} dot={false} />
-                  <Line type="monotone" dataKey="receitas" name="Receitas acumuladas" stroke="#4ade80" strokeWidth={2.5} dot={false} />
-                  <Line type="monotone" dataKey="resultado" name="Resultado" stroke="#facc15" strokeWidth={2} dot={false} strokeDasharray="5 5" />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-            <h2 className="text-lg font-semibold">Composição dos custos</h2>
-            <div className="mt-4 h-56 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={[
-                  { name: "Compra", valor: result.purchaseCosts },
-                  { name: "Manejo", valor: result.recurringCosts },
-                  { name: "Cercas/pasto", valor: cercasPastagens },
-                  { name: "Água", valor: estruturaAgua },
-                ]}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                  <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} />
-                  <YAxis tickFormatter={(value) => `R$ ${Math.round(Number(value) / 1000)}k`} tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} width={58} />
-                  <Tooltip formatter={(value) => currency.format(Number(value))} contentStyle={{ background: "#151a13", border: "1px solid rgba(255,255,255,.12)", borderRadius: 12 }} />
-                  <Area type="monotone" dataKey="valor" name="Custo" stroke="#fb923c" fill="rgba(251,146,60,.22)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
+        <div className="flex min-w-0 flex-col gap-6">
+          {sistema === "cria" ? <>
+            <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
+              <h2 className="text-lg font-semibold">Comparação dos cenários</h2>
+              <p className="mt-1 text-xs text-white/35">Todos incluem os {decimal.format(gestacao)} meses de gestação.</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">{result.scenarios.map((scenario) => <article key={scenario.key} className={`rounded-xl border p-4 ${scenario.profit >= 0 ? "border-green-500/20 bg-green-500/5" : "border-red-500/20 bg-red-500/5"}`}><p className="font-semibold">{scenario.title}</p><p className="mt-1 text-xs text-white/40">{scenario.description}</p><p className="mt-3 text-xs text-white/35">Ciclo total: {decimal.format(gestacao + scenario.monthsAfterBirth)} meses</p><p className={`mt-1 text-2xl font-bold ${scenario.profit >= 0 ? "text-green-400" : "text-red-400"}`}>{currency.format(scenario.profit)}</p><div className="mt-3 grid grid-cols-2 gap-2 text-xs"><div><span className="text-white/35">Receita</span><p>{currency.format(scenario.revenue)}</p></div><div><span className="text-white/35">Custos</span><p>{currency.format(scenario.costs)}</p></div><div><span className="text-white/35">Margem</span><p>{decimal.format(scenario.margin)}%</p></div><div><span className="text-white/35">Lucro/cabeça</span><p>{currency.format(scenario.profit / Math.max(1, result.males + result.females))}</p></div></div></article>)}</div>
+            </section>
+            <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6"><h2 className="text-lg font-semibold">Receitas, gastos e lucros</h2><div className="mt-4 h-80 min-w-0"><ResponsiveContainer width="100%" height="100%"><LineChart data={comparisonChart} margin={{ top: 10, right: 8, left: 0, bottom: 20 }}><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.08)" /><XAxis dataKey="nome" tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }} angle={-10} textAnchor="end" height={60} /><YAxis tickFormatter={(value) => `R$ ${Math.round(Number(value) / 1000)}k`} tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }} width={58} /><Tooltip formatter={(value) => currency.format(Number(value))} contentStyle={{ background: "#151a13", border: "1px solid rgba(255,255,255,.12)", borderRadius: 12 }} /><Legend /><Line dataKey="gastos" name="Gastos" stroke="#f87171" strokeWidth={2.5} /><Line dataKey="receita" name="Receita" stroke="#4ade80" strokeWidth={2.5} /><Line dataKey="lucro" name="Lucro" stroke="#facc15" strokeWidth={2.5} /></LineChart></ResponsiveContainer></div></section>
+          </> : <section className={`rounded-2xl border p-5 ${result.single.profit >= 0 ? "border-green-500/25 bg-green-500/8" : "border-red-500/25 bg-red-500/8"}`}><p className="text-xs uppercase tracking-wider text-white/40">Resultado projetado</p><p className={`mt-2 text-4xl font-extrabold ${result.single.profit >= 0 ? "text-green-400" : "text-red-400"}`}>{currency.format(result.single.profit)}</p><div className="mt-5 grid grid-cols-2 gap-3 text-sm"><div><span className="text-white/35">Receita</span><p>{currency.format(result.single.revenue)}</p></div><div><span className="text-white/35">Custos</span><p>{currency.format(result.single.totalCosts)}</p></div><div><span className="text-white/35">Margem</span><p>{decimal.format(result.single.margin)}%</p></div></div></section>}
         </div>
       </div>
 
-      <p className="text-center text-xs leading-relaxed text-white/30">
-        Simulação estimativa. Pesos, rendimento de carcaça, mortalidade, taxas reprodutivas e preços variam conforme genética, manejo, região e modalidade de venda. Custos de terra, juros, impostos e frete devem ser incluídos em “Outros custos” quando aplicáveis.
-      </p>
+      <p className="text-center text-xs leading-relaxed text-white/30">Simulação comparativa. Pesos, rendimento, mortalidade, valorização reprodutiva e preços variam conforme manejo, genética, região e modalidade de venda.</p>
     </div>
   );
 }
