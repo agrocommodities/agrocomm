@@ -47,7 +47,9 @@ export default function ShareCalculatorControls({ initialData }: Props) {
     let attempts = 0;
 
     const restoreFields = () => {
-      const root = document.querySelector<HTMLElement>("[data-calculator-root]");
+      const root = document.querySelector<HTMLElement>(
+        "[data-calculator-root]",
+      );
       if (!root) return;
 
       const elements = Array.from(

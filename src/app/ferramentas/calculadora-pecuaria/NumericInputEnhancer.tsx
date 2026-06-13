@@ -16,8 +16,10 @@ function updateControlledInput(input: HTMLInputElement, value: number) {
 function getNextValue(input: HTMLInputElement, direction: -1 | 1) {
   const current = Number(input.value) || 0;
   const step = Number(input.step) || 1;
-  const minimum = input.min === "" ? Number.NEGATIVE_INFINITY : Number(input.min);
-  const maximum = input.max === "" ? Number.POSITIVE_INFINITY : Number(input.max);
+  const minimum =
+    input.min === "" ? Number.NEGATIVE_INFINITY : Number(input.min);
+  const maximum =
+    input.max === "" ? Number.POSITIVE_INFINITY : Number(input.max);
   const precision = Math.max(
     (String(step).split(".")[1] ?? "").length,
     (String(current).split(".")[1] ?? "").length,
