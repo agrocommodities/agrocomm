@@ -74,7 +74,9 @@ function enhanceSelect(select: HTMLSelectElement) {
 
   select.addEventListener("change", updateState);
   select.addEventListener("focus", () => icon.classList.add("text-green-400"));
-  select.addEventListener("blur", () => icon.classList.remove("text-green-400"));
+  select.addEventListener("blur", () =>
+    icon.classList.remove("text-green-400"),
+  );
   updateState();
 }
 

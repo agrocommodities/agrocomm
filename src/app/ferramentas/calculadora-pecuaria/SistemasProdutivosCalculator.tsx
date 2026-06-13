@@ -65,7 +65,8 @@ const SYSTEMS: SystemDefinition[] = [
     months: 17,
     entryWeight: 0,
     exitWeight: 200,
-    description: "Gestação mais criação até a desmama, com venda em leilão ou para pecuarista.",
+    description:
+      "Gestação mais criação até a desmama, com venda em leilão ou para pecuarista.",
   },
   {
     id: "cria-novilho",
@@ -95,7 +96,8 @@ const SYSTEMS: SystemDefinition[] = [
     months: 18,
     entryWeight: 200,
     exitWeight: 400,
-    description: "Compra de bezerro ou bezerra e venda como boi, vaca ou garrote.",
+    description:
+      "Compra de bezerro ou bezerra e venda como boi, vaca ou garrote.",
   },
   {
     id: "recria-abate",
@@ -115,7 +117,8 @@ const SYSTEMS: SystemDefinition[] = [
     months: 8,
     entryWeight: 380,
     exitWeight: 500,
-    description: "Compra de adulto magro e venda gordo em leilão ou para pecuarista.",
+    description:
+      "Compra de adulto magro e venda gordo em leilão ou para pecuarista.",
   },
   {
     id: "engorda-abate",
@@ -219,19 +222,23 @@ export default function SistemasProdutivosCalculator({ quotes }: Props) {
       const animalsBorn = isCria ? quantity * (birthRate / 100) : quantity;
       const animalsSold = animalsBorn * (1 - mortality / 100);
       const localMonths = system.id === systemId ? months : system.months;
-      const localEntryWeight = system.id === systemId ? entryWeight : system.entryWeight;
-      const localExitWeight = system.id === systemId ? exitWeight : system.exitWeight;
+      const localExitWeight =
+        system.id === systemId ? exitWeight : system.exitWeight;
       const purchaseCosts = isCria ? 0 : purchasePriceHead * quantity;
-      const productionCosts = monthlyCosts * localMonths + fixedCosts + purchaseCosts;
+      const productionCosts =
+        monthlyCosts * localMonths + fixedCosts + purchaseCosts;
 
       const livePrice = sex === "macho" ? livePriceMale : livePriceFemale;
       const grossRevenue = system.liveSale
         ? animalsSold * localExitWeight * livePrice
-        : animalsSold * ((localExitWeight * (carcassYield / 100)) / 15) * quote.price;
+        : animalsSold *
+          ((localExitWeight * (carcassYield / 100)) / 15) *
+          quote.price;
 
       const commercialCosts = system.liveSale
         ? grossRevenue *
-            ((saleChannel === "leilao" ? auctionCommission : brokerCommission) / 100) +
+            ((saleChannel === "leilao" ? auctionCommission : brokerCommission) /
+              100) +
           grossRevenue * (invoiceTax / 100) +
           (saleChannel === "leilao" ? freight : 0)
         : grossRevenue * (invoiceTax / 100);
@@ -246,11 +253,14 @@ export default function SistemasProdutivosCalculator({ quotes }: Props) {
           animalsSold *
           ((localExitWeight * (carcassYield / 100)) / 15) *
           quote.price;
-        const maximumBuyerPurchase = buyerResaleRevenue * (1 - buyerTargetMargin / 100);
-        buyerMarginRequired = grossRevenue > 0
-          ? ((buyerResaleRevenue - grossRevenue) / buyerResaleRevenue) * 100
-          : 0;
-        if (maximumBuyerPurchase < grossRevenue) buyerMarginRequired = -Math.abs(buyerMarginRequired);
+        const maximumBuyerPurchase =
+          buyerResaleRevenue * (1 - buyerTargetMargin / 100);
+        buyerMarginRequired =
+          grossRevenue > 0
+            ? ((buyerResaleRevenue - grossRevenue) / buyerResaleRevenue) * 100
+            : 0;
+        if (maximumBuyerPurchase < grossRevenue)
+          buyerMarginRequired = -Math.abs(buyerMarginRequired);
       }
 
       return {
@@ -272,7 +282,6 @@ export default function SistemasProdutivosCalculator({ quotes }: Props) {
     birthRate,
     mortality,
     months,
-    entryWeight,
     exitWeight,
     purchasePriceHead,
     monthlyCosts,
@@ -315,7 +324,9 @@ export default function SistemasProdutivosCalculator({ quotes }: Props) {
             ))}
           </select>
         </label>
-        <p className="mt-3 text-sm leading-relaxed text-white/45">{selected.description}</p>
+        <p className="mt-3 text-sm leading-relaxed text-white/45">
+          {selected.description}
+        </p>
       </section>
 
       <div className="grid min-w-0 gap-6 xl:grid-cols-[1.05fr_0.95fr]">
@@ -323,16 +334,69 @@ export default function SistemasProdutivosCalculator({ quotes }: Props) {
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
             <h2 className="mb-4 text-lg font-semibold">Animais e ciclo</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <NumberField label={selected.group === "Cria" ? "Matrizes expostas" : "Animais comprados"} value={quantity} onChange={setQuantity} suffix="cabeças" />
-              {selected.group === "Cria" && <NumberField label="Taxa de natalidade" value={birthRate} onChange={setBirthRate} suffix="%" />}
-              <NumberField label="Mortalidade no ciclo" value={mortality} onChange={setMortality} suffix="%" step={0.1} />
-              <NumberField label="Duração total" value={months} onChange={setMonths} suffix="meses" min={1} />
-              {selected.group !== "Cria" && <NumberField label="Peso de entrada" value={entryWeight} onChange={setEntryWeight} suffix="kg" />}
-              <NumberField label="Peso de venda" value={exitWeight} onChange={setExitWeight} suffix="kg vivo" />
-              {selected.group !== "Cria" && <NumberField label="Compra por cabeça" value={purchasePriceHead} onChange={setPurchasePriceHead} suffix="R$" />}
+              <NumberField
+                label={
+                  selected.group === "Cria"
+                    ? "Matrizes expostas"
+                    : "Animais comprados"
+                }
+                value={quantity}
+                onChange={setQuantity}
+                suffix="cabeças"
+              />
+              {selected.group === "Cria" && (
+                <NumberField
+                  label="Taxa de natalidade"
+                  value={birthRate}
+                  onChange={setBirthRate}
+                  suffix="%"
+                />
+              )}
+              <NumberField
+                label="Mortalidade no ciclo"
+                value={mortality}
+                onChange={setMortality}
+                suffix="%"
+                step={0.1}
+              />
+              <NumberField
+                label="Duração total"
+                value={months}
+                onChange={setMonths}
+                suffix="meses"
+                min={1}
+              />
+              {selected.group !== "Cria" && (
+                <NumberField
+                  label="Peso de entrada"
+                  value={entryWeight}
+                  onChange={setEntryWeight}
+                  suffix="kg"
+                />
+              )}
+              <NumberField
+                label="Peso de venda"
+                value={exitWeight}
+                onChange={setExitWeight}
+                suffix="kg vivo"
+              />
+              {selected.group !== "Cria" && (
+                <NumberField
+                  label="Compra por cabeça"
+                  value={purchasePriceHead}
+                  onChange={setPurchasePriceHead}
+                  suffix="R$"
+                />
+              )}
               <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium text-white/55">Sexo do lote</span>
-                <select value={sex} onChange={(event) => setSex(event.target.value as Sex)} className="rounded-xl border border-white/10 bg-[#151a13] px-3 py-2.5 text-sm">
+                <span className="text-xs font-medium text-white/55">
+                  Sexo do lote
+                </span>
+                <select
+                  value={sex}
+                  onChange={(event) => setSex(event.target.value as Sex)}
+                  className="rounded-xl border border-white/10 bg-[#151a13] px-3 py-2.5 text-sm"
+                >
                   <option value="macho">Machos</option>
                   <option value="femea">Fêmeas</option>
                 </select>
@@ -345,11 +409,31 @@ export default function SistemasProdutivosCalculator({ quotes }: Props) {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {selected.liveSale ? (
                 <>
-                  <NumberField label="Preço do kg vivo — macho" value={livePriceMale} onChange={setLivePriceMale} suffix="R$/kg" step={0.01} />
-                  <NumberField label="Preço do kg vivo — fêmea" value={livePriceFemale} onChange={setLivePriceFemale} suffix="R$/kg" step={0.01} />
+                  <NumberField
+                    label="Preço do kg vivo — macho"
+                    value={livePriceMale}
+                    onChange={setLivePriceMale}
+                    suffix="R$/kg"
+                    step={0.01}
+                  />
+                  <NumberField
+                    label="Preço do kg vivo — fêmea"
+                    value={livePriceFemale}
+                    onChange={setLivePriceFemale}
+                    suffix="R$/kg"
+                    step={0.01}
+                  />
                   <label className="flex flex-col gap-1.5">
-                    <span className="text-xs font-medium text-white/55">Canal de venda</span>
-                    <select value={saleChannel} onChange={(event) => setSaleChannel(event.target.value as SaleChannel)} className="rounded-xl border border-white/10 bg-[#151a13] px-3 py-2.5 text-sm">
+                    <span className="text-xs font-medium text-white/55">
+                      Canal de venda
+                    </span>
+                    <select
+                      value={saleChannel}
+                      onChange={(event) =>
+                        setSaleChannel(event.target.value as SaleChannel)
+                      }
+                      className="rounded-xl border border-white/10 bg-[#151a13] px-3 py-2.5 text-sm"
+                    >
                       <option value="leilao">Leilão</option>
                       <option value="pecuarista">Outro pecuarista</option>
                     </select>
@@ -358,16 +442,34 @@ export default function SistemasProdutivosCalculator({ quotes }: Props) {
               ) : (
                 <>
                   <label className="flex flex-col gap-1.5 sm:col-span-2">
-                    <span className="text-xs font-medium text-white/55">Cotação para abate</span>
-                    <select value={quoteIndex} onChange={(event) => setQuoteIndex(Number(event.target.value))} className="rounded-xl border border-white/10 bg-[#151a13] px-3 py-2.5 text-sm">
+                    <span className="text-xs font-medium text-white/55">
+                      Cotação para abate
+                    </span>
+                    <select
+                      value={quoteIndex}
+                      onChange={(event) =>
+                        setQuoteIndex(Number(event.target.value))
+                      }
+                      className="rounded-xl border border-white/10 bg-[#151a13] px-3 py-2.5 text-sm"
+                    >
                       {quotes.map((item, index) => (
-                        <option key={`${item.productSlug}-${item.city}-${item.state}`} value={index}>
-                          {item.label} — {item.city}/{item.state} — R$ {item.price.toFixed(2)}/@
+                        <option
+                          key={`${item.productSlug}-${item.city}-${item.state}`}
+                          value={index}
+                        >
+                          {item.label} — {item.city}/{item.state} — R${" "}
+                          {item.price.toFixed(2)}/@
                         </option>
                       ))}
                     </select>
                   </label>
-                  <NumberField label="Rendimento de carcaça" value={carcassYield} onChange={setCarcassYield} suffix="%" step={0.5} />
+                  <NumberField
+                    label="Rendimento de carcaça"
+                    value={carcassYield}
+                    onChange={setCarcassYield}
+                    suffix="%"
+                    step={0.5}
+                  />
                 </>
               )}
             </div>
@@ -376,49 +478,144 @@ export default function SistemasProdutivosCalculator({ quotes }: Props) {
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
             <h2 className="mb-4 text-lg font-semibold">Custos</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <NumberField label="Custos mensais totais" value={monthlyCosts} onChange={setMonthlyCosts} suffix="R$/mês" />
-              <NumberField label="Estruturas e manutenção" value={fixedCosts} onChange={setFixedCosts} suffix="R$ total" />
-              <NumberField label="Nota fiscal" value={invoiceTax} onChange={setInvoiceTax} suffix="% receita" step={0.1} />
+              <NumberField
+                label="Custos mensais totais"
+                value={monthlyCosts}
+                onChange={setMonthlyCosts}
+                suffix="R$/mês"
+              />
+              <NumberField
+                label="Estruturas e manutenção"
+                value={fixedCosts}
+                onChange={setFixedCosts}
+                suffix="R$ total"
+              />
+              <NumberField
+                label="Nota fiscal"
+                value={invoiceTax}
+                onChange={setInvoiceTax}
+                suffix="% receita"
+                step={0.1}
+              />
               {selected.liveSale && saleChannel === "leilao" && (
                 <>
-                  <NumberField label="Frete" value={freight} onChange={setFreight} suffix="R$ total" />
-                  <NumberField label="Comissão do leilão" value={auctionCommission} onChange={setAuctionCommission} suffix="% receita" step={0.1} />
+                  <NumberField
+                    label="Frete"
+                    value={freight}
+                    onChange={setFreight}
+                    suffix="R$ total"
+                  />
+                  <NumberField
+                    label="Comissão do leilão"
+                    value={auctionCommission}
+                    onChange={setAuctionCommission}
+                    suffix="% receita"
+                    step={0.1}
+                  />
                 </>
               )}
-              {selected.liveSale && saleChannel === "pecuarista" && <NumberField label="Comissão do corretor" value={brokerCommission} onChange={setBrokerCommission} suffix="% receita" step={0.1} />}
-              {selected.id === "engorda-vivo" && <NumberField label="Margem desejada pelo comprador" value={buyerTargetMargin} onChange={setBuyerTargetMargin} suffix="%" step={0.5} />}
+              {selected.liveSale && saleChannel === "pecuarista" && (
+                <NumberField
+                  label="Comissão do corretor"
+                  value={brokerCommission}
+                  onChange={setBrokerCommission}
+                  suffix="% receita"
+                  step={0.1}
+                />
+              )}
+              {selected.id === "engorda-vivo" && (
+                <NumberField
+                  label="Margem desejada pelo comprador"
+                  value={buyerTargetMargin}
+                  onChange={setBuyerTargetMargin}
+                  suffix="%"
+                  step={0.5}
+                />
+              )}
             </div>
           </section>
         </div>
 
         <div className="flex min-w-0 flex-col gap-6">
-          <section className={`rounded-2xl border p-5 ${current.profit >= 0 ? "border-green-500/25 bg-green-500/8" : "border-red-500/25 bg-red-500/8"}`}>
-            <p className="text-xs uppercase tracking-wider text-white/40">Resultado do sistema selecionado</p>
+          <section
+            className={`rounded-2xl border p-5 ${current.profit >= 0 ? "border-green-500/25 bg-green-500/8" : "border-red-500/25 bg-red-500/8"}`}
+          >
+            <p className="text-xs uppercase tracking-wider text-white/40">
+              Resultado do sistema selecionado
+            </p>
             <h2 className="mt-1 text-lg font-semibold">{current.label}</h2>
-            <p className={`mt-3 text-4xl font-extrabold ${current.profit >= 0 ? "text-green-400" : "text-red-400"}`}>{money.format(current.profit)}</p>
+            <p
+              className={`mt-3 text-4xl font-extrabold ${current.profit >= 0 ? "text-green-400" : "text-red-400"}`}
+            >
+              {money.format(current.profit)}
+            </p>
             <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-              <div><span className="text-white/35">Receita</span><p>{money.format(current.revenue)}</p></div>
-              <div><span className="text-white/35">Custos</span><p>{money.format(current.totalCosts)}</p></div>
-              <div><span className="text-white/35">Margem</span><p>{decimal.format(current.margin)}%</p></div>
-              <div><span className="text-white/35">Lucro mensal médio</span><p>{money.format(current.monthlyProfit)}</p></div>
+              <div>
+                <span className="text-white/35">Receita</span>
+                <p>{money.format(current.revenue)}</p>
+              </div>
+              <div>
+                <span className="text-white/35">Custos</span>
+                <p>{money.format(current.totalCosts)}</p>
+              </div>
+              <div>
+                <span className="text-white/35">Margem</span>
+                <p>{decimal.format(current.margin)}%</p>
+              </div>
+              <div>
+                <span className="text-white/35">Lucro mensal médio</span>
+                <p>{money.format(current.monthlyProfit)}</p>
+              </div>
             </div>
             {current.buyerMarginRequired !== null && (
               <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-500/5 p-3 text-sm">
-                <span className="text-white/45">Margem estimada disponível ao comprador:</span>
-                <p className="mt-1 font-semibold text-amber-300">{decimal.format(current.buyerMarginRequired)}%</p>
+                <span className="text-white/45">
+                  Margem estimada disponível ao comprador:
+                </span>
+                <p className="mt-1 font-semibold text-amber-300">
+                  {decimal.format(current.buyerMarginRequired)}%
+                </p>
               </div>
             )}
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-            <h2 className="text-lg font-semibold">Lucro total por modalidade</h2>
+            <h2 className="text-lg font-semibold">
+              Lucro total por modalidade
+            </h2>
             <div className="mt-4 h-80 min-w-0">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 8, left: 0, bottom: 70 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.08)" />
-                  <XAxis dataKey="name" angle={-28} textAnchor="end" interval={0} height={90} tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }} />
-                  <YAxis tickFormatter={(value) => `R$ ${Math.round(Number(value) / 1000)}k`} tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }} width={58} />
-                  <Tooltip formatter={(value) => money.format(Number(value))} contentStyle={{ background: "#151a13", border: "1px solid rgba(255,255,255,.12)", borderRadius: 12 }} />
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 10, right: 8, left: 0, bottom: 70 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(255,255,255,.08)"
+                  />
+                  <XAxis
+                    dataKey="name"
+                    angle={-28}
+                    textAnchor="end"
+                    interval={0}
+                    height={90}
+                    tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }}
+                  />
+                  <YAxis
+                    tickFormatter={(value) =>
+                      `R$ ${Math.round(Number(value) / 1000)}k`
+                    }
+                    tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }}
+                    width={58}
+                  />
+                  <Tooltip
+                    formatter={(value) => money.format(Number(value))}
+                    contentStyle={{
+                      background: "#151a13",
+                      border: "1px solid rgba(255,255,255,.12)",
+                      borderRadius: 12,
+                    }}
+                  />
                   <Legend />
                   <Bar dataKey="lucro" name="Lucro total" fill="#4ade80" />
                 </BarChart>
@@ -427,30 +624,88 @@ export default function SistemasProdutivosCalculator({ quotes }: Props) {
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-            <h2 className="text-lg font-semibold">Rentabilidade mensal por modalidade</h2>
+            <h2 className="text-lg font-semibold">
+              Rentabilidade mensal por modalidade
+            </h2>
             <div className="mt-4 h-80 min-w-0">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 8, left: 0, bottom: 70 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.08)" />
-                  <XAxis dataKey="name" angle={-28} textAnchor="end" interval={0} height={90} tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }} />
-                  <YAxis tickFormatter={(value) => `R$ ${Math.round(Number(value) / 1000)}k`} tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }} width={58} />
-                  <Tooltip formatter={(value) => money.format(Number(value))} contentStyle={{ background: "#151a13", border: "1px solid rgba(255,255,255,.12)", borderRadius: 12 }} />
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 10, right: 8, left: 0, bottom: 70 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(255,255,255,.08)"
+                  />
+                  <XAxis
+                    dataKey="name"
+                    angle={-28}
+                    textAnchor="end"
+                    interval={0}
+                    height={90}
+                    tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }}
+                  />
+                  <YAxis
+                    tickFormatter={(value) =>
+                      `R$ ${Math.round(Number(value) / 1000)}k`
+                    }
+                    tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }}
+                    width={58}
+                  />
+                  <Tooltip
+                    formatter={(value) => money.format(Number(value))}
+                    contentStyle={{
+                      background: "#151a13",
+                      border: "1px solid rgba(255,255,255,.12)",
+                      borderRadius: 12,
+                    }}
+                  />
                   <Legend />
-                  <Bar dataKey="mensal" name="Lucro mensal médio" fill="#facc15" />
+                  <Bar
+                    dataKey="mensal"
+                    name="Lucro mensal médio"
+                    fill="#facc15"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
-            <h2 className="text-lg font-semibold">Margem percentual por modalidade</h2>
+            <h2 className="text-lg font-semibold">
+              Margem percentual por modalidade
+            </h2>
             <div className="mt-4 h-72 min-w-0">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 8, left: 0, bottom: 70 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.08)" />
-                  <XAxis dataKey="name" angle={-28} textAnchor="end" interval={0} height={90} tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }} />
-                  <YAxis tickFormatter={(value) => `${value}%`} tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }} width={48} />
-                  <Tooltip formatter={(value) => `${Number(value).toFixed(1)}%`} contentStyle={{ background: "#151a13", border: "1px solid rgba(255,255,255,.12)", borderRadius: 12 }} />
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 10, right: 8, left: 0, bottom: 70 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(255,255,255,.08)"
+                  />
+                  <XAxis
+                    dataKey="name"
+                    angle={-28}
+                    textAnchor="end"
+                    interval={0}
+                    height={90}
+                    tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }}
+                  />
+                  <YAxis
+                    tickFormatter={(value) => `${value}%`}
+                    tick={{ fill: "rgba(255,255,255,.45)", fontSize: 10 }}
+                    width={48}
+                  />
+                  <Tooltip
+                    formatter={(value) => `${Number(value).toFixed(1)}%`}
+                    contentStyle={{
+                      background: "#151a13",
+                      border: "1px solid rgba(255,255,255,.12)",
+                      borderRadius: 12,
+                    }}
+                  />
                   <Legend />
                   <Bar dataKey="margem" name="Margem" fill="#60a5fa" />
                 </BarChart>

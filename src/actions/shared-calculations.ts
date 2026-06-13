@@ -16,7 +16,11 @@ export type SharedCalculatorData = {
 };
 
 function isValidData(data: SharedCalculatorData): boolean {
-  if (!Array.isArray(data.fields) || data.fields.length === 0 || data.fields.length > 100) {
+  if (
+    !Array.isArray(data.fields) ||
+    data.fields.length === 0 ||
+    data.fields.length > 100
+  ) {
     return false;
   }
 
@@ -55,7 +59,11 @@ export async function createSharedCalculation(
 export async function getSharedCalculation(
   uuid: string,
 ): Promise<SharedCalculatorData | null> {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(uuid)) {
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      uuid,
+    )
+  ) {
     return null;
   }
 
