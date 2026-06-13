@@ -173,8 +173,9 @@ export default function CalculadoraPecuaria({ quotes }: Props) {
   }
 
   const result = useMemo(() => {
-    const monthlyPerHead = sal + veterinario + peao + vacinas + vermifugo + outros;
-    const recurringCosts = monthlyPerHead * quantidade * meses;
+    const monthlyOperatingCosts =
+      sal + veterinario + peao + vacinas + vermifugo + outros;
+    const recurringCosts = monthlyOperatingCosts * meses;
     const optionalCosts = cercasPastagens + estruturaAgua;
     const purchaseCosts = sistema === "cria" ? 0 : precoCompraCabeca * quantidade;
     const totalCosts = recurringCosts + optionalCosts + purchaseCosts;
@@ -192,7 +193,7 @@ export default function CalculadoraPecuaria({ quotes }: Props) {
     const chart = Array.from({ length: meses + 1 }, (_, month) => {
       const progress = meses === 0 ? 1 : month / meses;
       const accumulatedRecurring = recurringCosts * progress;
-      const initialCosts = month === 0 ? purchaseCosts + optionalCosts : purchaseCosts + optionalCosts;
+      const initialCosts = purchaseCosts + optionalCosts;
       const costs = initialCosts + accumulatedRecurring;
       const revenue = month === meses ? grossRevenue : 0;
       return {
@@ -204,7 +205,7 @@ export default function CalculadoraPecuaria({ quotes }: Props) {
     });
 
     return {
-      monthlyPerHead,
+      monthlyOperatingCosts,
       recurringCosts,
       purchaseCosts,
       totalCosts,
@@ -223,12 +224,12 @@ export default function CalculadoraPecuaria({ quotes }: Props) {
     vacinas,
     vermifugo,
     outros,
-    quantidade,
     meses,
     cercasPastagens,
     estruturaAgua,
     sistema,
     precoCompraCabeca,
+    quantidade,
     taxaNatalidade,
     mortalidade,
     pesoSaida,
@@ -301,14 +302,16 @@ export default function CalculadoraPecuaria({ quotes }: Props) {
 
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
             <h2 className="mb-1 text-lg font-semibold">Custos</h2>
-            <p className="mb-4 text-xs text-white/35">Valores mensais por cabeça, exceto estruturas e manutenção.</p>
+            <p className="mb-4 text-xs text-white/35">
+              Informe o valor mensal total de cada despesa para toda a operação. Esses valores não são multiplicados pela quantidade de animais.
+            </p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Field label="Sal e suplementação" value={sal} onChange={setSal} suffix="R$/mês" />
-              <Field label="Veterinário" value={veterinario} onChange={setVeterinario} suffix="R$/mês" />
-              <Field label="Peão / mão de obra" value={peao} onChange={setPeao} suffix="R$/mês" />
-              <Field label="Vacinas" value={vacinas} onChange={setVacinas} suffix="R$/mês" />
-              <Field label="Vermífugo" value={vermifugo} onChange={setVermifugo} suffix="R$/mês" />
-              <Field label="Outros custos" value={outros} onChange={setOutros} suffix="R$/mês" />
+              <Field label="Sal e suplementação" value={sal} onChange={setSal} suffix="R$/mês total" />
+              <Field label="Veterinário" value={veterinario} onChange={setVeterinario} suffix="R$/mês total" />
+              <Field label="Peão / mão de obra" value={peao} onChange={setPeao} suffix="R$/mês total" />
+              <Field label="Vacinas" value={vacinas} onChange={setVacinas} suffix="R$/mês total" />
+              <Field label="Vermífugo" value={vermifugo} onChange={setVermifugo} suffix="R$/mês total" />
+              <Field label="Outros custos" value={outros} onChange={setOutros} suffix="R$/mês total" />
               <Field label="Cercas e pastagens (opcional)" value={cercasPastagens} onChange={setCercasPastagens} suffix="R$ total" />
               <Field label="Pilhetas, açudes e bebedouros (opcional)" value={estruturaAgua} onChange={setEstruturaAgua} suffix="R$ total" />
             </div>
