@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -148,12 +148,15 @@ export default function SistemasProdutivosCalculatorV3({ quotes }: Props) {
     setFemaleExitWeight(next.femaleExitWeight);
   }
 
-  function purchaseUnitCost(kind: SystemDefinition["purchaseKind"]) {
-    if (kind === "matrizes") return purchaseMatrices;
-    if (kind === "bezerros") return purchaseCalves;
-    if (kind === "novilhos") return purchaseYoung;
-    return purchaseLeanAdult;
-  }
+  const purchaseUnitCost = useCallback(
+    (kind: SystemDefinition["purchaseKind"]) => {
+      if (kind === "matrizes") return purchaseMatrices;
+      if (kind === "bezerros") return purchaseCalves;
+      if (kind === "novilhos") return purchaseYoung;
+      return purchaseLeanAdult;
+    },
+    [purchaseMatrices, purchaseCalves, purchaseYoung, purchaseLeanAdult],
+  );
 
   const calculations = useMemo(() => {
     const calculate = (system: SystemDefinition): Result => {
@@ -204,7 +207,7 @@ export default function SistemasProdutivosCalculatorV3({ quotes }: Props) {
     });
 
     return { results, current, projection, saltMonthly, purchaseCosts, freightTrips, sold, males: sold * (malePercent / 100), females: sold * (femalePercent / 100) };
-  }, [systemId, selected, quantity, femalePercent, malePercent, birthRate, mortality, months, maleExitWeight, femaleExitWeight, livePriceMale, livePriceFemale, maleYield, femaleYield, maleArroba, femaleArroba, saltDailyKg, saltBagKg, saltBagPrice, veterinarianMonthly, workerMonthly, vaccineDosePrice, vaccineDoses, dewormerDosePrice, dewormerDoses, otherMonthlyCosts, fixedCosts, purchaseMatrices, purchaseCalves, purchaseYoung, purchaseLeanAdult, saleChannel, auctionCommission, brokerCommission, invoiceTax, freightPerTruck]);
+  }, [systemId, selected, quantity, femalePercent, malePercent, birthRate, mortality, months, maleExitWeight, femaleExitWeight, livePriceMale, livePriceFemale, maleYield, femaleYield, maleArroba, femaleArroba, saltDailyKg, saltBagKg, saltBagPrice, veterinarianMonthly, workerMonthly, vaccineDosePrice, vaccineDoses, dewormerDosePrice, dewormerDoses, otherMonthlyCosts, fixedCosts, purchaseUnitCost, saleChannel, auctionCommission, brokerCommission, invoiceTax, freightPerTruck]);
 
   const current = calculations.current;
   const chartData = calculations.results.map((item) => ({ name: item.label.replace(" para venda", ""), lucro: Math.round(item.profit), mensal: Math.round(item.monthlyProfit), margem: Number(item.margin.toFixed(1)) }));
