@@ -4,6 +4,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { getQuotesByCategory } from "@/actions/quotes";
 import { getSharedCalculation } from "@/actions/shared-calculations";
 import NumericInputEnhancer from "../NumericInputEnhancer";
+import SelectEnhancer from "../SelectEnhancer";
 import SistemasProdutivosCalculatorV3 from "../SistemasProdutivosCalculatorV3";
 import ShareCalculatorControls from "../ShareCalculatorControls";
 
@@ -70,6 +71,7 @@ export default async function SharedCalculatorPage({ params }: Props) {
         className="min-w-0 max-w-full overflow-x-hidden [&_div]:min-w-0 [&_input]:min-w-0 [&_input]:max-w-full [&_label]:min-w-0 [&_section]:min-w-0 [&_section]:max-w-full [&_select]:min-w-0 [&_select]:w-full [&_select]:max-w-full"
       >
         <NumericInputEnhancer />
+        <SelectEnhancer />
         <SistemasProdutivosCalculatorV3 quotes={quotes} />
       </div>
     </div>
