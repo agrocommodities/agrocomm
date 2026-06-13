@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Breadcrumb from "@/components/Breadcrumb";
 import { getQuotesByCategory } from "@/actions/quotes";
+import MobileResultsFirst from "./MobileResultsFirst";
 import NumericInputEnhancer from "./NumericInputEnhancer";
 import SelectEnhancer from "./SelectEnhancer";
 import SistemasProdutivosCalculatorV3 from "./SistemasProdutivosCalculatorV3";
@@ -55,6 +56,7 @@ export default async function CalculadoraPecuariaPage() {
       >
         <NumericInputEnhancer />
         <SelectEnhancer />
+        <MobileResultsFirst />
         <SistemasProdutivosCalculatorV3 quotes={quotes} />
       </div>
     </div>
