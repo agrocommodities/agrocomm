@@ -1,22 +1,33 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/Breadcrumb";
 import { getQuotesByCategory } from "@/actions/quotes";
-import CalculadoraPecuaria from "./CalculadoraPecuaria";
-import ShareCalculatorControls from "./ShareCalculatorControls";
+import { getSharedCalculation } from "@/actions/shared-calculations";
+import CalculadoraPecuaria from "../CalculadoraPecuaria";
+import ShareCalculatorControls from "../ShareCalculatorControls";
 
-export const revalidate = 300;
+type Props = {
+  params: Promise<{ uuid: string }>;
+};
 
 export const metadata: Metadata = {
-  title: "Calculadora de Lucro na Pecuária",
+  title: "Simulação compartilhada — Calculadora Pecuária",
   description:
-    "Simule custos, receitas e lucro em sistemas de cria, recria e engorda de bovinos usando as cotações de boi e vaca do Agrocomm.",
-  alternates: {
-    canonical: "https://agrocomm.com.br/ferramentas/calculadora-pecuaria",
+    "Visualize uma simulação compartilhada de custos, receitas e lucro na pecuária.",
+  robots: {
+    index: false,
+    follow: false,
   },
 };
 
-export default async function CalculadoraPecuariaPage() {
-  const livestockQuotes = await getQuotesByCategory("pecuaria");
+export default async function SharedCalculatorPage({ params }: Props) {
+  const { uuid } = await params;
+  const [savedData, livestockQuotes] = await Promise.all([
+    getSharedCalculation(uuid),
+    getQuotesByCategory("pecuaria"),
+  ]);
+
+  if (!savedData) notFound();
 
   const quotes = livestockQuotes.map((quote) => ({
     label: quote.productName,
@@ -32,22 +43,26 @@ export default async function CalculadoraPecuariaPage() {
         <Breadcrumb
           items={[
             { label: "Ferramentas", href: "/ferramentas" },
-            { label: "Calculadora pecuária" },
+            {
+              label: "Calculadora pecuária",
+              href: "/ferramentas/calculadora-pecuaria",
+            },
+            { label: "Simulação compartilhada" },
           ]}
         />
         <div className="mt-2 flex min-w-0 flex-col gap-2">
           <h1 className="break-words text-3xl font-bold sm:text-4xl">
-            🐂 Calculadora de lucro na pecuária
+            🐂 Simulação pecuária compartilhada
           </h1>
           <p className="max-w-3xl text-sm leading-relaxed text-white/50 sm:text-base">
-            Compare gastos e receitas em operações de cria, recria e engorda.
-            A simulação utiliza as cotações de arroba já disponíveis no Agrocomm
-            e permite ajustar todos os parâmetros à realidade da fazenda.
+            Os campos abaixo foram recuperados de uma simulação salva. Você pode
+            alterá-los e criar um novo link sem modificar o compartilhamento
+            original.
           </p>
         </div>
       </header>
 
-      <ShareCalculatorControls />
+      <ShareCalculatorControls initialData={savedData} />
 
       <div
         data-calculator-root
