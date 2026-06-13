@@ -26,16 +26,16 @@ export default async function CalculadoraPecuariaPage() {
   }));
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-8">
-      <header>
+    <div className="mx-auto flex min-w-0 max-w-7xl flex-col gap-8 overflow-x-hidden">
+      <header className="min-w-0">
         <Breadcrumb
           items={[
             { label: "Ferramentas", href: "/ferramentas" },
             { label: "Calculadora pecuária" },
           ]}
         />
-        <div className="mt-2 flex flex-col gap-2">
-          <h1 className="text-3xl font-bold sm:text-4xl">
+        <div className="mt-2 flex min-w-0 flex-col gap-2">
+          <h1 className="break-words text-3xl font-bold sm:text-4xl">
             🐂 Calculadora de lucro na pecuária
           </h1>
           <p className="max-w-3xl text-sm leading-relaxed text-white/50 sm:text-base">
@@ -46,7 +46,9 @@ export default async function CalculadoraPecuariaPage() {
         </div>
       </header>
 
-      <CalculadoraPecuaria quotes={quotes} />
+      <div className="min-w-0 max-w-full overflow-x-hidden [&_div]:min-w-0 [&_input]:min-w-0 [&_input]:max-w-full [&_label]:min-w-0 [&_section]:min-w-0 [&_section]:max-w-full [&_select]:min-w-0 [&_select]:w-full [&_select]:max-w-full">
+        <CalculadoraPecuaria quotes={quotes} />
+      </div>
     </div>
   );
 }
