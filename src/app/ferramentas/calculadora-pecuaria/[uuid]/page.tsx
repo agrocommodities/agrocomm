@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/Breadcrumb";
 import { getQuotesByCategory } from "@/actions/quotes";
 import { getSharedCalculation } from "@/actions/shared-calculations";
-import SistemasProdutivosCalculator from "../SistemasProdutivosCalculator";
+import SistemasProdutivosCalculatorV2 from "../SistemasProdutivosCalculatorV2";
 import ShareCalculatorControls from "../ShareCalculatorControls";
 
 type Props = {
@@ -68,7 +68,7 @@ export default async function SharedCalculatorPage({ params }: Props) {
         data-calculator-root
         className="min-w-0 max-w-full overflow-x-hidden [&_div]:min-w-0 [&_input]:min-w-0 [&_input]:max-w-full [&_label]:min-w-0 [&_section]:min-w-0 [&_section]:max-w-full [&_select]:min-w-0 [&_select]:w-full [&_select]:max-w-full"
       >
-        <SistemasProdutivosCalculator quotes={quotes} />
+        <SistemasProdutivosCalculatorV2 quotes={quotes} />
       </div>
     </div>
   );
