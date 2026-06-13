@@ -117,6 +117,8 @@ export default function CalculadoraPecuaria({ quotes }: Props) {
   const [quoteIndex, setQuoteIndex] = useState(0);
   const [quantidade, setQuantidade] = useState(100);
   const [meses, setMeses] = useState(12);
+  const [mesesGestacao, setMesesGestacao] = useState(9);
+  const [mesesAteVenda, setMesesAteVenda] = useState(8);
   const [pesoEntrada, setPesoEntrada] = useState(BREEDS.nelore.recria.entrada);
   const [pesoSaida, setPesoSaida] = useState(BREEDS.nelore.cria.macho);
   const [rendimentoCarcaca, setRendimentoCarcaca] = useState(52);
@@ -150,7 +152,8 @@ export default function CalculadoraPecuaria({ quotes }: Props) {
     if (nextSystem === "cria") {
       setPesoEntrada(0);
       setPesoSaida(preset.cria[nextSex]);
-      setMeses(12);
+      setMesesGestacao(9);
+      setMesesAteVenda(8);
     } else if (nextSystem === "recria") {
       setPesoEntrada(preset.recria.entrada);
       setPesoSaida(preset.recria[nextSex]);
@@ -173,9 +176,11 @@ export default function CalculadoraPecuaria({ quotes }: Props) {
   }
 
   const result = useMemo(() => {
+    const totalCycleMonths =
+      sistema === "cria" ? mesesGestacao + mesesAteVenda : meses;
     const monthlyOperatingCosts =
       sal + veterinario + peao + vacinas + vermifugo + outros;
-    const recurringCosts = monthlyOperatingCosts * meses;
+    const recurringCosts = monthlyOperatingCosts * totalCycleMonths;
     const optionalCosts = cercasPastagens + estruturaAgua;
     const purchaseCosts = sistema === "cria" ? 0 : precoCompraCabeca * quantidade;
     const totalCosts = recurringCosts + optionalCosts + purchaseCosts;
@@ -190,12 +195,12 @@ export default function CalculadoraPecuaria({ quotes }: Props) {
       ? totalCosts / (saleAnimals * saleArrobas * (1 + premioLeilao / 100))
       : 0;
 
-    const chart = Array.from({ length: meses + 1 }, (_, month) => {
-      const progress = meses === 0 ? 1 : month / meses;
+    const chart = Array.from({ length: totalCycleMonths + 1 }, (_, month) => {
+      const progress = totalCycleMonths === 0 ? 1 : month / totalCycleMonths;
       const accumulatedRecurring = recurringCosts * progress;
       const initialCosts = purchaseCosts + optionalCosts;
       const costs = initialCosts + accumulatedRecurring;
-      const revenue = month === meses ? grossRevenue : 0;
+      const revenue = month === totalCycleMonths ? grossRevenue : 0;
       return {
         month: `Mês ${month}`,
         gastos: Math.round(costs),
@@ -205,6 +210,7 @@ export default function CalculadoraPecuaria({ quotes }: Props) {
     });
 
     return {
+      totalCycleMonths,
       monthlyOperatingCosts,
       recurringCosts,
       purchaseCosts,
@@ -225,6 +231,8 @@ export default function CalculadoraPecuaria({ quotes }: Props) {
     vermifugo,
     outros,
     meses,
+    mesesGestacao,
+    mesesAteVenda,
     cercasPastagens,
     estruturaAgua,
     sistema,
@@ -289,7 +297,20 @@ export default function CalculadoraPecuaria({ quotes }: Props) {
             <h2 className="mb-4 text-lg font-semibold">Rebanho e comercialização</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label={sistema === "cria" ? "Matrizes expostas" : "Animais comprados"} value={quantidade} onChange={setQuantidade} suffix="cabeças" />
-              <Field label="Duração do ciclo" value={meses} onChange={setMeses} suffix="meses" min={1} />
+              {sistema === "cria" ? (
+                <>
+                  <Field label="Período de gestação" value={mesesGestacao} onChange={setMesesGestacao} suffix="meses" min={1} step={0.1} />
+                  <Field label="Nascimento até a venda" value={mesesAteVenda} onChange={setMesesAteVenda} suffix="meses" min={0} step={0.1} />
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs font-medium text-white/55">Duração total do ciclo</span>
+                    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm font-semibold">
+                      {number.format(result.totalCycleMonths)} meses
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <Field label="Duração do ciclo" value={meses} onChange={setMeses} suffix="meses" min={1} />
+              )}
               {sistema !== "cria" && <Field label="Peso médio de entrada" value={pesoEntrada} onChange={setPesoEntrada} suffix="kg" />}
               <Field label="Peso médio de venda" value={pesoSaida} onChange={setPesoSaida} suffix="kg" />
               <Field label="Rendimento de carcaça" value={rendimentoCarcaca} onChange={setRendimentoCarcaca} suffix="%" step={0.5} />
@@ -298,6 +319,11 @@ export default function CalculadoraPecuaria({ quotes }: Props) {
               {sistema !== "cria" && <Field label="Compra por cabeça" value={precoCompraCabeca} onChange={setPrecoCompraCabeca} suffix="R$" />}
               <Field label="Ágio/deságio de leilão" value={premioLeilao} onChange={setPremioLeilao} suffix="%" step={0.5} min={-100} />
             </div>
+            {sistema === "cria" && (
+              <p className="mt-4 rounded-xl border border-amber-400/15 bg-amber-500/5 px-3 py-2.5 text-xs leading-relaxed text-amber-100/70">
+                No sistema de cria, os custos mensais são calculados desde o início da gestação até a idade informada para venda do bezerro.
+              </p>
+            )}
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">
