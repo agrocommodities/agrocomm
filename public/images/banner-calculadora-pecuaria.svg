@@ -31,7 +31,6 @@
 
   <g transform="translate(54 38)">
     <rect width="56" height="56" rx="16" fill="#ffffff" fill-opacity=".06" stroke="#ffffff" stroke-opacity=".1"/>
-    <image href="/images/logo.svg" x="7" y="7" width="42" height="42" preserveAspectRatio="xMidYMid meet"/>
     <text x="70" y="37" font-family="Nunito, Arial, sans-serif" font-size="27" font-weight="800" fill="#fff">AgroComm</text>
   </g>
 
@@ -41,8 +40,8 @@
     <text x="34" y="24" font-family="Nunito, Arial, sans-serif" font-size="14" font-weight="800" letter-spacing="1.2" fill="#69e696">NOVA FERRAMENTA</text>
   </g>
 
-  <text x="54" y="214" font-family="Nunito, Arial, sans-serif" font-size="51" font-weight="900" fill="#fff">CALCULADORA DE LUCRO</text>
-  <text x="54" y="270" font-family="Nunito, Arial, sans-serif" font-size="51" font-weight="900" fill="#4ade80">NA PECUÁRIA</text>
+  <text x="54" y="214" font-family="Nunito, Arial, sans-serif" font-size="49" font-weight="900" fill="#fff">CALCULADORA DE</text>
+  <text x="54" y="270" font-family="Nunito, Arial, sans-serif" font-size="49" font-weight="900" fill="#4ade80">LUCRO NA PECUÁRIA</text>
   <text x="57" y="315" font-family="Nunito, Arial, sans-serif" font-size="21" font-weight="500" fill="#c0c8bd">Compare cria, recria e engorda com custos reais,</text>
   <text x="57" y="344" font-family="Nunito, Arial, sans-serif" font-size="21" font-weight="500" fill="#c0c8bd">margens, cotações e projeções por modalidade.</text>
 
