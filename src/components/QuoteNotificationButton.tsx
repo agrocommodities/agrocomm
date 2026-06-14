@@ -34,7 +34,8 @@ export default function QuoteNotificationButton({
 }: Props) {
   const [subscribed, setSubscribed] = useState(initialSubscribed);
   const [hasSession, setHasSession] = useState(initialHasSession);
-  const [canReceiveEmails, setCanReceiveEmails] = useState(initialHasActivePlan);
+  const [canReceiveEmails, setCanReceiveEmails] =
+    useState(initialHasActivePlan);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [isPending, startTransition] = useTransition();
   const onToggleRef = useRef(onToggle);
@@ -133,7 +134,9 @@ export default function QuoteNotificationButton({
         title={title}
       >
         {isPending ? (
-          <Loader2 className={`${iconClassName ?? "w-3.5 h-3.5"} animate-spin`} />
+          <Loader2
+            className={`${iconClassName ?? "w-3.5 h-3.5"} animate-spin`}
+          />
         ) : subscribed ? (
           <BellRing className={iconClassName ?? "w-3.5 h-3.5"} />
         ) : (

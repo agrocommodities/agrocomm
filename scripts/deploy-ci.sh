@@ -24,6 +24,15 @@ done
 
 pnpm install
 
+# Antes de qualquer alteração de schema:
+# - valida a integridade do SQLite;
+# - cria um backup fora do diretório do projeto;
+# - adiciona de forma idempotente colunas ausentes em bancos legados.
+PROJECT_DIR="$STAGING" \
+ENV_FILE="$STAGING/.env.production" \
+BACKUP_DIR="/var/backups/$NAME" \
+bash "$STAGING/scripts/prepare-legacy-database.sh"
+
 if pnpm run push; then
   pnpm run seed
   pnpm run scrape
