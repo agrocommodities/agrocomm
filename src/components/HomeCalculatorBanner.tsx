@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import CommodityBulletinsBanner from "./CommodityBulletinsBanner";
 
 export default function HomeCalculatorBanner() {
   const pathname = usePathname();
@@ -11,7 +12,7 @@ export default function HomeCalculatorBanner() {
 
   return (
     <div className="bg-background px-2 pt-3 md:px-4 md:pt-5">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto grid max-w-7xl gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
         <Link
           href="/ferramentas/calculadora-pecuaria"
           aria-label="Abrir a calculadora de lucro na pecuária"
@@ -24,7 +25,7 @@ export default function HomeCalculatorBanner() {
             height={460}
             priority
             unoptimized
-            className="h-auto w-full transition duration-500 group-hover:scale-[1.005]"
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.005]"
           />
 
           <span className="pointer-events-none absolute left-[5.05%] top-[9.75%] block aspect-square w-[3.5%] min-w-4">
@@ -38,6 +39,8 @@ export default function HomeCalculatorBanner() {
             />
           </span>
         </Link>
+
+        <CommodityBulletinsBanner />
       </div>
     </div>
   );
