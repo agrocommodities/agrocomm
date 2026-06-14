@@ -218,19 +218,23 @@ export function formatQuotesBulletinBody(
           ? "📉"
           : "➡️";
     const variationStr =
-      q.variation != null
+      q.variation != null && q.variation !== 0
         ? ` (${q.variation > 0 ? "+" : ""}${q.variation.toFixed(2)}%)`
         : "";
+    // "unit" já vem como "R$/saca 60kg" — remove o prefixo "R$/" para não
+    // duplicar o símbolo de moeda do preço formatado.
+    const perUnit = q.unit.replace(/^R\$\/?/, "");
+    const priceFormatted = q.price.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+
     lines.push(
-      `${arrow} *${q.productName}* — ${q.city}/${q.state}`,
-      `   ${q.price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}/${q.unit}${variationStr}`,
-      "",
+      `${arrow} *${q.productName}* — ${q.city}/${q.state}: ${priceFormatted}/${perUnit}${variationStr}`,
     );
   }
 
-  lines.push("agrocomm.com.br");
-  // U+2028 (Line Separator) quebra a linha no WhatsApp sem disparar o
-  // erro 132018, que a API retorna para "\n" em parametros de template.
-  const LINE_SEPARATOR = String.fromCharCode(0x2028);
-  return lines.join(LINE_SEPARATOR).trim();
+  // Sem quebras de linha reais: a API rejeita "\n" em parâmetros de
+  // template (erro 132018). O WhatsApp quebra naturalmente o texto.
+  return lines.join(" • ");
 }
