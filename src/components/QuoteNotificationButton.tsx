@@ -148,7 +148,7 @@ export default function QuoteNotificationButton({
         <div
           role="status"
           aria-live="polite"
-          className={`fixed bottom-4 left-1/2 z-[100] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-xl border px-4 py-3 text-center text-sm font-medium shadow-2xl backdrop-blur sm:bottom-6 ${
+          className={`fixed bottom-4 left-1/2 z-100 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-xl border px-4 py-3 text-center text-sm font-medium shadow-2xl backdrop-blur sm:bottom-6 ${
             feedback.type === "success"
               ? "border-green-500/30 bg-green-950/95 text-green-200"
               : "border-red-500/30 bg-red-950/95 text-red-200"
