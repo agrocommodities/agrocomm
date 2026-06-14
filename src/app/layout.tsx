@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PageTracker from "@/components/PageTracker";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
+import HomeCalculatorBanner from "@/components/HomeCalculatorBanner";
 import { getSession } from "@/lib/auth";
 import type { Metadata } from "next";
 import "./globals.css";
@@ -124,6 +125,7 @@ export default async function RootLayout({
         )}
         <div className="flex flex-col min-h-screen">
           <Header />
+          <HomeCalculatorBanner />
           <main className="grow bg-background px-2 md:px-4 pb-4">
             {children}
           </main>
