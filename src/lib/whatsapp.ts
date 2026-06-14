@@ -1,5 +1,5 @@
 const GRAPH_API_VERSION = "v25.0";
-const WHATSAPP_SEND_INTERVAL_MS = 2 * 60 * 1000;
+const WHATSAPP_SEND_INTERVAL_MS = 30 * 1000;
 
 let sendQueue: Promise<void> = Promise.resolve();
 let nextAllowedSendAt = 0;
