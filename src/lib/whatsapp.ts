@@ -229,5 +229,8 @@ export function formatQuotesBulletinBody(
   }
 
   lines.push("agrocomm.com.br");
-  return lines.join("\n").trim();
+  // U+2028 (Line Separator) quebra a linha no WhatsApp sem disparar o
+  // erro 132018, que a API retorna para "\n" em parametros de template.
+  const LINE_SEPARATOR = String.fromCharCode(0x2028);
+  return lines.join(LINE_SEPARATOR).trim();
 }
