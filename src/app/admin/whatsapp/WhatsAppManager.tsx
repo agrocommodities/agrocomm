@@ -55,8 +55,8 @@ export default function WhatsAppManager({
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<{
     total: number;
-    success: number;
-    errors: number;
+    started?: boolean;
+    error?: boolean;
   } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -144,14 +144,9 @@ export default function WhatsAppManager({
     setSendResult(null);
     try {
       const result = await sendManualSubscribersQuotes();
-      setSendResult({
-        total: result.total,
-        success: result.success,
-        errors: result.errors,
-      });
-      router.refresh();
+      setSendResult({ total: result.total, started: result.started });
     } catch {
-      setSendResult({ total: 0, success: 0, errors: 1 });
+      setSendResult({ total: 0, error: true });
     } finally {
       setSending(false);
     }
@@ -232,15 +227,15 @@ export default function WhatsAppManager({
       {sendResult && (
         <div
           className={`p-4 rounded-xl border ${
-            sendResult.errors > 0
+            sendResult.error
               ? "bg-red-500/10 border-red-500/20"
               : "bg-green-500/10 border-green-500/20"
           }`}
         >
           <p className="text-sm font-medium">
-            Envio concluído: {sendResult.success}/{sendResult.total} enviados
-            com sucesso
-            {sendResult.errors > 0 && `, ${sendResult.errors} erro(s)`}
+            {sendResult.error
+              ? "Não foi possível iniciar o envio. Tente novamente."
+              : `Envio iniciado em segundo plano para ${sendResult.total} assinante(s). Acompanhe o progresso em "Histórico de Envios" (atualize a página em alguns instantes).`}
           </p>
         </div>
       )}

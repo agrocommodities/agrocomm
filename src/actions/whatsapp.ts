@@ -17,6 +17,7 @@ import {
 import { eq, desc, and, inArray, sql, count } from "drizzle-orm";
 import { getSession, getUserPermissions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import {
   sendWhatsAppBulletinTemplate,
   formatQuotesBulletinBody,
@@ -443,6 +444,12 @@ export async function sendDailyQuotes() {
   return sendDailyQuotesInternal();
 }
 
+/**
+ * Dispara o envio em segundo plano (via after()) para não bloquear a
+ * resposta da server action — o envio respeita o intervalo entre
+ * mensagens e pode levar minutos para todos os assinantes.
+ * Acompanhe o progresso em "Histórico de Envios".
+ */
 export async function sendManualSubscribersQuotes() {
   await requireAdmin();
 
@@ -451,41 +458,24 @@ export async function sendManualSubscribersQuotes() {
     .from(whatsappSubscribers)
     .where(eq(whatsappSubscribers.active, 1));
 
-  const results: Array<{
-    phone: string;
-    name: string;
-    success: boolean;
-    error?: string;
-  }> = [];
+  after(async () => {
+    for (const sub of activeSubs) {
+      const subProducts = await db
+        .select({ productId: whatsappSubscriberProducts.productId })
+        .from(whatsappSubscriberProducts)
+        .where(eq(whatsappSubscriberProducts.subscriberId, sub.id));
 
-  for (const sub of activeSubs) {
-    const subProducts = await db
-      .select({ productId: whatsappSubscriberProducts.productId })
-      .from(whatsappSubscriberProducts)
-      .where(eq(whatsappSubscriberProducts.subscriberId, sub.id));
+      const productIds = subProducts.map((p) => p.productId);
+      await _sendQuotesToSubscriber({
+        id: sub.id,
+        name: sub.name,
+        phone: sub.phone,
+        productIds,
+      });
+    }
+  });
 
-    const productIds = subProducts.map((p) => p.productId);
-    const result = await _sendQuotesToSubscriber({
-      id: sub.id,
-      name: sub.name,
-      phone: sub.phone,
-      productIds,
-    });
-
-    results.push({
-      phone: sub.phone,
-      name: sub.name,
-      success: result.success,
-      error: result.error,
-    });
-  }
-
-  return {
-    total: results.length,
-    success: results.filter((r) => r.success).length,
-    errors: results.filter((r) => !r.success).length,
-    details: results,
-  };
+  return { total: activeSubs.length, started: true };
 }
 
 /**
