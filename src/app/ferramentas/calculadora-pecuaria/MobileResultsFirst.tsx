@@ -13,9 +13,8 @@ export default function MobileResultsFirst() {
           element.textContent?.trim() === "Resultado do sistema selecionado",
       );
 
-      const resultColumn = resultLabel?.closest<HTMLElement>(
-        ":scope section",
-      )?.parentElement;
+      const resultColumn =
+        resultLabel?.closest<HTMLElement>(":scope section")?.parentElement;
       const columnsGrid = resultColumn?.parentElement;
 
       if (!resultColumn || !columnsGrid) return;
