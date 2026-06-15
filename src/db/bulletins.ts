@@ -111,7 +111,12 @@ async function sendQuoteBulletins() {
       .innerJoin(products, eq(userQuoteSubscriptions.productId, products.id))
       .leftJoin(cities, eq(userQuoteSubscriptions.cityId, cities.id))
       .leftJoin(states, eq(cities.stateId, states.id))
-      .where(eq(userQuoteSubscriptions.userId, sub.userId));
+      .where(
+        and(
+          eq(userQuoteSubscriptions.userId, sub.userId),
+          eq(userQuoteSubscriptions.notifyEmail, 1),
+        ),
+      );
 
     if (followed.length === 0) continue;
 

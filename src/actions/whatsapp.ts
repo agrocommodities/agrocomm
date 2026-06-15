@@ -357,7 +357,12 @@ async function sendQuotesToUser(user: {
     .innerJoin(products, eq(userQuoteSubscriptions.productId, products.id))
     .leftJoin(cities, eq(userQuoteSubscriptions.cityId, cities.id))
     .leftJoin(states, eq(cities.stateId, states.id))
-    .where(eq(userQuoteSubscriptions.userId, user.userId));
+    .where(
+      and(
+        eq(userQuoteSubscriptions.userId, user.userId),
+        eq(userQuoteSubscriptions.notifyWhatsapp, 1),
+      ),
+    );
 
   if (followed.length === 0) {
     return { success: false, error: "Nenhuma cotação assinada" };

@@ -1,8 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Bell, BellRing, Loader2 } from "lucide-react";
-import { toggleQuoteSubscription } from "@/actions/subscriptions";
+import {
+  Bell,
+  BellRing,
+  Check,
+  Loader2,
+  Mail,
+  MessageCircle,
+} from "lucide-react";
+import {
+  toggleQuoteSubscription,
+  unsubscribeQuote,
+  type QuoteNotificationChannel,
+} from "@/actions/subscriptions";
 import { getQuoteSubscriptionStatus } from "@/actions/quote-subscription-status";
 import { useRouter } from "next/navigation";
 
@@ -33,12 +44,17 @@ export default function QuoteNotificationButton({
   onToggle,
 }: Props) {
   const [subscribed, setSubscribed] = useState(initialSubscribed);
+  const [notifyEmail, setNotifyEmail] = useState(false);
+  const [notifyWhatsapp, setNotifyWhatsapp] = useState(false);
   const [hasSession, setHasSession] = useState(initialHasSession);
   const [canReceiveEmails, setCanReceiveEmails] =
     useState(initialHasActivePlan);
+  const [hasVerifiedPhone, setHasVerifiedPhone] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const onToggleRef = useRef(onToggle);
+  const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -54,7 +70,10 @@ export default function QuoteNotificationButton({
 
       setHasSession(status.hasSession);
       setCanReceiveEmails(status.canReceiveEmails);
+      setHasVerifiedPhone(status.hasVerifiedPhone);
       setSubscribed(status.subscribed);
+      setNotifyEmail(status.notifyEmail);
+      setNotifyWhatsapp(status.notifyWhatsapp);
       onToggleRef.current?.(status.subscribed);
     });
 
@@ -69,6 +88,16 @@ export default function QuoteNotificationButton({
     return () => window.clearTimeout(timeout);
   }, [feedback]);
 
+  useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    if (menuOpen) document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [menuOpen]);
+
   function handleClick(event: React.MouseEvent) {
     event.stopPropagation();
 
@@ -82,8 +111,33 @@ export default function QuoteNotificationButton({
       return;
     }
 
+    if (subscribed) {
+      startTransition(async () => {
+        const result = await unsubscribeQuote(productId, cityId);
+        setSubscribed(result.subscribed);
+        setNotifyEmail(false);
+        setNotifyWhatsapp(false);
+        onToggleRef.current?.(result.subscribed);
+        setFeedback({
+          message: "Notificações desativadas para esta cotação.",
+          type: "success",
+        });
+      });
+      return;
+    }
+
+    setMenuOpen((open) => !open);
+  }
+
+  function handleChannelClick(channel: QuoteNotificationChannel) {
+    if (channel === "whatsapp" && !hasVerifiedPhone) {
+      setMenuOpen(false);
+      router.push("/ajustes");
+      return;
+    }
+
     startTransition(async () => {
-      const result = await toggleQuoteSubscription(productId, cityId);
+      const result = await toggleQuoteSubscription(productId, cityId, channel);
 
       if (result.error) {
         if (result.error.includes("Não autenticado")) {
@@ -96,36 +150,52 @@ export default function QuoteNotificationButton({
           return;
         }
 
+        if (result.error.includes("Telefone")) {
+          router.push("/ajustes");
+          return;
+        }
+
         setFeedback({
-          message: "Não foi possível alterar o recebimento por e-mail.",
+          message: "Não foi possível alterar as notificações.",
           type: "error",
         });
         return;
       }
 
       setSubscribed(result.subscribed);
+      setNotifyEmail(result.notifyEmail);
+      setNotifyWhatsapp(result.notifyWhatsapp);
       onToggleRef.current?.(result.subscribed);
+
+      const channelLabel = channel === "email" ? "e-mail" : "WhatsApp";
+      const enabled =
+        channel === "email" ? result.notifyEmail : result.notifyWhatsapp;
       setFeedback({
-        message: result.subscribed
-          ? "Cotação adicionada aos boletins por e-mail."
-          : "Cotação removida dos boletins por e-mail.",
+        message: enabled
+          ? `Você receberá notificações desta cotação por ${channelLabel}.`
+          : `Notificações por ${channelLabel} desativadas para esta cotação.`,
         type: "success",
       });
+
+      if (!result.subscribed) {
+        setMenuOpen(false);
+      }
     });
   }
 
   const title = subscribed
-    ? "Parar de receber esta cotação por e-mail"
-    : "Receber esta cotação por e-mail";
+    ? "Parar de receber notificações desta cotação"
+    : "Receber notificações desta cotação";
 
   return (
-    <>
+    <div ref={menuRef} className="relative inline-flex">
       <button
         type="button"
         onClick={handleClick}
         disabled={isPending}
         aria-label={title}
         aria-pressed={subscribed}
+        aria-expanded={menuOpen}
         className={`rounded transition-colors cursor-pointer disabled:cursor-wait disabled:opacity-60 ${
           subscribed
             ? "text-green-400 hover:text-green-300"
@@ -144,6 +214,57 @@ export default function QuoteNotificationButton({
         )}
       </button>
 
+      <div
+        className={`absolute right-0 top-full mt-2 w-52 z-50 bg-[#2d3a28] border border-white/10 rounded-xl shadow-2xl overflow-hidden
+          transform transition-all duration-200 origin-top-right
+          ${menuOpen ? "scale-100 opacity-100" : "scale-95 opacity-0 pointer-events-none"}`}
+      >
+        <div className="px-4 py-2.5 border-b border-white/10">
+          <p className="text-xs font-semibold text-white/70">
+            Receber notificações por:
+          </p>
+        </div>
+        <div className="py-1.5">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleChannelClick("email");
+            }}
+            disabled={isPending}
+            className="flex items-center justify-between gap-3 w-full px-4 py-2.5 text-sm hover:bg-white/10 transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            <span className="flex items-center gap-3">
+              <Mail className="w-4 h-4" />
+              E-mail
+            </span>
+            {notifyEmail && <Check className="w-4 h-4 text-green-400" />}
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleChannelClick("whatsapp");
+            }}
+            disabled={isPending}
+            className="flex items-center justify-between gap-3 w-full px-4 py-2.5 text-sm hover:bg-white/10 transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            <span className="flex items-center gap-3">
+              <MessageCircle className="w-4 h-4" />
+              <span className="flex flex-col items-start">
+                WhatsApp
+                {!hasVerifiedPhone && (
+                  <span className="text-xs text-white/40">
+                    Verifique seu telefone em Ajustes
+                  </span>
+                )}
+              </span>
+            </span>
+            {notifyWhatsapp && <Check className="w-4 h-4 text-green-400" />}
+          </button>
+        </div>
+      </div>
+
       {feedback && (
         <div
           role="status"
@@ -157,6 +278,6 @@ export default function QuoteNotificationButton({
           {feedback.message}
         </div>
       )}
-    </>
+    </div>
   );
 }

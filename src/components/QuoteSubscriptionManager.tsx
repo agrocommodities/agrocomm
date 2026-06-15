@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Bell, BellOff, Trash2 } from "lucide-react";
+import { Bell, BellOff, Mail, MessageCircle, Trash2 } from "lucide-react";
 import type { QuoteSubscriptionItem } from "@/actions/subscriptions";
 import { removeQuoteSubscription } from "@/actions/subscriptions";
 
@@ -76,6 +76,20 @@ export default function QuoteSubscriptionManager({
                     {item.stateName ? `, ${item.stateName}` : ""}
                   </span>
                 )}
+                <div className="flex items-center gap-2 mt-1">
+                  {item.notifyEmail && (
+                    <span className="inline-flex items-center gap-1 text-xs text-white/40">
+                      <Mail className="w-3 h-3" />
+                      E-mail
+                    </span>
+                  )}
+                  {item.notifyWhatsapp && (
+                    <span className="inline-flex items-center gap-1 text-xs text-white/40">
+                      <MessageCircle className="w-3 h-3" />
+                      WhatsApp
+                    </span>
+                  )}
+                </div>
               </div>
               <button
                 type="button"
