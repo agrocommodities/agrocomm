@@ -43,7 +43,8 @@ export default function CommodityBulletinsBanner() {
             Cotações direto no seu e-mail e WhatsApp
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-white/55">
-            A AgroComm agora envia boletins com as commodities que você acompanha.
+            A AgroComm agora envia boletins com as commodities que você
+            acompanha.
           </p>
         </div>
 
