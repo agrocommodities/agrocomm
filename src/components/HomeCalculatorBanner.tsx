@@ -12,7 +12,7 @@ export default function HomeCalculatorBanner() {
 
   return (
     <div className="bg-background pt-3 md:pt-5">
-      <div className="mx-auto grid max-w-7xl gap-4 px-2 md:px-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="mx-auto grid max-w-7xl gap-4 px-2 md:px-4 md:gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <Link
           href="/ferramentas/calculadora-pecuaria"
           aria-label="Abrir a calculadora de lucro na pecuária"
