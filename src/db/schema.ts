@@ -689,6 +689,8 @@ export const userQuoteSubscriptions = sqliteTable("user_quote_subscriptions", {
     .notNull()
     .references(() => products.id, { onDelete: "cascade" }),
   cityId: int("city_id").references(() => cities.id, { onDelete: "cascade" }), // null = todas as cidades
+  notifyEmail: int("notify_email").notNull().default(1), // 0/1
+  notifyWhatsapp: int("notify_whatsapp").notNull().default(0), // 0/1
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });
 

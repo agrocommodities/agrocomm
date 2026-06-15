@@ -10,6 +10,7 @@ import {
   products,
   cities,
   states,
+  users,
 } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 
@@ -169,6 +170,8 @@ export interface QuoteSubscriptionItem {
   cityId: number | null;
   cityName: string | null;
   stateName: string | null;
+  notifyEmail: boolean;
+  notifyWhatsapp: boolean;
 }
 
 export async function getUserQuoteSubscriptions(): Promise<
@@ -186,6 +189,8 @@ export async function getUserQuoteSubscriptions(): Promise<
       cityId: userQuoteSubscriptions.cityId,
       cityName: cities.name,
       stateName: states.name,
+      notifyEmail: userQuoteSubscriptions.notifyEmail,
+      notifyWhatsapp: userQuoteSubscriptions.notifyWhatsapp,
     })
     .from(userQuoteSubscriptions)
     .innerJoin(products, eq(userQuoteSubscriptions.productId, products.id))
@@ -193,20 +198,61 @@ export async function getUserQuoteSubscriptions(): Promise<
     .leftJoin(states, eq(cities.stateId, states.id))
     .where(eq(userQuoteSubscriptions.userId, session.userId));
 
-  return rows;
+  return rows.map((row) => ({
+    ...row,
+    notifyEmail: row.notifyEmail === 1,
+    notifyWhatsapp: row.notifyWhatsapp === 1,
+  }));
 }
+
+export type QuoteNotificationChannel = "email" | "whatsapp";
 
 export async function toggleQuoteSubscription(
   productId: number,
   cityId: number | null,
-): Promise<{ subscribed: boolean; error?: string }> {
+  channel: QuoteNotificationChannel,
+): Promise<{
+  subscribed: boolean;
+  notifyEmail: boolean;
+  notifyWhatsapp: boolean;
+  error?: string;
+}> {
   const session = await getSession();
-  if (!session) return { subscribed: false, error: "Não autenticado" };
+  if (!session) {
+    return {
+      subscribed: false,
+      notifyEmail: false,
+      notifyWhatsapp: false,
+      error: "Não autenticado",
+    };
+  }
 
   // Check if user has active subscription
   const sub = await getUserSubscription();
   if (sub?.status !== "active" || !sub.emailBulletins) {
-    return { subscribed: false, error: "Necessário plano ativo com boletins" };
+    return {
+      subscribed: false,
+      notifyEmail: false,
+      notifyWhatsapp: false,
+      error: "Necessário plano ativo com boletins",
+    };
+  }
+
+  if (channel === "whatsapp") {
+    const [user] = await db
+      .select({ phoneVerifiedAt: users.phoneVerifiedAt })
+      .from(users)
+      .where(eq(users.id, session.userId))
+      .limit(1);
+
+    if (!user?.phoneVerifiedAt) {
+      return {
+        subscribed: false,
+        notifyEmail: false,
+        notifyWhatsapp: false,
+        error: "Telefone não verificado",
+      };
+    }
   }
 
   const conditions = [
@@ -219,25 +265,76 @@ export async function toggleQuoteSubscription(
   }
 
   const [existing] = await db
-    .select({ id: userQuoteSubscriptions.id })
+    .select({
+      id: userQuoteSubscriptions.id,
+      notifyEmail: userQuoteSubscriptions.notifyEmail,
+      notifyWhatsapp: userQuoteSubscriptions.notifyWhatsapp,
+    })
     .from(userQuoteSubscriptions)
     .where(and(...conditions))
     .limit(1);
 
   if (existing) {
+    const notifyEmail =
+      channel === "email"
+        ? existing.notifyEmail === 0
+        : existing.notifyEmail === 1;
+    const notifyWhatsapp =
+      channel === "whatsapp"
+        ? existing.notifyWhatsapp === 0
+        : existing.notifyWhatsapp === 1;
+
+    if (!notifyEmail && !notifyWhatsapp) {
+      await db
+        .delete(userQuoteSubscriptions)
+        .where(eq(userQuoteSubscriptions.id, existing.id));
+      return { subscribed: false, notifyEmail: false, notifyWhatsapp: false };
+    }
+
     await db
-      .delete(userQuoteSubscriptions)
+      .update(userQuoteSubscriptions)
+      .set({
+        notifyEmail: notifyEmail ? 1 : 0,
+        notifyWhatsapp: notifyWhatsapp ? 1 : 0,
+      })
       .where(eq(userQuoteSubscriptions.id, existing.id));
-    return { subscribed: false };
+
+    return { subscribed: true, notifyEmail, notifyWhatsapp };
   }
+
+  const notifyEmail = channel === "email";
+  const notifyWhatsapp = channel === "whatsapp";
 
   await db.insert(userQuoteSubscriptions).values({
     userId: session.userId,
     productId,
     cityId,
+    notifyEmail: notifyEmail ? 1 : 0,
+    notifyWhatsapp: notifyWhatsapp ? 1 : 0,
   });
 
-  return { subscribed: true };
+  return { subscribed: true, notifyEmail, notifyWhatsapp };
+}
+
+export async function unsubscribeQuote(
+  productId: number,
+  cityId: number | null,
+): Promise<{ subscribed: boolean }> {
+  const session = await getSession();
+  if (!session) return { subscribed: false };
+
+  const conditions = [
+    eq(userQuoteSubscriptions.userId, session.userId),
+    eq(userQuoteSubscriptions.productId, productId),
+  ];
+
+  if (cityId) {
+    conditions.push(eq(userQuoteSubscriptions.cityId, cityId));
+  }
+
+  await db.delete(userQuoteSubscriptions).where(and(...conditions));
+
+  return { subscribed: false };
 }
 
 export async function removeQuoteSubscription(
