@@ -91,6 +91,8 @@ add_column users country_id "INTEGER"
 add_column users geo_state_id "INTEGER"
 add_column users geo_city_id "INTEGER"
 add_column users bulletin_opt_out "INTEGER NOT NULL DEFAULT 0"
+add_column user_quote_subscriptions notify_email "INTEGER NOT NULL DEFAULT 1"
+add_column user_quote_subscriptions notify_whatsapp "INTEGER NOT NULL DEFAULT 0"
 
 final_integrity="$(sqlite3 "$db_path" 'PRAGMA integrity_check;' | head -n 1)"
 [[ "$final_integrity" == "ok" ]] || fail "O banco falhou no teste de integridade após os ajustes."
