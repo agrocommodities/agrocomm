@@ -35,7 +35,7 @@ export const navLinks: NavLink[] = [
       { name: "Boi Gordo", href: "/cotacoes/boi-gordo" },
       { name: "Vaca Gorda", href: "/cotacoes/vaca-gorda" },
       {
-        name: "Calculadora de lucro",
+        name: "Calculadora",
         href: "/ferramentas/calculadora-pecuaria",
       },
     ],

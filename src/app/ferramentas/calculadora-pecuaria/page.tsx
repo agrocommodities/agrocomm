@@ -38,7 +38,7 @@ export default async function CalculadoraPecuariaPage() {
           ]}
         />
         <div className="mt-2 flex min-w-0 flex-col gap-2">
-          <h1 className="break-words text-3xl font-bold sm:text-4xl">
+          <h1 className="wrap-break-word text-3xl font-bold sm:text-4xl">
             🐂 Calculadora de lucro na pecuária
           </h1>
           <p className="max-w-3xl text-sm leading-relaxed text-white/50 sm:text-base">
