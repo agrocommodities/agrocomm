@@ -72,7 +72,7 @@ export default function ProductQuotesTable({ rows, productSlug }: Props) {
       <div className="px-5 py-4 border-b border-white/10">
         <h2 className="font-semibold text-base">Cotações de hoje por praça</h2>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-white/40 text-xs uppercase tracking-wide">
