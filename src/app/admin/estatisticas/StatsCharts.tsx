@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -37,6 +38,9 @@ function formatReferrer(url: string | null): string {
 }
 
 export default function StatsCharts({ stats }: { stats: Stats }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const avgPerDay =
     stats.viewsPerDay.length > 0
       ? Math.round(
@@ -103,6 +107,8 @@ export default function StatsCharts({ stats }: { stats: Stats }) {
           <div className="flex items-center justify-center h-48 text-white/40 text-sm">
             Sem dados disponíveis
           </div>
+        ) : !mounted ? (
+          <div style={{ height: 280 }} />
         ) : (
           <ResponsiveContainer width="100%" height={280}>
             <LineChart
@@ -174,6 +180,9 @@ export default function StatsCharts({ stats }: { stats: Stats }) {
             </div>
           ) : (
             <div className="p-4">
+              {!mounted ? (
+                <div style={{ height: Math.max(200, stats.topPages.length * 36) }} />
+              ) : (
               <ResponsiveContainer
                 width="100%"
                 height={Math.max(200, stats.topPages.length * 36)}
@@ -219,6 +228,7 @@ export default function StatsCharts({ stats }: { stats: Stats }) {
                   />
                 </BarChart>
               </ResponsiveContainer>
+              )}
             </div>
           )}
         </div>
