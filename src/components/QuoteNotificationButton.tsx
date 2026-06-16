@@ -64,10 +64,9 @@ export default function QuoteNotificationButton({
   useEffect(() => {
     let cancelled = false;
 
-    startTransition(async () => {
+    async function fetchStatus() {
       const status = await getQuoteSubscriptionStatus(productId, cityId);
       if (cancelled) return;
-
       setHasSession(status.hasSession);
       setCanReceiveEmails(status.canReceiveEmails);
       setHasVerifiedPhone(status.hasVerifiedPhone);
@@ -75,7 +74,9 @@ export default function QuoteNotificationButton({
       setNotifyEmail(status.notifyEmail);
       setNotifyWhatsapp(status.notifyWhatsapp);
       onToggleRef.current?.(status.subscribed);
-    });
+    }
+
+    fetchStatus().catch(() => {});
 
     return () => {
       cancelled = true;
