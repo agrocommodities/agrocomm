@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useEffect, useTransition, useCallback } from "react";
 import {
   AreaChart,
   Area,
@@ -212,9 +212,12 @@ export default function QuoteChart({
   initialRange = 30,
   height = 280,
 }: QuoteChartProps) {
+  const [mounted, setMounted] = useState(false);
   const [range, setRange] = useState<RangeValue>(initialRange);
   const [data, setData] = useState<HistoryPoint[]>(initialData);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => setMounted(true), []);
 
   const handleRangeChange = useCallback(
     (newRange: RangeValue) => {
@@ -273,7 +276,7 @@ export default function QuoteChart({
             <Loader2 className="w-6 h-6 text-green-400 animate-spin" />
           </div>
         )}
-        {hasData ? (
+        {mounted && hasData ? (
           <ResponsiveContainer width="100%" height={height}>
             <AreaChart
               data={data}
