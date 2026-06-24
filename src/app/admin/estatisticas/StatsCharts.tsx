@@ -181,53 +181,55 @@ export default function StatsCharts({ stats }: { stats: Stats }) {
           ) : (
             <div className="p-4">
               {!mounted ? (
-                <div style={{ height: Math.max(200, stats.topPages.length * 36) }} />
+                <div
+                  style={{ height: Math.max(200, stats.topPages.length * 36) }}
+                />
               ) : (
-              <ResponsiveContainer
-                width="100%"
-                height={Math.max(200, stats.topPages.length * 36)}
-              >
-                <BarChart
-                  data={stats.topPages}
-                  layout="vertical"
-                  margin={{ top: 0, right: 8, bottom: 0, left: 0 }}
+                <ResponsiveContainer
+                  width="100%"
+                  height={Math.max(200, stats.topPages.length * 36)}
                 >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="rgba(255,255,255,0.07)"
-                    horizontal={false}
-                  />
-                  <XAxis
-                    type="number"
-                    tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="path"
-                    tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={140}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: "#171717",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      borderRadius: 10,
-                      color: "#fff",
-                      fontSize: 13,
-                    }}
-                  />
-                  <Bar
-                    dataKey="views"
-                    name="Visualizações"
-                    fill="#4ade80"
-                    radius={[0, 4, 4, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+                  <BarChart
+                    data={stats.topPages}
+                    layout="vertical"
+                    margin={{ top: 0, right: 8, bottom: 0, left: 0 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="rgba(255,255,255,0.07)"
+                      horizontal={false}
+                    />
+                    <XAxis
+                      type="number"
+                      tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="path"
+                      tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={140}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#171717",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        borderRadius: 10,
+                        color: "#fff",
+                        fontSize: 13,
+                      }}
+                    />
+                    <Bar
+                      dataKey="views"
+                      name="Visualizações"
+                      fill="#4ade80"
+                      radius={[0, 4, 4, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               )}
             </div>
           )}

@@ -1075,41 +1075,48 @@ async function downloadImage(
     });
     if (!res.ok) return null;
 
-    const contentType = res.headers.get("content-type") ?? "";
-    let ext = ".jpg";
-    if (contentType.includes("png")) ext = ".png";
-    else if (contentType.includes("webp")) ext = ".webp";
-    else if (contentType.includes("gif")) ext = ".gif";
-    else {
-      const urlExt = extname(new URL(imageUrl).pathname).toLowerCase();
-      if ([".jpg", ".jpeg", ".png", ".webp", ".gif"].includes(urlExt)) {
-        ext = urlExt === ".jpeg" ? ".jpg" : urlExt;
-      }
-    }
-
     const [year, month] = publishedAt.split("-");
     const uuid = randomUUID();
     const dir = join(process.cwd(), "public", "images", "posts", year, month);
     await mkdir(dir, { recursive: true });
 
-    const fileName = `${uuid}${ext}`;
-    const filePath = join(dir, fileName);
     const buffer = Buffer.from(await res.arrayBuffer());
-
-    // Resize to max 1080p if larger
-    const image = sharp(buffer);
+    const image = sharp(buffer, { animated: true });
     const metadata = await image.metadata();
-    if (
+    const needsResize =
       (metadata.width && metadata.width > 1920) ||
-      (metadata.height && metadata.height > 1080)
-    ) {
-      const resized = await image
-        .resize(1920, 1080, { fit: "inside", withoutEnlargement: true })
-        .toBuffer();
-      await writeFile(filePath, resized);
+      (metadata.height && metadata.height > 1080);
+    const isAnimated = (metadata.pages ?? 1) > 1;
+
+    let fileName: string;
+    let outBuffer: Buffer;
+
+    if (isAnimated) {
+      // Animated images (gif/webp) are kept in their native format to avoid losing animation.
+      const contentType = res.headers.get("content-type") ?? "";
+      let ext = ".gif";
+      if (contentType.includes("webp")) ext = ".webp";
+      else if (contentType.includes("gif")) ext = ".gif";
+      else {
+        const urlExt = extname(new URL(imageUrl).pathname).toLowerCase();
+        if ([".gif", ".webp"].includes(urlExt)) ext = urlExt;
+      }
+      fileName = `${uuid}${ext}`;
+      outBuffer = needsResize
+        ? await image
+            .resize(1920, 1080, { fit: "inside", withoutEnlargement: true })
+            .toBuffer()
+        : buffer;
     } else {
-      await writeFile(filePath, buffer);
+      fileName = `${uuid}.webp`;
+      const pipeline = needsResize
+        ? image.resize(1920, 1080, { fit: "inside", withoutEnlargement: true })
+        : image;
+      outBuffer = await pipeline.webp({ quality: 80, effort: 4 }).toBuffer();
     }
+
+    const filePath = join(dir, fileName);
+    await writeFile(filePath, outBuffer);
 
     return `/images/posts/${year}/${month}/${fileName}`;
   } catch (err) {

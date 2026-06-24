@@ -11,6 +11,7 @@
     "backup": "mkdir -p drizzle/backups && cp drizzle/agrocomm.db drizzle/backups/agrocomm-$(date +%Y%m%d-%H%M%S).db && echo 'Backup criado em drizzle/backups/'",
     "reset": "pnpm run backup 2>/dev/null; rm -f drizzle/agrocomm.db && pnpm run push && pnpm run seed && pnpm run scrape",
     "scrape": "tsx src/db/scrape.ts",
+    "convert-images": "tsx src/db/convert-post-images.ts",
     "check": "tsc --noEmit",
     "lint": "biome check",
     "format": "biome format --write"

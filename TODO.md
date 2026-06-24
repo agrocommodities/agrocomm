@@ -1,0 +1,3 @@
+- No e-mail enviado aos usuários como boletim (com as cotações) a imagem do header está quebrada, no boletim com as últimas noticias a imagem funciona.
+- Nos e-mails enviados o link para se descadastrar dos boletins não leva a uma página que efetivamente descadastre o usuário dos boletins.
+- Permita re-enviar o e-mail de ativação
