@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import {
   Bell,
   BellRing,
@@ -52,9 +53,14 @@ export default function QuoteNotificationButton({
   const [hasVerifiedPhone, setHasVerifiedPhone] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{
+    top: number;
+    right: number;
+  } | null>(null);
   const [isPending, startTransition] = useTransition();
   const onToggleRef = useRef(onToggle);
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -91,12 +97,39 @@ export default function QuoteNotificationButton({
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(target)
+      ) {
         setMenuOpen(false);
       }
     }
     if (menuOpen) document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function updatePosition() {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuPosition({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
+
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
   }, [menuOpen]);
 
   function handleClick(event: React.MouseEvent) {
@@ -189,8 +222,9 @@ export default function QuoteNotificationButton({
     : "Receber notificações desta cotação";
 
   return (
-    <div ref={menuRef} className="relative inline-flex">
+    <div className="relative inline-flex">
       <button
+        ref={buttonRef}
         type="button"
         onClick={handleClick}
         disabled={isPending}
@@ -215,56 +249,62 @@ export default function QuoteNotificationButton({
         )}
       </button>
 
-      <div
-        className={`absolute right-0 top-full mt-2 w-52 z-50 bg-[#2d3a28] border border-white/10 rounded-xl shadow-2xl overflow-hidden
-          transform transition-all duration-200 origin-top-right
-          ${menuOpen ? "scale-100 opacity-100" : "scale-95 opacity-0 pointer-events-none"}`}
-      >
-        <div className="px-4 py-2.5 border-b border-white/10">
-          <p className="text-xs font-semibold text-white/70">
-            Receber notificações por:
-          </p>
-        </div>
-        <div className="py-1.5">
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleChannelClick("email");
-            }}
-            disabled={isPending}
-            className="flex items-center justify-between gap-3 w-full px-4 py-2.5 text-sm hover:bg-white/10 transition-colors disabled:opacity-50 cursor-pointer"
+      {menuOpen &&
+        menuPosition &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            ref={menuRef}
+            style={{ top: menuPosition.top, right: menuPosition.right }}
+            className="fixed w-52 z-50 bg-[#2d3a28] border border-white/10 rounded-xl shadow-2xl overflow-hidden"
           >
-            <span className="flex items-center gap-3">
-              <Mail className="w-4 h-4" />
-              E-mail
-            </span>
-            {notifyEmail && <Check className="w-4 h-4 text-green-400" />}
-          </button>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleChannelClick("whatsapp");
-            }}
-            disabled={isPending}
-            className="flex items-center justify-between gap-3 w-full px-4 py-2.5 text-sm hover:bg-white/10 transition-colors disabled:opacity-50 cursor-pointer"
-          >
-            <span className="flex items-center gap-3">
-              <MessageCircle className="w-4 h-4" />
-              <span className="flex flex-col items-start">
-                WhatsApp
-                {!hasVerifiedPhone && (
-                  <span className="text-xs text-white/40">
-                    Verifique seu telefone em Ajustes
+            <div className="px-4 py-2.5 border-b border-white/10">
+              <p className="text-xs font-semibold text-white/70">
+                Receber notificações por:
+              </p>
+            </div>
+            <div className="py-1.5">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleChannelClick("email");
+                }}
+                disabled={isPending}
+                className="flex items-center justify-between gap-3 w-full px-4 py-2.5 text-sm hover:bg-white/10 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                <span className="flex items-center gap-3">
+                  <Mail className="w-4 h-4" />
+                  E-mail
+                </span>
+                {notifyEmail && <Check className="w-4 h-4 text-green-400" />}
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleChannelClick("whatsapp");
+                }}
+                disabled={isPending}
+                className="flex items-center justify-between gap-3 w-full px-4 py-2.5 text-sm hover:bg-white/10 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                <span className="flex items-center gap-3">
+                  <MessageCircle className="w-4 h-4" />
+                  <span className="flex flex-col items-start">
+                    WhatsApp
+                    {!hasVerifiedPhone && (
+                      <span className="text-xs text-white/40">
+                        Verifique seu telefone em Ajustes
+                      </span>
+                    )}
                   </span>
-                )}
-              </span>
-            </span>
-            {notifyWhatsapp && <Check className="w-4 h-4 text-green-400" />}
-          </button>
-        </div>
-      </div>
+                </span>
+                {notifyWhatsapp && <Check className="w-4 h-4 text-green-400" />}
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
 
       {feedback && (
         <div

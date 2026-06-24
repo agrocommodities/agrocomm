@@ -153,9 +153,7 @@ async function restoreSqlIntoSqlite({
   const client = createClient({ url: `file:${tempDbPath}` });
 
   try {
-    for (const statement of statements) {
-      await client.execute(statement);
-    }
+    await client.migrate(statements);
   } finally {
     client.close();
   }
