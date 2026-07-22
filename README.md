@@ -11,6 +11,23 @@ Plataforma de cotações de commodities agropecuárias (grãos e pecuária) para
 
 ---
 
+## Índice
+
+- [Funcionalidades Principais](#funcionalidades-principais)
+- [Estrutura de Pastas](#estrutura-de-pastas)
+- [Banco de Dados — Schema](#banco-de-dados--schema)
+- [Autenticação](#autenticação)
+- [Scraping](#scraping)
+- [Deploy](#deploy)
+- [Backup e Restauração (Admin)](#backup-e-restauração-admin)
+- [Criando um Branch Limpo (sem histórico)](#criando-um-branch-limpo-sem-histórico)
+- [Configuração do WhatsApp Business API (Meta)](#configuração-do-whatsapp-business-api-meta)
+- [Variáveis de Ambiente](#variáveis-de-ambiente)
+- [Comandos Úteis](#comandos-úteis)
+- [Guia para o Copilot](#guia-para-o-copilot)
+
+---
+
 ## Funcionalidades Principais
 
 ### 🏠 Página Inicial
