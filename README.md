@@ -366,6 +366,41 @@ O script:
 
 ---
 
+## Criando um Branch Limpo (sem histórico)
+
+Para iniciar uma reescrita completa da stack (ex: migração para outra linguagem/framework) sem herdar nenhum arquivo ou commit do `main`, use um **orphan branch**. O `main` permanece intocado.
+
+```bash
+# 1. Garanta que não há alterações pendentes
+git status
+
+# 2. Crie o branch órfão (sem histórico de commits)
+git checkout --orphan nome-do-branch
+
+# 3. Remova todos os arquivos do working tree (mantidos apenas no histórico do main)
+git rm -rf .
+
+# 4. Adicione os novos arquivos do projeto (ex: estrutura inicial em Go)
+#    ... crie seus arquivos aqui ...
+git add .
+
+# 5. Primeiro commit do novo branch, sem relação com o histórico do main
+git commit -m "feat: initial commit da nova stack"
+
+# 6. Envie o branch ao remoto
+git push -u origin nome-do-branch
+```
+
+Para voltar ao `main` a qualquer momento:
+
+```bash
+git checkout main
+```
+
+O `main` e o novo branch coexistem no mesmo repositório, sem interferência — apenas não dê `merge`/`rebase` entre eles se a intenção é mantê-los como históricos totalmente independentes.
+
+---
+
 ## Configuração do WhatsApp Business API (Meta)
 
 Este projeto usa a API oficial da Meta para:
