@@ -46,6 +46,7 @@ next-env.d.ts
 drizzle/**
 !drizzle/.gitkeep
 !drizzle/backups/.gitkeep
+agrocomm.db
 
 # news
 public/images/posts/**
