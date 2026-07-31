@@ -8,6 +8,7 @@ import {
   MessageSquare,
   BarChart3,
   ShoppingBag,
+  Briefcase,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -53,6 +54,7 @@ export const navLinks: NavLink[] = [
   { name: "Chicago", href: "/cotacoes/chicago", icon: BarChart3 },
   { name: "Notícias", href: "/noticias", icon: Newspaper },
   { name: "Classificados", href: "/classificados", icon: ShoppingBag },
+  { name: "Vagas", href: "/vagas", icon: Briefcase },
 ];
 
 export const footerLinks = [

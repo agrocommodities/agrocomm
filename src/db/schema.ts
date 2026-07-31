@@ -982,3 +982,50 @@ export const bulletinSchedules = sqliteTable("bulletin_schedules", {
   lastSentAt: text("last_sent_at"),
   updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
 });
+
+// ── Vagas de Emprego ──────────────────────────────────────────────────────────
+
+export const jobListings = sqliteTable("job_listings", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  type: text().notNull(), // "oferta" | "candidato"
+  title: text().notNull(),
+  slug: text().notNull().unique(),
+  area: text().notNull(), // setor: agricultura, pecuária, administrativo, etc.
+  description: text(),
+  // Campos de quem oferece a vaga
+  companyName: text("company_name"),
+  contractType: text("contract_type"), // "clt" | "temporario" | "diarista" | "meeiro" | "estagio" | "pj" | "outro"
+  salaryRange: text("salary_range"),
+  positionsCount: int("positions_count"),
+  requirements: text(),
+  benefits: text(),
+  // Campos de quem procura vaga
+  desiredRole: text("desired_role"),
+  experienceYears: int("experience_years"),
+  availability: text(), // "imediata" | "a-combinar"
+  skills: text(),
+  // Localização e contato (compartilhados)
+  stateId: int("state_id")
+    .notNull()
+    .references(() => states.id),
+  cityId: int("city_id")
+    .notNull()
+    .references(() => cities.id),
+  contactPhone: text("contact_phone"),
+  contactEmail: text("contact_email"),
+  status: text().notNull().default("pending"), // "pending" | "approved" | "rejected" | "blocked" | "paused"
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const jobListingsRelations = relations(jobListings, ({ one }) => ({
+  user: one(users, { fields: [jobListings.userId], references: [users.id] }),
+  state: one(states, {
+    fields: [jobListings.stateId],
+    references: [states.id],
+  }),
+  city: one(cities, { fields: [jobListings.cityId], references: [cities.id] }),
+}));
