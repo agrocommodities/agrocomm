@@ -1,7 +1,11 @@
+import nextDynamic from "next/dynamic";
 import { getPageViewStats, getNewsWithViews } from "@/actions/admin";
-import StatsCharts from "./StatsCharts";
 import NewsViewsTable from "./NewsViewsTable";
 import OnlineUsersWidget from "@/components/admin/OnlineUsersWidget";
+
+const StatsCharts = nextDynamic(() => import("./StatsCharts"), {
+  ssr: false,
+});
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Estatísticas — Admin — AgroComm" };

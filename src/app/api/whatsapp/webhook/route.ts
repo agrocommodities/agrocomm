@@ -47,7 +47,20 @@ export async function POST(request: Request) {
   try {
     const payload = await request.json();
 
-    console.log("WhatsApp webhook recebido:", JSON.stringify(payload));
+    const value = payload?.entry?.[0]?.changes?.[0]?.value;
+    const messageCount = value?.messages?.length ?? 0;
+    const statusCount = value?.statuses?.length ?? 0;
+
+    console.log(
+      `WhatsApp webhook: messages=${messageCount} statuses=${statusCount}`,
+    );
+
+    for (const status of value?.statuses ?? []) {
+      if (status.status === "failed") {
+        const errorTitle = status.errors?.[0]?.title ?? "erro desconhecido";
+        console.warn(`WhatsApp mensagem ${status.id} falhou: ${errorTitle}`);
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
