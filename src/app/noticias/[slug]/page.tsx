@@ -34,9 +34,7 @@ const categoryLabels: Record<string, string> = {
 };
 
 function formatDate(dateStr: string) {
-  const [year, month, day] = dateStr.split("-");
   const months = [
-    "",
     "Janeiro",
     "Fevereiro",
     "Março",
@@ -50,13 +48,14 @@ function formatDate(dateStr: string) {
     "Novembro",
     "Dezembro",
   ];
-  return `${day} de ${months[Number(month)]} de ${year}`;
+  const parsed = new Date(dateStr);
+  if (Number.isNaN(parsed.getTime())) return dateStr;
+  const day = String(parsed.getUTCDate()).padStart(2, "0");
+  return `${day} de ${months[parsed.getUTCMonth()]} de ${parsed.getUTCFullYear()}`;
 }
 
 function formatDateShort(dateStr: string) {
-  const [year, month, day] = dateStr.split("-");
   const months = [
-    "",
     "Jan",
     "Fev",
     "Mar",
@@ -70,7 +69,10 @@ function formatDateShort(dateStr: string) {
     "Nov",
     "Dez",
   ];
-  return `${day} ${months[Number(month)]} ${year}`;
+  const parsed = new Date(dateStr);
+  if (Number.isNaN(parsed.getTime())) return dateStr;
+  const day = String(parsed.getUTCDate()).padStart(2, "0");
+  return `${day} ${months[parsed.getUTCMonth()]} ${parsed.getUTCFullYear()}`;
 }
 
 export async function generateMetadata({

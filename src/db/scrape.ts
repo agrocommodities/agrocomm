@@ -3,7 +3,7 @@ import * as cheerio from "cheerio";
 import type { Cheerio, CheerioAPI } from "cheerio";
 import type { Element as DomElement } from "domhandler";
 import { drizzle } from "drizzle-orm/libsql";
-import { eq, and } from "drizzle-orm";
+import { eq, and, lt, desc } from "drizzle-orm";
 import {
   quotes,
   sources,
@@ -724,6 +724,32 @@ const SCRAPERS: Record<string, () => Promise<RawQuote[]>> = {
   noticiasagricolas: scrapeNoticiasAgricolas,
 };
 
+// Fontes como Scot Consultoria não expõem variação na página — calcula
+// comparando com a cotação anterior mais recente do mesmo produto/cidade.
+async function computeVariationFallback(
+  productId: number,
+  cityId: number,
+  dateStr: string,
+  price: number,
+): Promise<number | null> {
+  const [previous] = await db
+    .select({ price: quotes.price })
+    .from(quotes)
+    .where(
+      and(
+        eq(quotes.productId, productId),
+        eq(quotes.cityId, cityId),
+        lt(quotes.quoteDate, dateStr),
+      ),
+    )
+    .orderBy(desc(quotes.quoteDate))
+    .limit(1);
+  if (!previous || previous.price === 0) return null;
+  return (
+    Math.round(((price - previous.price) / previous.price) * 100 * 100) / 100
+  );
+}
+
 async function persistQuotes(
   rows: RawQuote[],
   sourceId: number,
@@ -803,9 +829,17 @@ async function persistQuotes(
 
     if (existing) {
       if (existing.sourceId === sourceId) {
+        const variation =
+          row.variation ??
+          (await computeVariationFallback(
+            product.id,
+            cityRow.id,
+            dateStr,
+            row.price,
+          ));
         await db
           .update(quotes)
-          .set({ price: row.price, variation: row.variation ?? null })
+          .set({ price: row.price, variation })
           .where(eq(quotes.id, existing.id));
         inserted++;
       } else {
@@ -817,11 +851,19 @@ async function persistQuotes(
         const rejectedPrice = keepNew ? existing.price : row.price;
 
         if (keepNew) {
+          const variation =
+            row.variation ??
+            (await computeVariationFallback(
+              product.id,
+              cityRow.id,
+              dateStr,
+              row.price,
+            ));
           await db
             .update(quotes)
             .set({
               price: row.price,
-              variation: row.variation ?? null,
+              variation,
               sourceId,
             })
             .where(eq(quotes.id, existing.id));
@@ -857,12 +899,20 @@ async function persistQuotes(
       continue;
     }
 
+    const variation =
+      row.variation ??
+      (await computeVariationFallback(
+        product.id,
+        cityRow.id,
+        dateStr,
+        row.price,
+      ));
     await db.insert(quotes).values({
       productId: product.id,
       cityId: cityRow.id,
       sourceId,
       price: row.price,
-      variation: row.variation,
+      variation,
       quoteDate: dateStr,
     });
     inserted++;

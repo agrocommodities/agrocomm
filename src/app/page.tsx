@@ -33,9 +33,7 @@ const categoryLabels: Record<string, string> = {
 };
 
 function formatDate(dateStr: string) {
-  const [year, month, day] = dateStr.split("-");
   const months = [
-    "",
     "Jan",
     "Fev",
     "Mar",
@@ -49,7 +47,10 @@ function formatDate(dateStr: string) {
     "Nov",
     "Dez",
   ];
-  return `${day} ${months[Number(month)]} ${year}`;
+  const parsed = new Date(dateStr);
+  if (Number.isNaN(parsed.getTime())) return dateStr;
+  const day = String(parsed.getUTCDate()).padStart(2, "0");
+  return `${day} ${months[parsed.getUTCMonth()]} ${parsed.getUTCFullYear()}`;
 }
 
 /** Capitais dos estados brasileiros (para priorizar na amostragem) */
