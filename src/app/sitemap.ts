@@ -3,6 +3,18 @@ import { db } from "@/db";
 import { newsArticles, classifieds } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 
+function safeDate(value: unknown): Date {
+  if (value) {
+    const asString = String(value);
+    const withTime = /^\d{4}-\d{2}-\d{2}$/.test(asString)
+      ? `${asString}T12:00:00`
+      : asString;
+    const parsed = new Date(withTime);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  return new Date();
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = "https://agrocomm.com.br";
 
@@ -81,9 +93,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const newsPages: MetadataRoute.Sitemap = articles.map((article) => ({
     url: `${baseUrl}/noticias/${article.slug}`,
-    lastModified: article.publishedAt
-      ? new Date(`${article.publishedAt}T12:00:00`)
-      : new Date(),
+    lastModified: safeDate(article.publishedAt),
     changeFrequency: "weekly" as const,
     priority: 0.6,
   }));
@@ -100,7 +110,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const classifiedPages: MetadataRoute.Sitemap = ads.map((ad) => ({
     url: `${baseUrl}/classificados/${ad.slug}`,
-    lastModified: ad.updatedAt ? new Date(ad.updatedAt) : new Date(),
+    lastModified: safeDate(ad.updatedAt),
     changeFrequency: "weekly" as const,
     priority: 0.5,
   }));
