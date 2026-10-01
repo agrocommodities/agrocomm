@@ -1,4 +1,3 @@
-import nodemailer from "nodemailer";
 import Email from "email-templates";
 import path from "node:path";
 
@@ -8,11 +7,11 @@ function getTransporter() {
 
   if (!user || !pass) return null;
 
-  return nodemailer.createTransport({
+  return {
     service: "iCloud",
     secure: false,
     auth: { user, pass },
-  });
+  };
 }
 
 function getAppUrl(): string {
