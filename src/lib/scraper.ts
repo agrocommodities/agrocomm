@@ -75,15 +75,23 @@ function norm(str: string): string {
 /** Converte data brasileira "DD/MM/YYYY" → "YYYY-MM-DD" */
 function parseBrazilianDate(text: string): string | undefined {
   // DD/MM/YYYY
-  const full = text.match(/\b(\d{2})\/(\d{2})\/(\d{4})\b/);
-  if (full) return `${full[3]}-${full[2]}-${full[1]}`;
-  // DD/MM (sem ano — assume ano corrente)
-  const short = text.match(/\b(\d{2})\/(\d{2})\b/);
-  if (short) {
-    const year = new Date().getFullYear();
-    return `${year}-${short[2]}-${short[1]}`;
+  for (const m of text.matchAll(/\b(\d{2})\/(\d{2})\/(\d{4})\b/g)) {
+    if (isValidDayMonth(m[1], m[2])) return `${m[3]}-${m[2]}-${m[1]}`;
+  }
+  // DD/MM (sem ano — assume ano corrente). Ignora pares inválidos como "safra 27/28"
+  for (const m of text.matchAll(/\b(\d{2})\/(\d{2})\b(?!\/)/g)) {
+    if (isValidDayMonth(m[1], m[2])) {
+      const year = new Date().getFullYear();
+      return `${year}-${m[2]}-${m[1]}`;
+    }
   }
   return undefined;
+}
+
+function isValidDayMonth(day: string, month: string): boolean {
+  const d = Number(day);
+  const m = Number(month);
+  return d >= 1 && d <= 31 && m >= 1 && m <= 12;
 }
 
 const MONTH_NAMES: Record<string, string> = {
