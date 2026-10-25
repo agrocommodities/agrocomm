@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { drizzle } from "drizzle-orm/libsql";
-import { eq, and, sql, desc, gte } from "drizzle-orm";
+import { eq, and, sql, desc, asc, gt, gte } from "drizzle-orm";
 import {
   bulletinSchedules,
   subscriptions,
@@ -28,7 +28,9 @@ import { generateUnsubscribeToken } from "../lib/unsubscribe";
 
 const db = drizzle(process.env.DB_FILE_NAME!);
 
-async function shouldSendBulletin(bulletinType: string): Promise<boolean> {
+async function shouldSendBulletin(
+  bulletinType: string,
+): Promise<{ send: boolean; previousSentAt: string | null }> {
   const [schedule] = await db
     .select()
     .from(bulletinSchedules)
@@ -37,10 +39,11 @@ async function shouldSendBulletin(bulletinType: string): Promise<boolean> {
 
   if (!schedule) {
     // No schedule configured — use legacy behavior (always send)
-    return true;
+    return { send: true, previousSentAt: null };
   }
 
-  if (!schedule.enabled) return false;
+  const skip = { send: false, previousSentAt: schedule.lastSentAt };
+  if (!schedule.enabled) return skip;
 
   const now = new Date();
   const currentDay = now.getDay(); // 0=Sun..6=Sat
@@ -49,14 +52,14 @@ async function shouldSendBulletin(bulletinType: string): Promise<boolean> {
   const days = JSON.parse(schedule.daysOfWeek) as number[];
   const times = JSON.parse(schedule.sendTimes) as number[];
 
-  if (!days.includes(currentDay)) return false;
-  if (!times.includes(currentHour)) return false;
+  if (!days.includes(currentDay)) return skip;
+  if (!times.includes(currentHour)) return skip;
 
   // Prevent double-send: skip if already sent within the last 50 minutes
   if (schedule.lastSentAt) {
     const lastSent = new Date(schedule.lastSentAt);
     const diffMs = now.getTime() - lastSent.getTime();
-    if (diffMs < 50 * 60 * 1000) return false;
+    if (diffMs < 50 * 60 * 1000) return skip;
   }
 
   // Mark as sent
@@ -65,12 +68,12 @@ async function shouldSendBulletin(bulletinType: string): Promise<boolean> {
     .set({ lastSentAt: now.toISOString() })
     .where(eq(bulletinSchedules.bulletinType, bulletinType));
 
-  return true;
+  return { send: true, previousSentAt: schedule.lastSentAt };
 }
 
 async function sendQuoteBulletins() {
   console.log("Sending quote bulletins...");
-  if (!(await shouldSendBulletin("quotes"))) {
+  if (!(await shouldSendBulletin("quotes")).send) {
     console.log("  Skipped (outside scheduled window).");
     return;
   }
@@ -185,7 +188,8 @@ async function sendQuoteBulletins() {
 
 async function sendNewsBulletins() {
   console.log("Sending news bulletins...");
-  if (!(await shouldSendBulletin("news"))) {
+  const { send, previousSentAt } = await shouldSendBulletin("news");
+  if (!send) {
     console.log("  Skipped (outside scheduled window).");
     return;
   }
@@ -213,9 +217,13 @@ async function sendNewsBulletins() {
 
   if (activeSubs.length === 0) return;
 
-  // Get latest news from last 24 hours
+  // Only news scraped since the previous bulletin (fallback: last 24 hours).
+  // publishedAt is date-only, so filter by createdAt to avoid resending.
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
+  const since = previousSentAt ? new Date(previousSentAt) : yesterday;
+  // createdAt uses SQLite datetime('now') format: "YYYY-MM-DD HH:MM:SS" (UTC)
+  const sinceSql = since.toISOString().slice(0, 19).replace("T", " ");
 
   const articles = await db
     .select({
@@ -225,8 +233,9 @@ async function sendNewsBulletins() {
       imageUrl: newsArticles.imageUrl,
     })
     .from(newsArticles)
-    .where(gte(newsArticles.publishedAt, yesterday.toISOString()))
-    .orderBy(desc(newsArticles.publishedAt))
+    .where(gt(newsArticles.createdAt, sinceSql))
+    // Same-day ties: scraper inserts newest first, so lower id = newer
+    .orderBy(desc(newsArticles.publishedAt), asc(newsArticles.id))
     .limit(5);
 
   if (articles.length === 0) return;

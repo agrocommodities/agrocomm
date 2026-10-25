@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, desc, gte } from "drizzle-orm";
+import { eq, asc, desc, gt } from "drizzle-orm";
 import { db } from "@/db";
 import {
   bulletinSchedules,
@@ -377,8 +377,13 @@ export async function sendNewsBulletinNowAction(to: string) {
       imageUrl: newsArticles.imageUrl,
     })
     .from(newsArticles)
-    .where(gte(newsArticles.publishedAt, yesterday.toISOString()))
-    .orderBy(desc(newsArticles.publishedAt))
+    .where(
+      gt(
+        newsArticles.createdAt,
+        yesterday.toISOString().slice(0, 19).replace("T", " "),
+      ),
+    )
+    .orderBy(desc(newsArticles.publishedAt), asc(newsArticles.id))
     .limit(5);
 
   if (articles.length === 0)
